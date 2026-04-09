@@ -1,40 +1,38 @@
+import { Input } from "@/components/common";
+
 export function TopBar() {
   return (
-    <header className="fixed top-0 right-0 left-0 flex items-center justify-between px-8 z-30 ml-72 w-[calc(100%-18rem)] h-16 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl shadow-sm">
+    <header className="fixed top-0 right-0 left-0 flex items-center justify-between px-8 z-30 ml-72 w-[calc(100%-18rem)] h-16 bg-white/80 backdrop-blur-xl shadow-sm">
       <div className="flex items-center flex-1 max-w-xl">
-        <div className="relative w-full">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-            search
-          </span>
-          <input
-            className="w-full bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-            placeholder="Tìm kiếm kho dược, SKU, hoặc đơn hàng..."
-            type="text"
-          />
-        </div>
+        <Input
+          leadingIcon="search"
+          placeholder="Tìm kiếm kho dược, SKU, hoặc đơn hàng..."
+          aria-label="Tìm kiếm"
+          className="rounded-full"
+        />
       </div>
 
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-4">
-          <button className="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 relative opacity-80 hover:opacity-100 transition-opacity">
-            <span className="material-symbols-outlined text-slate-600">
+          <button className="hover:bg-surface-container rounded-full p-2 relative opacity-80 hover:opacity-100 transition-opacity">
+            <span className="material-symbols-outlined text-on-surface-variant">
               notifications
             </span>
-            <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-[9999px]"></span>
+            <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
           </button>
-          <button className="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 opacity-80 hover:opacity-100 transition-opacity">
-            <span className="material-symbols-outlined text-slate-600">
+          <button className="hover:bg-surface-container rounded-full p-2 opacity-80 hover:opacity-100 transition-opacity">
+            <span className="material-symbols-outlined text-on-surface-variant">
               history
             </span>
           </button>
-          <button className="hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full p-2 opacity-80 hover:opacity-100 transition-opacity">
-            <span className="material-symbols-outlined text-slate-600">
+          <button className="hover:bg-surface-container rounded-full p-2 opacity-80 hover:opacity-100 transition-opacity">
+            <span className="material-symbols-outlined text-on-surface-variant">
               chat_bubble
             </span>
           </button>
         </div>
 
-        <div className="h-8 w-px bg-slate-200"></div>
+        <div className="h-8 w-px bg-surface-container-high"></div>
 
         <div className="flex items-center gap-3">
           <div className="text-right">

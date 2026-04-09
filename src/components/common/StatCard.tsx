@@ -1,5 +1,7 @@
 import { type ReactNode } from "react";
 
+type ProgressVariant = "primary" | "secondary" | "error";
+
 interface StatCardProps {
   label: string;
   value: string;
@@ -7,9 +9,16 @@ interface StatCardProps {
   trendUp?: boolean;
   icon?: string;
   progress?: number; // 0-100
+  progressVariant?: ProgressVariant;
   children?: ReactNode; // for sparklines or custom bottom content
   className?: string;
 }
+
+const progressBarClass: Record<ProgressVariant, string> = {
+  primary: "bg-primary",
+  secondary: "bg-secondary",
+  error: "bg-error",
+};
 
 export function StatCard({
   label,
@@ -18,6 +27,7 @@ export function StatCard({
   trendUp,
   icon,
   progress,
+  progressVariant = "primary",
   children,
   className = "",
 }: StatCardProps) {
@@ -63,7 +73,7 @@ export function StatCard({
       {progress !== undefined && (
         <div className="mt-4 h-1 w-full bg-surface-container rounded-full overflow-hidden">
           <div
-            className="h-full bg-primary rounded-full"
+            className={["h-full rounded-full", progressBarClass[progressVariant]].join(" ")}
             style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
           />
         </div>

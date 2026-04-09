@@ -62,11 +62,12 @@ export function DataTable<T>({
             data.map((row, rowIdx) => (
               <tr
                 key={String(row[keyField])}
-                className={
+                className={[
+                  "group hover:bg-surface-bright transition-colors",
                   rowIdx % 2 === 0
                     ? "bg-surface-container-lowest"
-                    : "bg-surface-container-low"
-                }
+                    : "bg-surface-container-low",
+                ].join(" ")}
               >
                 {columns.map((col) => (
                   <td

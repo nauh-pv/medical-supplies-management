@@ -1,7 +1,16 @@
-import { useState } from "react";
 import { Button, SectionLabel } from "@/components/common";
 
-const navItems = [
+export type NavId =
+  | "dashboard"
+  | "inventory"
+  | "shipping"
+  | "suppliers"
+  | "reports"
+  | "settings"
+  | "pos"
+  | "alerts";
+
+const navItems: { icon: string; label: string; id: NavId }[] = [
   { icon: "dashboard", label: "Tổng quan", id: "dashboard" },
   { icon: "inventory_2", label: "Kho hàng", id: "inventory" },
   { icon: "local_shipping", label: "Vận chuyển", id: "shipping" },
@@ -10,9 +19,12 @@ const navItems = [
   { icon: "settings", label: "Cài đặt", id: "settings" },
 ];
 
-export function Sidebar() {
-  const [active, setActive] = useState("dashboard");
+interface SidebarProps {
+  active: NavId;
+  onNavigate: (id: NavId) => void;
+}
 
+export function Sidebar({ active, onNavigate }: SidebarProps) {
   return (
     <aside className="fixed left-0 top-0 flex flex-col z-40 bg-slate-50 dark:bg-slate-900 h-screen w-72 flex-shrink-0">
       <div className="p-8">
@@ -31,7 +43,7 @@ export function Sidebar() {
               href="#"
               onClick={(e) => {
                 e.preventDefault();
-                setActive(item.id);
+                onNavigate(item.id);
               }}
               className={
                 isActive

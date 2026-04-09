@@ -4,7 +4,14 @@ applyTo: "src/**/*.{tsx,ts}"
 
 # UI Common Components — Medical Supplies Management
 
-> **RULE:** Before building any UI, read this file first. Always reuse existing common components. Only build new ones when there is no suitable match. Update this file whenever a new common is added.
+> **RULES (enforce every time):**
+>
+> 1. **Always check this registry before writing any UI.** Reuse existing commons — never duplicate.
+> 2. Read `architecture.instructions.md` before creating any new page or component file.
+> 3. Read `design-tokens.instructions.md` before choosing any color, spacing, or typography class.
+> 4. When a new common is **created**: add it to `src/components/common/index.ts` AND add a section here.
+> 5. When a common is **modified** (new prop, new variant, changed behaviour): update the relevant section in this file to reflect the change.
+> 6. Never use hardcoded Tailwind colors (`slate-*`, `blue-*`, `red-*`). Always use design-token classes.
 
 ---
 
@@ -117,13 +124,20 @@ import { SectionLabel } from "@/components/common";
 
 **File:** `src/components/common/PageHeader.tsx`
 
-Asymmetric editorial header — title bottom-left, actions bottom-right.
+Asymmetric editorial header — title bottom-left, actions bottom-right.  
+Props: `eyebrow?` (ReactNode above title), `title`, `subtitle?`, `actions?`, `titleSize?` (default `"text-3xl"`)
 
 ```tsx
 import { PageHeader, Button } from "@/components/common";
 
 <PageHeader
-  title="Tổng quan Kho hàng"
+  eyebrow={
+    <span className="text-xs font-label font-bold uppercase tracking-widest text-primary">
+      Cơ sở dữ liệu
+    </span>
+  }
+  title="Quản lý Kho Tổng"
+  titleSize="text-4xl"
   subtitle={
     <>
       Trạng thái:{" "}
@@ -145,7 +159,7 @@ import { PageHeader, Button } from "@/components/common";
 
 **File:** `src/components/common/DataTable.tsx`
 
-No-line table: alternating row fills, no dividers, label-md uppercase headers. Generic over row type `T`.
+No-line table: alternating row fills, hover highlight, no dividers, label uppercase headers. Generic over row type `T`.
 
 Props: `columns: Column<T>[]`, `data: T[]`, `keyField: keyof T`, `emptyText?`
 
@@ -174,8 +188,24 @@ const columns: Column<Product>[] = [
 
 ---
 
+### `<Pagination>`
+
+**File:** `src/components/common/Pagination.tsx`
+
+Smart page number list with ellipsis. Never build raw pagination buttons elsewhere.
+
+Props: `currentPage`, `totalPages`, `onPageChange`, `className?`
+
+```tsx
+import { Pagination } from "@/components/common";
+
+<Pagination currentPage={page} totalPages={321} onPageChange={setPage} />;
+```
+
+---
+
 ## How to Add a New Common
 
 1. Create file in `src/components/common/YourComponent.tsx`.
 2. Export it in `src/components/common/index.ts`.
-3. Add a section to this file documenting: variants/props + a usage snippet.
+3. Add a section to **this file** documenting: variants/props + a usage snippet.

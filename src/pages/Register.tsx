@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Input, Button } from "@/components/common";
+import { signUp } from "@/services/auth";
 
 interface RegisterProps {
   onNavigateToLogin?: () => void;
@@ -14,10 +15,45 @@ const ROLES = [
 
 export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
   const [agreed, setAgreed] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (agreed) onRegister?.();
+    if (!agreed) return;
+    setError("");
+    if (password !== confirmPassword) {
+      setError("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Mật khẩu phải có ít nhất 6 ký tự.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await signUp(email, password, fullName, role);
+      onRegister?.();
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? "";
+      if (code === "auth/email-already-in-use") {
+        setError("Email này đã được đăng ký.");
+      } else if (code === "auth/invalid-email") {
+        setError("Địa chỉ email không hợp lệ.");
+      } else if (code === "auth/weak-password") {
+        setError("Mật khẩu quá yếu. Vui lòng chọn mật khẩu mạnh hơn.");
+      } else {
+        setError("Đăng ký thất bại. Vui lòng thử lại.");
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -32,7 +68,6 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
         <div className="max-w-5xl w-full flex flex-col md:flex-row bg-surface-container-lowest rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,80,203,0.06)] overflow-hidden">
           {/* Left: Brand panel */}
           <div className="hidden md:flex md:w-5/12 bg-primary relative p-12 flex-col justify-between overflow-hidden">
-            {/* Decorative bg */}
             <div className="absolute inset-0 opacity-10 bg-gradient-to-br from-primary to-primary-container" />
             <div className="z-10">
               <div className="flex items-center gap-2 mb-8">
@@ -50,8 +85,7 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
                 Nền tảng quản lý kho y tế tối ưu
               </h1>
               <p className="text-on-primary/80 leading-relaxed">
-                Hệ thống đồng bộ hóa dữ liệu thời gian thực, đảm bảo tính chính
-                xác tuyệt đối cho vật tư y tế của bạn.
+                Hệ thống đồng bộ hóa dữ liệu thời gian thực, đảm bảo tính chính xác tuyệt đối cho vật tư y tế.
               </p>
             </div>
             <div className="z-10 mt-auto">
@@ -93,12 +127,18 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
                   label="Họ và tên"
                   leadingIcon="person"
                   placeholder="Nguyễn Văn A"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
                 />
                 <Input
                   label="Email công việc"
                   leadingIcon="mail"
                   placeholder="example@med.vn"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
 
@@ -108,6 +148,8 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
                   leadingIcon="call"
                   placeholder="09xx xxx xxx"
                   type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                 />
 
                 {/* Role selector */}
@@ -119,7 +161,12 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
                     <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl pointer-events-none">
                       badge
                     </span>
-                    <select className="w-full pl-12 pr-10 py-3 bg-surface-container-low rounded-xl text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer">
+                    <select
+                      className="w-full pl-12 pr-10 py-3 bg-surface-container-low rounded-xl text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer"
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      required
+                    >
                       <option value="">Chọn vai trò</option>
                       {ROLES.map((r) => (
                         <option key={r.value} value={r.value}>
@@ -140,12 +187,18 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
                   leadingIcon="lock"
                   placeholder="••••••••"
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
                 <Input
                   label="Xác nhận mật khẩu"
                   leadingIcon="lock_reset"
                   placeholder="••••••••"
                   type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
                 />
               </div>
 
@@ -162,31 +215,32 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
                   className="text-xs text-on-surface-variant leading-relaxed"
                 >
                   Bằng cách nhấn đăng ký, bạn đồng ý với{" "}
-                  <a
-                    href="#"
-                    className="text-primary font-semibold hover:underline"
-                  >
+                  <a href="#" className="text-primary font-semibold hover:underline">
                     Điều khoản sử dụng
                   </a>{" "}
                   và{" "}
-                  <a
-                    href="#"
-                    className="text-primary font-semibold hover:underline"
-                  >
+                  <a href="#" className="text-primary font-semibold hover:underline">
                     Chính sách bảo mật
                   </a>{" "}
                   của MedPrecision Systems.
                 </label>
               </div>
 
+              {error && (
+                <p className="text-sm text-error bg-error/10 px-4 py-2.5 rounded-xl">
+                  {error}
+                </p>
+              )}
+
               <div className="pt-4">
                 <Button
                   type="submit"
                   icon="arrow_forward"
                   iconPosition="right"
+                  disabled={loading || !agreed}
                   className="w-full justify-center py-4"
                 >
-                  Đăng ký tài khoản
+                  {loading ? "Đang xử lý…" : "Đăng ký tài khoản"}
                 </Button>
               </div>
             </form>
@@ -206,23 +260,6 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
           </div>
         </div>
       </main>
-
-      <footer className="py-6 flex flex-col md:flex-row justify-between items-center px-12 border-t border-surface-container-low bg-surface-container-lowest">
-        <span className="text-xs uppercase tracking-widest text-on-surface-variant">
-          © 2024 MedPrecision Systems. Clinical Sanctuary Design.
-        </span>
-        <div className="flex gap-8 mt-4 md:mt-0">
-          {["Privacy Policy", "Terms of Service", "System Status"].map((l) => (
-            <a
-              key={l}
-              href="#"
-              className="text-xs uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
-            >
-              {l}
-            </a>
-          ))}
-        </div>
-      </footer>
     </div>
   );
 }

@@ -4,6 +4,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   leadingIcon?: string;
   trailingIcon?: string;
+  onTrailingIconClick?: () => void;
   error?: string;
   hint?: string;
 }
@@ -13,6 +14,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     label,
     leadingIcon,
     trailingIcon,
+    onTrailingIconClick,
     error,
     hint,
     className = "",
@@ -58,7 +60,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         />
 
         {trailingIcon && (
-          <span className="material-symbols-outlined absolute right-3 text-on-surface-variant pointer-events-none text-[1.1rem]">
+          <span
+            onClick={onTrailingIconClick}
+            className={[
+              "material-symbols-outlined absolute right-3 text-on-surface-variant text-[1.1rem]",
+              onTrailingIconClick
+                ? "cursor-pointer hover:text-primary transition-colors"
+                : "pointer-events-none",
+            ].join(" ")}
+          >
             {trailingIcon}
           </span>
         )}

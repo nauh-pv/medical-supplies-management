@@ -70,6 +70,7 @@ export function Login({ onNavigateToRegister, onLogin }: LoginProps) {
                 <Input
                   leadingIcon="lock"
                   trailingIcon={showPassword ? "visibility_off" : "visibility"}
+                  onTrailingIconClick={() => setShowPassword((v) => !v)}
                   placeholder="••••••••"
                   type={showPassword ? "text" : "password"}
                 />

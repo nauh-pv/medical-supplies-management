@@ -3,16 +3,51 @@ import { Sidebar, type NavId } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { Dashboard } from "@/pages/Dashboard";
 import { Inventory } from "@/pages/Inventory";
+import { Reports } from "@/pages/Reports";
+import { POS } from "@/pages/POS";
+import { Alerts } from "@/pages/Alerts";
+import { Login } from "@/pages/Login";
+import { Register } from "@/pages/Register";
 import { PWAPrompt } from "@/components/PWAPrompt";
 import "./App.css";
+
+type AuthView = "login" | "register" | "app";
 
 const pages: Partial<Record<NavId, React.ReactNode>> = {
   dashboard: <Dashboard />,
   inventory: <Inventory />,
+  reports: <Reports />,
+  pos: <POS />,
+  alerts: <Alerts />,
 };
 
 function App() {
+  const [authView, setAuthView] = useState<AuthView>("login");
   const [activePage, setActivePage] = useState<NavId>("dashboard");
+
+  if (authView === "login") {
+    return (
+      <>
+        <Login
+          onNavigateToRegister={() => setAuthView("register")}
+          onLogin={() => setAuthView("app")}
+        />
+        <PWAPrompt />
+      </>
+    );
+  }
+
+  if (authView === "register") {
+    return (
+      <>
+        <Register
+          onNavigateToLogin={() => setAuthView("login")}
+          onRegister={() => setAuthView("app")}
+        />
+        <PWAPrompt />
+      </>
+    );
+  }
 
   return (
     <div className="bg-background text-on-surface overflow-x-hidden">

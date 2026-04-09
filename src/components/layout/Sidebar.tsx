@@ -6,7 +6,9 @@ export type NavId =
   | "shipping"
   | "suppliers"
   | "reports"
-  | "settings";
+  | "settings"
+  | "pos"
+  | "alerts";
 
 const navItems: { icon: string; label: string; id: NavId }[] = [
   { icon: "dashboard", label: "Tổng quan", id: "dashboard" },

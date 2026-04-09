@@ -16,7 +16,10 @@ src/
     common/          ← Shared UI primitives (Button, Badge, Input, etc.)
     layout/          ← App-wide shell: Sidebar, TopBar
     dashboard/       ← Sub-components for the Dashboard page only
-    inventory/       ← Sub-components for the Inventory page only
+    inventory/       ← Sub-components for the Inventory page only (InventoryStats, InventoryTable, SupportCards, AddMedicineModal, SetPriceModal)
+    reports/         ← Sub-components for the Reports page (RevenueChartPanel, ReportStatCards, BestSellersPanel, BranchDistribution)
+    pos/             ← Sub-components for the POS page (ProductGrid, OrderSummary)
+    alerts/          ← Sub-components for the Alerts page (LowStockGrid, ExpiryTable)
     <feature>/       ← Each new page gets its own sub-components folder
   pages/             ← Page entry components (thin orchestrators)
   types/             ← Shared TypeScript types (e.g. medicine.ts)
@@ -32,6 +35,19 @@ src/
 - A page component is a **thin orchestrator**: it only composes sub-components and commons. No inline JSX blocks longer than ~15 lines.
 - Every page wraps its content in `<main className="ml-72 pt-24 px-8 pb-12 ...">` to offset Sidebar + TopBar.
 - Always start a page with `<PageHeader>` from `@/components/common`.
+- **Exception — POS page:** Uses a full-height split layout. No `pt-24` or `<PageHeader>`. Use `pt-16` (TopBar height) and `flex h-screen overflow-hidden` instead:
+
+```tsx
+// POS.tsx — special layout
+export function POS() {
+  return (
+    <div className="ml-72 pt-16 flex h-screen overflow-hidden bg-background">
+      <ProductGrid /> {/* flex-1, overflow-y-auto */}
+      <OrderSummary /> {/* w-[400px] flex-shrink-0 */}
+    </div>
+  );
+}
+```
 
 ```tsx
 // ✅ Correct — thin page orchestrator
@@ -89,8 +105,9 @@ export function Inventory() {
 
 - Navigation state lives in `App.tsx` as `activePage: NavId`.
 - `Sidebar` receives `active` + `onNavigate` props — it does NOT own navigation state.
-- Adding a new page: (1) add `NavId` to Sidebar's type, (2) add entry to `pages` map in `App.tsx`.
-- `NavId` is exported from `Sidebar.tsx`.
+- Adding a new page: (1) add `NavId` to Sidebar's type export, (2) add entry to `pages` map in `App.tsx`.
+- `NavId` is exported from `Sidebar.tsx`. Current values: `"dashboard" | "inventory" | "shipping" | "suppliers" | "reports" | "settings" | "pos" | "alerts"`.
+- Note: `pos` and `alerts` are registered NavIds but do NOT have sidebar nav links (sidebar is frozen). They are only reachable programmatically.
 
 ```tsx
 // App.tsx pattern

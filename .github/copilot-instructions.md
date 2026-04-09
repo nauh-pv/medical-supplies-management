@@ -204,6 +204,44 @@ import { Pagination } from "@/components/common";
 
 ---
 
+### `<Modal>`
+
+**File:** `src/components/common/Modal.tsx`
+
+Glassmorphism dialog. Closes on backdrop click **and** Escape key. Always use this — never build raw `<dialog>` or `position: fixed` modals inline.
+
+Props: `open`, `onClose`, `title`, `subtitle?` (shown below title in header), `children`, `maxWidth?` (Tailwind class, default `"max-w-xl"`)
+
+```tsx
+import { Modal, Button, Input } from "@/components/common";
+
+<Modal
+  open={isOpen}
+  onClose={() => setIsOpen(false)}
+  title="Thêm Thuốc Mới"
+  subtitle="Đăng ký dược phẩm mới vào cơ sở dữ liệu."
+  maxWidth="max-w-lg"
+>
+  <div className="px-10 py-8 space-y-6">
+    <Input label="Tên thuốc" placeholder="VD: Atorvastatin 20mg" />
+    <div className="flex gap-3 pt-2">
+      <Button
+        variant="ghost"
+        onClick={() => setIsOpen(false)}
+        className="flex-1 justify-center"
+      >
+        Hủy bỏ
+      </Button>
+      <Button icon="save" className="flex-1 justify-center">
+        Lưu Thông Tin
+      </Button>
+    </div>
+  </div>
+</Modal>;
+```
+
+---
+
 ## How to Add a New Common
 
 1. Create file in `src/components/common/YourComponent.tsx`.

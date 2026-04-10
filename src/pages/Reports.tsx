@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PageHeader, Button } from "@/components/common";
+import { PageHeader, Button, TabBar } from "@/components/common";
 import { RevenueChartPanel } from "@/components/reports/RevenueChartPanel";
 import { ReportStatCards } from "@/components/reports/ReportStatCards";
 import { BestSellersPanel } from "@/components/reports/BestSellersPanel";
@@ -36,23 +36,12 @@ export function Reports() {
         }
       />
 
-      {/* Tab nav */}
-      <div className="flex items-center gap-1 bg-surface-container-lowest rounded-xl p-1 w-fit shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={[
-              "px-5 py-2 rounded-lg text-sm font-label font-semibold transition-all",
-              tab === t.id
-                ? "bg-primary text-on-primary shadow-sm"
-                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low",
-            ].join(" ")}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <TabBar
+        tabs={TABS}
+        activeTab={tab}
+        onTabChange={(id) => setTab(id as TabId)}
+        variant="pill"
+      />
 
       {/* Bento row 1: Chart + Stat cards */}
       <div className="grid grid-cols-12 gap-6">

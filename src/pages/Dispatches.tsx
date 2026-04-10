@@ -1,17 +1,17 @@
 import { useState } from "react";
-import { PageHeader, Button } from "@/components/common";
+import { PageHeader, Button, TabBar } from "@/components/common";
 import { DispatchList } from "@/components/dispatches/DispatchList";
 import { CreateDispatchForm } from "@/components/dispatches/CreateDispatchForm";
 
 type DispatchTab = "history" | "create";
 
+const DISPATCH_TABS = [
+  { id: "history" as DispatchTab, label: "Lịch sử xuất kho" },
+  { id: "create" as DispatchTab, label: "Tạo lệnh xuất kho" },
+] as const;
+
 export function Dispatches() {
   const [tab, setTab] = useState<DispatchTab>("history");
-
-  const tabs: { id: DispatchTab; label: string }[] = [
-    { id: "history", label: "Lịch sử xuất kho" },
-    { id: "create", label: "Tạo lệnh xuất kho" },
-  ];
 
   return (
     <main className="ml-72 pt-24 px-8 pb-12 space-y-8 min-h-screen bg-background">
@@ -37,23 +37,12 @@ export function Dispatches() {
         }
       />
 
-      {/* Tab switcher */}
-      <div className="flex bg-surface-container-low p-1 rounded-full w-fit">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={[
-              "px-6 py-2 text-sm font-semibold transition-all rounded-full",
-              tab === t.id
-                ? "text-on-primary bg-primary shadow-md shadow-primary/20 font-bold"
-                : "text-on-surface-variant hover:text-primary",
-            ].join(" ")}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <TabBar
+        tabs={DISPATCH_TABS}
+        activeTab={tab}
+        onTabChange={(id) => setTab(id as DispatchTab)}
+        variant="pill"
+      />
 
       {tab === "history" && <DispatchList />}
       {tab === "create" && (

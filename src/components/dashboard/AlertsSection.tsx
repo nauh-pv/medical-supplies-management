@@ -67,7 +67,7 @@ function AlertCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-surface-container-lowest rounded-[1.5rem] p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
+    <div className="bg-surface-container-lowest rounded-[1.5rem] p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)] flex flex-col">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className={["p-2 rounded-xl", iconBg].join(" ")}>
@@ -79,7 +79,15 @@ function AlertCard({
         </div>
         <Badge variant={badgeVariant}>{badgeLabel}</Badge>
       </div>
-      <div className="space-y-4">{children}</div>
+      <div className="space-y-4 flex-1">{children}</div>
+      <div className="mt-6 text-center">
+        <a
+          href="#"
+          className="text-sm font-semibold text-primary hover:underline"
+        >
+          Xem thêm
+        </a>
+      </div>
     </div>
   );
 }

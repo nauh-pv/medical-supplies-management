@@ -3,13 +3,13 @@ import { useState } from "react";
 type ChartPeriod = "week" | "month" | "quarter" | "year";
 
 const chartData = [
-  { day: "THỨ 2", primary: 120, secondary: 60 },
-  { day: "THỨ 3", primary: 140, secondary: 80 },
-  { day: "THỨ 4", primary: 180, secondary: 40 },
-  { day: "THỨ 5", primary: 110, secondary: 90 },
-  { day: "THỨ 6", primary: 200, secondary: 70, highlight: true },
-  { day: "THỨ 7", primary: 160, secondary: 50 },
-  { day: "CN", primary: 90, secondary: 30 },
+  { day: "THỨ 2", height: 120, value: "$12,450" },
+  { day: "THỨ 3", height: 140, value: "$15,200" },
+  { day: "THỨ 4", height: 110, value: "$11,800" },
+  { day: "THỨ 5", height: 170, value: "$18,900" },
+  { day: "THỨ 6", height: 200, value: "$22,400", highlight: true },
+  { day: "THỨ 7", height: 150, value: "$16,500" },
+  { day: "CN", height: 90, value: "$9,800" },
 ];
 
 const periodLabels: Record<ChartPeriod, string> = {
@@ -19,7 +19,7 @@ const periodLabels: Record<ChartPeriod, string> = {
   year: "Năm",
 };
 
-/** Revenue trend bar chart with period toggle. */
+/** Revenue trend bar chart — single bars, POS legend, hover tooltips. */
 export function RevenueChart() {
   const [period, setPeriod] = useState<ChartPeriod>("week");
 
@@ -31,12 +31,12 @@ export function RevenueChart() {
             Xu hướng Doanh thu
           </h4>
           <p className="text-sm text-on-surface-variant">
-            Hiệu suất 7 ngày qua trên tất cả các kênh
+            Hiệu suất 7 ngày qua: Bán lẻ POS
           </p>
         </div>
 
         {/* Period toggle */}
-        <div className="flex bg-surface-container-low p-1 rounded-xl">
+        <div className="flex bg-surface-container-low p-1 rounded-xl mr-4">
           {(["week", "month", "quarter", "year"] as ChartPeriod[]).map((p) => (
             <button
               key={p}
@@ -54,39 +54,27 @@ export function RevenueChart() {
         </div>
 
         {/* Legend */}
-        <div className="flex gap-2">
-          {[
-            { color: "bg-primary", label: "Phân phối" },
-            { color: "bg-secondary", label: "Bán lẻ POS" },
-          ].map(({ color, label }) => (
-            <div
-              key={label}
-              className="flex items-center gap-2 px-3 py-1.5 bg-surface-container-low rounded-lg text-xs font-medium"
-            >
-              <div className={["w-2 h-2 rounded-full", color].join(" ")} />
-              {label}
-            </div>
-          ))}
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-lg text-xs font-bold text-primary cursor-pointer">
+          <div className="w-2 h-2 rounded-full bg-secondary" />
+          Bán lẻ POS
         </div>
       </div>
 
       {/* Bars */}
-      <div className="h-64 flex items-end justify-between gap-4 px-4">
+      <div className="h-64 flex items-end justify-between gap-8 px-8">
         {chartData.map((bar) => (
           <div
             key={bar.day}
-            className="flex-1 flex flex-col items-center gap-2"
+            className="flex-1 flex flex-col items-center gap-2 relative group"
           >
-            <div className="w-full flex items-end gap-1">
-              <div
-                className="flex-1 bg-primary-container rounded-t-lg transition-all hover:brightness-110"
-                style={{ height: `${bar.primary}px` }}
-              />
-              <div
-                className="flex-1 bg-secondary-container rounded-t-lg transition-all hover:brightness-110"
-                style={{ height: `${bar.secondary}px` }}
-              />
+            {/* Tooltip */}
+            <div className="absolute bottom-full mb-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded whitespace-nowrap z-10 pointer-events-none">
+              {bar.value}
             </div>
+            <div
+              className="w-full bg-secondary-container rounded-t-lg transition-all hover:brightness-90 cursor-help"
+              style={{ height: `${bar.height}px` }}
+            />
             <span
               className={[
                 "text-[10px] font-bold",

@@ -1,4 +1,4 @@
-import { PageHeader, Button } from "@/components/common";
+import { PageHeader } from "@/components/common";
 import { StatSummaryRow } from "@/components/dashboard/StatSummaryRow";
 import { AlertsSection } from "@/components/dashboard/AlertsSection";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
@@ -15,12 +15,6 @@ export function Dashboard() {
             Trạng thái hệ thống:{" "}
             <span className="text-green-600 font-semibold">Đang hoạt động</span>{" "}
             • Đồng bộ lần cuối: 2 phút trước
-          </>
-        }
-        actions={
-          <>
-            <Button variant="ghost">Xuất PDF</Button>
-            <Button icon="file_download">Tải báo cáo</Button>
           </>
         }
       />

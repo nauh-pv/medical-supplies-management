@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useState, useEffect } from "react";
 import { Sidebar, type NavId } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { Dashboard } from "@/pages/Dashboard";
@@ -6,12 +6,14 @@ import { Inventory } from "@/pages/Inventory";
 import { Reports } from "@/pages/Reports";
 import { POS } from "@/pages/POS";
 import { Alerts } from "@/pages/Alerts";
+import { Imports } from "@/pages/Imports";
 import { Login } from "@/pages/Login";
 import { Register } from "@/pages/Register";
 import { PWAPrompt } from "@/components/PWAPrompt";
+import { onAuthChanged, type User } from "@/services/auth";
 import "./App.css";
 
-type AuthView = "login" | "register" | "app";
+type AuthView = "login" | "register";
 
 const pages: Partial<Record<NavId, React.ReactNode>> = {
   dashboard: <Dashboard />,
@@ -19,30 +21,47 @@ const pages: Partial<Record<NavId, React.ReactNode>> = {
   reports: <Reports />,
   pos: <POS />,
   alerts: <Alerts />,
+  imports: <Imports />,
 };
 
 function App() {
+  const [user, setUser] = useState<User | null | undefined>(undefined);
   const [authView, setAuthView] = useState<AuthView>("login");
   const [activePage, setActivePage] = useState<NavId>("dashboard");
 
-  if (authView === "login") {
+  useEffect(() => {
+    const unsubscribe = onAuthChanged((u) => setUser(u));
+    return unsubscribe;
+  }, []);
+
+  // Still resolving auth state
+  if (user === undefined) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <span className="material-symbols-outlined text-primary animate-spin text-4xl">
+          progress_activity
+        </span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    if (authView === "register") {
+      return (
+        <>
+          <Register
+            onNavigateToLogin={() => setAuthView("login")}
+            onRegister={() => setAuthView("login")}
+          />
+          <PWAPrompt />
+        </>
+      );
+    }
     return (
       <>
         <Login
           onNavigateToRegister={() => setAuthView("register")}
-          onLogin={() => setAuthView("app")}
-        />
-        <PWAPrompt />
-      </>
-    );
-  }
-
-  if (authView === "register") {
-    return (
-      <>
-        <Register
-          onNavigateToLogin={() => setAuthView("login")}
-          onRegister={() => setAuthView("app")}
+          onLogin={() => {}}
         />
         <PWAPrompt />
       </>

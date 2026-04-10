@@ -1,5 +1,6 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Input, Button } from "@/components/common";
+import { signIn } from "@/services/auth";
 
 interface LoginProps {
   onNavigateToRegister?: () => void;
@@ -7,12 +8,36 @@ interface LoginProps {
 }
 
 export function Login({ onNavigateToRegister, onLogin }: LoginProps) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onLogin?.();
+    setError("");
+    setLoading(true);
+    try {
+      await signIn(email, password);
+      onLogin?.();
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code ?? "";
+      if (
+        code === "auth/user-not-found" ||
+        code === "auth/wrong-password" ||
+        code === "auth/invalid-credential"
+      ) {
+        setError("Email hoặc mật khẩu không chính xác.");
+      } else if (code === "auth/too-many-requests") {
+        setError("Quá nhiều lần thử. Vui lòng thử lại sau.");
+      } else {
+        setError("Đăng nhập thất bại. Vui lòng thử lại.");
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -46,12 +71,15 @@ export function Login({ onNavigateToRegister, onLogin }: LoginProps) {
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant font-label">
-                  Email hoặc Tên đăng nhập
+                  Email
                 </label>
                 <Input
                   leadingIcon="person"
                   placeholder="name@hospital.com"
-                  type="text"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
 
@@ -73,6 +101,9 @@ export function Login({ onNavigateToRegister, onLogin }: LoginProps) {
                   onTrailingIconClick={() => setShowPassword((v) => !v)}
                   placeholder="••••••••"
                   type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
               </div>
 
@@ -92,8 +123,18 @@ export function Login({ onNavigateToRegister, onLogin }: LoginProps) {
                 </label>
               </div>
 
-              <Button type="submit" className="w-full justify-center py-4">
-                Đăng nhập hệ thống
+              {error && (
+                <p className="text-sm text-error bg-error/10 px-4 py-2.5 rounded-xl">
+                  {error}
+                </p>
+              )}
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full justify-center py-4"
+              >
+                {loading ? "Đang xử lý…" : "Đăng nhập hệ thống"}
               </Button>
             </form>
 
@@ -163,23 +204,6 @@ export function Login({ onNavigateToRegister, onLogin }: LoginProps) {
           </div>
         </div>
       </main>
-
-      <footer className="py-6 flex flex-col md:flex-row justify-between items-center px-12 border-t border-surface-container-low bg-surface-container-lowest">
-        <p className="text-xs uppercase tracking-widest text-on-surface-variant">
-          © 2024 MedPrecision Systems. Clinical Sanctuary Design.
-        </p>
-        <div className="flex gap-6 mt-4 md:mt-0">
-          {["Privacy Policy", "Terms of Service", "System Status"].map((l) => (
-            <a
-              key={l}
-              href="#"
-              className="text-xs uppercase tracking-widest text-on-surface-variant hover:text-primary transition-colors"
-            >
-              {l}
-            </a>
-          ))}
-        </div>
-      </footer>
     </div>
   );
 }

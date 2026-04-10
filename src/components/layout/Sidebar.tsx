@@ -12,8 +12,8 @@ export type NavId =
 const navItems: { icon: string; label: string; id: NavId }[] = [
   { icon: "dashboard", label: "Tổng quan", id: "dashboard" },
   { icon: "inventory_2", label: "Kho hàng", id: "inventory" },
-  { icon: "analytics", label: "Báo cáo", id: "reports" },
-  { icon: "warning", label: "Cảnh báo hàng hóa", id: "alerts" },
+  // { icon: "analytics", label: "Báo cáo", id: "reports" },
+  // { icon: "warning", label: "Cảnh báo hàng hóa", id: "alerts" },
   { icon: "point_of_sale", label: "POS", id: "pos" },
   { icon: "medication", label: "Điều phối thuốc", id: "medication" },
   { icon: "account_tree", label: "Chi nhánh", id: "branches" },

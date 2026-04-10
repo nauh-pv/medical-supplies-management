@@ -1,15 +1,6 @@
 import { useState } from "react";
-import { Button } from "@/components/common";
-
-interface ProductRow {
-  id: number;
-  name: string;
-  sku: string;
-  lot: string;
-  stock: number;
-  unit: string;
-  qty: number;
-}
+import { DispatchProductRow } from "./DispatchProductRow";
+import type { ProductRow } from "./DispatchProductRow";
 
 const AVAILABLE_PRODUCTS = [
   {
@@ -50,16 +41,8 @@ const BRANCHES = [
 ];
 
 const initialRows: ProductRow[] = [
-  {
-    id: 1,
-    ...AVAILABLE_PRODUCTS[0],
-    qty: 100,
-  },
-  {
-    id: 2,
-    ...AVAILABLE_PRODUCTS[1],
-    qty: 20,
-  },
+  { id: 1, ...AVAILABLE_PRODUCTS[0], qty: 100 },
+  { id: 2, ...AVAILABLE_PRODUCTS[1], qty: 20 },
 ];
 
 export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
@@ -89,8 +72,8 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
     <div className="grid grid-cols-12 gap-8">
       {/* ── Left: Form ── */}
       <div className="col-span-12 lg:col-span-8 space-y-6">
-        <div className="bg-surface-container-lowest rounded-[1.5rem] p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
-          <div className="flex items-center justify-between mb-8 pb-5 border-b border-surface-container">
+        <section className="bg-surface-container-lowest rounded-[2rem] p-8 shadow-sm">
+          <div className="flex items-center justify-between mb-8 border-b border-surface-container pb-4">
             <h3 className="text-xl font-headline font-bold text-on-surface">
               Thông tin lệnh xuất
             </h3>
@@ -102,17 +85,17 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
             </div>
           </div>
 
-          <div className="space-y-8">
+          <form className="space-y-8">
             {/* Branch select */}
-            <div className="space-y-2">
-              <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant block">
+            <div className="space-y-3">
+              <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant block ml-1">
                 Chi nhánh nhận thuốc
               </label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-xl pointer-events-none">
+              <div className="relative group">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 group-focus-within:text-primary transition-colors pointer-events-none">
                   local_hospital
                 </span>
-                <select className="w-full pl-12 pr-10 py-4 bg-surface-container-low rounded-xl text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer">
+                <select className="w-full pl-12 pr-4 py-4 bg-surface-container-high/40 border-none rounded-full focus:ring-0 focus:bg-surface-container-lowest focus:shadow-[0_4px_20px_rgba(0,80,203,0.08)] transition-all appearance-none cursor-pointer text-on-surface font-medium text-sm outline-none">
                   <option value="">
                     Chọn chi nhánh bệnh viện / nhà thuốc...
                   </option>
@@ -128,16 +111,16 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
 
             {/* Product section */}
             <div className="space-y-4">
-              <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant block">
+              <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant block ml-1">
                 Danh mục thuốc &amp; Vật tư
               </label>
 
-              {/* Dropdown to pick medicine */}
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 text-xl pointer-events-none">
+              {/* Medicine dropdown */}
+              <div className="relative group">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 group-focus-within:text-primary transition-colors pointer-events-none">
                   inventory
                 </span>
-                <select className="w-full pl-12 pr-10 py-4 bg-surface-container-low rounded-xl text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer">
+                <select className="w-full pl-12 pr-10 py-4 bg-surface-container-high/40 border-none rounded-full focus:ring-0 focus:bg-surface-container-lowest focus:shadow-[0_4px_20px_rgba(0,80,203,0.08)] transition-all appearance-none cursor-pointer text-on-surface font-medium text-sm outline-none">
                   <option value="">Chọn thuốc từ danh mục tồn kho...</option>
                   {AVAILABLE_PRODUCTS.map((p) => (
                     <option key={p.sku}>
@@ -151,9 +134,9 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
               </div>
 
               {/* Rows table */}
-              <div className="overflow-hidden rounded-xl border border-outline-variant/10">
+              <div className="mt-6 space-y-2 overflow-hidden">
                 {/* Header */}
-                <div className="grid grid-cols-12 px-5 py-3 bg-surface-container-low text-[10px] font-label font-black uppercase tracking-widest text-on-surface-variant">
+                <div className="grid grid-cols-12 px-6 py-2 bg-surface-container-low rounded-t-xl text-[10px] font-label font-black uppercase tracking-widest text-on-surface-variant">
                   <div className="col-span-6">Tên sản phẩm / SKU</div>
                   <div className="col-span-2 text-center">Tồn kho</div>
                   <div className="col-span-3 text-center">Số lượng xuất</div>
@@ -161,86 +144,18 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                 </div>
 
                 {rows.map((row, i) => (
-                  <div
+                  <DispatchProductRow
                     key={row.id}
-                    className={[
-                      "grid grid-cols-12 px-5 py-4 items-center border-t border-outline-variant/10",
-                      i % 2 === 1
-                        ? "bg-surface-container-low/30"
-                        : "bg-surface-container-lowest",
-                    ].join(" ")}
-                  >
-                    {/* Name + SKU */}
-                    <div className="col-span-6">
-                      <p className="font-bold text-sm text-on-surface">
-                        {row.name}
-                      </p>
-                      <p className="text-[10px] text-on-surface-variant uppercase font-medium mt-0.5">
-                        SKU: {row.sku} | Lô: {row.lot}
-                      </p>
-                    </div>
-
-                    {/* Stock */}
-                    <div className="col-span-2 text-center text-sm font-semibold text-on-surface-variant">
-                      {row.stock.toLocaleString()}{" "}
-                      <span className="text-[10px] font-normal">
-                        {row.unit}
-                      </span>
-                    </div>
-
-                    {/* Qty stepper */}
-                    <div className="col-span-3 flex justify-center">
-                      <div className="flex items-center bg-surface-container rounded-full px-1 py-1 gap-1">
-                        <button
-                          onClick={() => updateQty(row.id, -1)}
-                          type="button"
-                          className="w-8 h-8 flex items-center justify-center text-primary hover:bg-surface-container-lowest rounded-full transition-all font-bold"
-                        >
-                          −
-                        </button>
-                        <input
-                          type="number"
-                          className="w-14 bg-transparent border-none text-center font-bold text-sm focus:ring-0 outline-none"
-                          value={row.qty}
-                          onChange={(e) =>
-                            setRows((prev) =>
-                              prev.map((r) =>
-                                r.id === row.id
-                                  ? {
-                                      ...r,
-                                      qty: Math.max(
-                                        1,
-                                        parseInt(e.target.value) || 1,
-                                      ),
-                                    }
-                                  : r,
-                              ),
-                            )
-                          }
-                        />
-                        <button
-                          onClick={() => updateQty(row.id, 1)}
-                          type="button"
-                          className="w-8 h-8 flex items-center justify-center text-primary hover:bg-surface-container-lowest rounded-full transition-all font-bold"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Delete */}
-                    <div className="col-span-1 flex justify-end">
-                      <button
-                        onClick={() => removeRow(row.id)}
-                        type="button"
-                        className="p-2 text-on-surface-variant/30 hover:text-error transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-lg">
-                          delete
-                        </span>
-                      </button>
-                    </div>
-                  </div>
+                    row={row}
+                    index={i}
+                    onQtyChange={updateQty}
+                    onQtyInput={(id, val) =>
+                      setRows((prev) =>
+                        prev.map((r) => (r.id === id ? { ...r, qty: val } : r)),
+                      )
+                    }
+                    onRemove={removeRow}
+                  />
                 ))}
               </div>
 
@@ -248,7 +163,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
               <button
                 type="button"
                 onClick={addRow}
-                className="w-full py-4 border-2 border-dashed border-outline-variant rounded-xl text-on-surface-variant hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2 group"
+                className="w-full py-4 border-2 border-dashed border-outline-variant rounded-full text-on-surface-variant hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2 group mt-4"
               >
                 <span className="material-symbols-outlined group-hover:scale-110 transition-transform">
                   add_circle
@@ -259,25 +174,34 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
               </button>
             </div>
 
-            {/* Footer actions */}
-            <div className="pt-6 border-t border-surface-container flex items-center justify-between">
-              <p className="text-xs text-on-surface-variant italic">
+            {/* Footer */}
+            <div className="pt-8 border-t border-surface-container flex items-center justify-between">
+              <p className="text-sm text-on-surface-variant italic">
                 * Lệnh xuất kho sẽ được gửi đến bộ phận kiểm kê để xác nhận.
               </p>
-              <div className="flex gap-3">
-                <Button variant="ghost" type="button" onClick={onCancel}>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  className="px-8 py-3 rounded-full text-on-surface-variant font-bold hover:bg-surface-container transition-all"
+                >
                   Hủy bỏ
-                </Button>
-                <Button type="submit">Tạo lệnh xuất kho</Button>
+                </button>
+                <button
+                  type="submit"
+                  className="px-10 py-3 bg-primary text-on-primary rounded-full font-bold shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all"
+                >
+                  Tạo lệnh xuất kho
+                </button>
               </div>
             </div>
-          </div>
-        </div>
+          </form>
+        </section>
       </div>
 
       {/* ── Right: Summary card ── */}
-      <div className="col-span-12 lg:col-span-4">
-        <div className="bg-primary rounded-[1.5rem] p-8 text-on-primary shadow-[0_20px_40px_rgba(0,80,203,0.25)] relative overflow-hidden">
+      <div className="col-span-12 lg:col-span-4 space-y-6">
+        <div className="bg-primary rounded-[2rem] p-8 text-on-primary shadow-xl shadow-primary/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none" />
           <h4 className="text-xs font-label font-bold uppercase tracking-[0.2em] opacity-80 mb-6">
             Tóm tắt lệnh xuất
@@ -285,20 +209,20 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
           <div className="space-y-4">
             <div className="flex justify-between items-center border-b border-white/10 pb-3">
               <span className="text-sm opacity-90">Tổng số loại thuốc:</span>
-              <span className="text-2xl font-headline font-bold">
+              <span className="text-xl font-bold">
                 {String(totalTypes).padStart(2, "0")}
               </span>
             </div>
             <div className="flex justify-between items-center border-b border-white/10 pb-3">
               <span className="text-sm opacity-90">Tổng số lượng (đv):</span>
-              <span className="text-2xl font-headline font-bold">
+              <span className="text-xl font-bold">
                 {totalQty.toLocaleString()}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-sm opacity-90">Trọng lượng dự kiến:</span>
-              <span className="text-2xl font-headline font-bold">
-                — <span className="text-xs font-normal opacity-70">kg</span>
+              <span className="text-xl font-bold">
+                4.2 <span className="text-xs">kg</span>
               </span>
             </div>
           </div>

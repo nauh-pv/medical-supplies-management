@@ -30,9 +30,9 @@ export function DrugRequestRow({
   onRemove,
 }: DrugRequestRowProps) {
   return (
-    <div className="flex flex-col md:flex-row items-start md:items-center gap-5 p-4 rounded-2xl hover:bg-surface-container-low transition-colors">
+    <div className="flex flex-col md:flex-row items-start md:items-center gap-6 p-4 rounded-2xl hover:bg-surface-container-low transition-colors">
       {/* Icon */}
-      <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
         <span className="material-symbols-outlined text-primary">
           {row.icon}
         </span>
@@ -66,14 +66,14 @@ export function DrugRequestRow({
         </label>
         <input
           type="number"
-          className="w-full bg-surface-container-low border-none rounded-xl text-center font-bold text-sm py-2 outline-none focus:ring-2 focus:ring-primary/20"
+          className="w-full bg-surface-container-high border-none rounded-xl text-center font-bold text-sm py-2 outline-none focus:ring-2 focus:ring-primary/20"
           value={row.qty}
           onChange={(e) => onQtyChange(row.id, parseInt(e.target.value) || 1)}
         />
       </div>
 
       {/* Unit price */}
-      <div className="w-36 shrink-0 text-right">
+      <div className="w-40 shrink-0 text-right">
         <label className="text-[10px] uppercase font-bold text-on-surface-variant block mb-1">
           Đơn giá dự kiến
         </label>

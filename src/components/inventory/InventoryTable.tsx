@@ -89,12 +89,16 @@ const stockBarColor: Record<StockStatus, string> = {
 
 const TOTAL_PAGES = 321;
 
-export function InventoryTable() {
+interface InventoryTableProps {
+  onAddClick?: () => void;
+}
+
+export function InventoryTable({ onAddClick }: InventoryTableProps) {
   const [page, setPage] = useState(1);
   const [batchMed, setBatchMed] = useState<Medicine | null>(null);
 
   return (
-    <div className="bg-surface-container-lowest rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,80,203,0.03)] overflow-hidden">
+    <div className="bg-surface-container-lowest rounded-[2rem] shadow-sm overflow-hidden border border-outline-variant/10">
       {/* ── Filters bar ── */}
       <div className="px-8 py-6 flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/50">
         <div className="flex-1 min-w-[300px]">
@@ -104,11 +108,11 @@ export function InventoryTable() {
           />
         </div>
         <div className="flex items-center gap-3">
+          <Button icon="add" onClick={onAddClick}>
+            Thêm thuốc mới
+          </Button>
           <Button variant="ghost" icon="filter_list" size="sm">
             Tất cả danh mục
-          </Button>
-          <Button variant="ghost" icon="download" size="sm">
-            Nhập hàng
           </Button>
           <Button variant="ghost" icon="export_notes" size="sm">
             Xuất báo cáo
@@ -129,7 +133,7 @@ export function InventoryTable() {
                 { label: "Giá bán", cls: "text-right" },
                 { label: "Tồn kho", cls: "text-center" },
                 { label: "Trạng thái", cls: "text-center" },
-                { label: "" },
+                { label: "Thao tác", cls: "text-center" },
               ].map((h, i) => (
                 <th
                   key={i}
@@ -229,19 +233,19 @@ export function InventoryTable() {
                   </td>
 
                   {/* Actions */}
-                  <td className="px-8 py-5 text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  <td className="px-8 py-5 text-center">
+                    <div className="flex items-center justify-center gap-2">
                       <button
                         onClick={() => setBatchMed(med)}
-                        className="p-2 hover:bg-primary/10 text-on-surface-variant hover:text-primary rounded-lg transition-colors"
-                        title="Xem lịch sử lô"
+                        className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        title="Xem chi tiết"
                       >
                         <span className="material-symbols-outlined text-xl">
                           visibility
                         </span>
                       </button>
                       <button
-                        className="p-2 hover:bg-surface-container-high text-on-surface-variant rounded-lg transition-colors"
+                        className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                         title="Chỉnh sửa"
                       >
                         <span className="material-symbols-outlined text-xl">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Input, Button, Pagination } from "@/components/common";
+import { Input, Button, Badge, Pagination } from "@/components/common";
 import { ImportDetailModal } from "./ImportDetailModal";
 
 type ImportStatus = "received" | "pending" | "shipping";
@@ -53,21 +53,14 @@ const mockImports: ImportRow[] = [
   },
 ];
 
-const statusConfig: Record<ImportStatus, { label: string; className: string }> =
-  {
-    received: {
-      label: "Đã nhập",
-      className: "bg-green-100 text-green-700",
-    },
-    pending: {
-      label: "Chờ kiểm định",
-      className: "bg-amber-100 text-amber-700",
-    },
-    shipping: {
-      label: "Đang vận chuyển",
-      className: "bg-primary/10 text-primary",
-    },
-  };
+const statusConfig: Record<
+  ImportStatus,
+  { label: string; variant: "success" | "warning" | "info" }
+> = {
+  received: { label: "Đã nhập", variant: "success" },
+  pending: { label: "Chờ kiểm định", variant: "warning" },
+  shipping: { label: "Đang vận chuyển", variant: "info" },
+};
 
 export function InventoryImportTab() {
   const [page, setPage] = useState(1);
@@ -122,7 +115,6 @@ export function InventoryImportTab() {
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
               {mockImports.map((row) => {
-                const { label, className } = statusConfig[row.status];
                 return (
                   <tr
                     key={row.id}
@@ -162,14 +154,9 @@ export function InventoryImportTab() {
                       {row.total}
                     </td>
                     <td className="px-8 py-5 text-center">
-                      <span
-                        className={[
-                          "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                          className,
-                        ].join(" ")}
-                      >
-                        {label}
-                      </span>
+                      <Badge variant={statusConfig[row.status].variant}>
+                        {statusConfig[row.status].label}
+                      </Badge>
                     </td>
                     <td className="px-8 py-5 text-center">
                       <button

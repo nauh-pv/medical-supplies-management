@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal, Button, Input } from "@/components/common";
+import { Modal, Input, Button, Pagination } from "@/components/common";
 
 interface Unit {
   id: number;
@@ -10,40 +10,47 @@ interface Unit {
 const initialUnits: Unit[] = [
   {
     id: 1,
-    name: "Chai",
-    description: "Dành cho các loại siro, dung dịch lỏng hoặc thuốc nước.",
+    name: "Vỉ",
+    description: "Đơn vị đóng gói dạng vỉ thuốc (thường 10 viên/vỉ)",
   },
   {
     id: 2,
-    name: "Viên",
-    description: "Đơn vị nhỏ nhất cho các loại thuốc nén, thuốc nang.",
+    name: "Chai",
+    description: "Đựng dung dịch, siro hoặc số lượng viên nén lớn",
   },
   {
     id: 3,
-    name: "Vỉ",
-    description: "Bộ nhiều viên đóng gói trong vỉ nhôm nhựa.",
-  },
-  {
-    id: 4,
     name: "Ống",
-    description: "Dùng cho thuốc tiêm hoặc dung dịch đóng ống.",
+    description: "Đơn vị dùng cho vắc-xin hoặc thuốc tiêm",
   },
+  { id: 4, name: "Hộp", description: "Quy cách đóng gói tổng hợp bên ngoài" },
   {
     id: 5,
-    name: "Hộp",
-    description: "Đóng gói cấp thứ cấp, chứa nhiều vỉ hoặc chai.",
+    name: "Viên",
+    description: "Đơn vị nhỏ nhất cho các loại thuốc nén, thuốc nang",
   },
-  {
-    id: 6,
-    name: "Tuýp",
-    description: "Dạng tuýp mềm cho thuốc bôi, kem, gel.",
-  },
+  { id: 6, name: "Tuýp", description: "Dạng tuýp mềm cho thuốc bôi, kem, gel" },
 ];
+
+const ITEMS_PER_PAGE = 4;
 
 export function UnitTable() {
   const [units, setUnits] = useState<Unit[]>(initialUnits);
   const [addOpen, setAddOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "" });
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+
+  const filtered = units.filter(
+    (u) =>
+      u.name.toLowerCase().includes(search.toLowerCase()) ||
+      u.description.toLowerCase().includes(search.toLowerCase()),
+  );
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paged = filtered.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE,
+  );
 
   function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -58,6 +65,7 @@ export function UnitTable() {
     ]);
     setForm({ name: "", description: "" });
     setAddOpen(false);
+    setPage(1);
   }
 
   function handleDelete(id: number) {
@@ -66,88 +74,106 @@ export function UnitTable() {
 
   return (
     <>
-      {/* Stats + add button row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-        <div className="bg-surface-container-lowest rounded-[1.5rem] p-6 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-xl">
-              <span className="material-symbols-outlined text-primary">
-                science
-              </span>
-            </div>
-            <div>
-              <p className="text-xs text-on-surface-variant font-label font-bold uppercase tracking-wider">
-                Tổng đơn vị
-              </p>
-              <p className="text-2xl font-headline font-bold text-on-surface">
-                {units.length}
-              </p>
-            </div>
+      <div className="bg-surface-container-lowest rounded-[2rem] shadow-sm overflow-hidden border border-outline-variant/10">
+        {/* Filter bar */}
+        <div className="px-8 py-6 flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/50">
+          <div className="relative flex-1 min-w-[300px]">
+            <Input
+              leadingIcon="search"
+              placeholder="Tìm kiếm đơn vị tính..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
           </div>
-        </div>
-
-        <div className="bg-surface-container-lowest rounded-[1.5rem] p-6 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-tertiary-fixed rounded-xl">
-              <span className="material-symbols-outlined text-tertiary">
-                update
-              </span>
-            </div>
-            <div>
-              <p className="text-xs text-on-surface-variant font-label font-bold uppercase tracking-wider">
-                Mới thêm tháng này
-              </p>
-              <p className="text-2xl font-headline font-bold text-on-surface">
-                +3
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-surface-container-lowest rounded-[1.5rem] p-6 shadow-[0_20px_40px_rgba(0,80,203,0.03)] flex items-center justify-center">
           <Button icon="add" onClick={() => setAddOpen(true)}>
             Thêm đơn vị mới
           </Button>
         </div>
-      </div>
 
-      {/* Table */}
-      <div className="bg-surface-container-lowest rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,80,203,0.03)] overflow-hidden">
-        <div className="px-8 py-4 bg-surface-container-low/50">
-          <div className="grid grid-cols-4 px-2 text-xs font-label font-bold text-on-surface-variant tracking-widest uppercase">
-            <div className="col-span-1">Tên đơn vị</div>
-            <div className="col-span-2">Mô tả sử dụng</div>
-            <div className="col-span-1 text-right">Thao tác</div>
-          </div>
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-surface-container-low border-b border-outline-variant/10">
+                <th className="px-8 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest w-20">
+                  STT
+                </th>
+                <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  Tên đơn vị tính
+                </th>
+                <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                  Mô tả
+                </th>
+                <th className="px-8 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest text-center">
+                  Thao tác
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-outline-variant/10">
+              {paged.map((unit, i) => (
+                <tr
+                  key={unit.id}
+                  className="hover:bg-surface-bright transition-colors group"
+                >
+                  <td className="px-8 py-5 text-sm text-on-surface-variant font-medium">
+                    {String((page - 1) * ITEMS_PER_PAGE + i + 1).padStart(
+                      2,
+                      "0",
+                    )}
+                  </td>
+                  <td className="px-6 py-5">
+                    <p className="font-bold text-on-surface">{unit.name}</p>
+                  </td>
+                  <td className="px-6 py-5">
+                    <p className="text-sm text-on-surface-variant">
+                      {unit.description || "—"}
+                    </p>
+                  </td>
+                  <td className="px-8 py-5 text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        title="Chỉnh sửa"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          edit
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(unit.id)}
+                        className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/50 rounded-lg transition-colors"
+                        title="Xóa"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          delete
+                        </span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        <div>
-          {units.map((unit) => (
-            <div
-              key={unit.id}
-              className="grid grid-cols-4 px-8 py-5 items-center hover:bg-surface-bright transition-colors border-t border-outline-variant/10"
-            >
-              <div className="font-bold text-on-surface">{unit.name}</div>
-              <div className="col-span-2 text-sm text-on-surface-variant">
-                {unit.description || "—"}
-              </div>
-              <div className="flex justify-end gap-1">
-                <button className="p-2 hover:bg-surface-container-high rounded-lg transition-colors">
-                  <span className="material-symbols-outlined text-on-surface-variant/60 text-xl">
-                    edit
-                  </span>
-                </button>
-                <button
-                  onClick={() => handleDelete(unit.id)}
-                  className="p-2 hover:bg-error-container rounded-lg transition-colors"
-                >
-                  <span className="material-symbols-outlined text-error/60 text-xl">
-                    delete
-                  </span>
-                </button>
-              </div>
-            </div>
-          ))}
+        {/* Pagination footer */}
+        <div className="px-8 py-6 flex items-center justify-between border-t border-outline-variant/10 bg-surface-container-low/20">
+          <p className="text-sm text-on-surface-variant">
+            Hiển thị{" "}
+            <span className="font-bold text-on-surface">
+              {filtered.length === 0 ? 0 : (page - 1) * ITEMS_PER_PAGE + 1} -{" "}
+              {Math.min(page * ITEMS_PER_PAGE, filtered.length)}
+            </span>{" "}
+            của {filtered.length} đơn vị
+          </p>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages || 1}
+            onPageChange={setPage}
+          />
         </div>
       </div>
 
@@ -166,14 +192,13 @@ export function UnitTable() {
             value={form.name}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           />
-
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-label font-bold uppercase tracking-[0.05em] text-on-surface-variant">
               Mô tả
             </label>
             <textarea
-              rows={4}
-              placeholder="Nhập ghi chú về cách sử dụng đơn vị này (VD: dùng cho thuốc tiêm)..."
+              rows={3}
+              placeholder="Nhập ghi chú về cách sử dụng đơn vị này..."
               className="w-full bg-surface-container-low rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none focus:ring-2 focus:ring-primary/30 resize-none"
               value={form.description}
               onChange={(e) =>
@@ -181,30 +206,20 @@ export function UnitTable() {
               }
             />
           </div>
-
-          <div className="flex gap-3 items-start p-4 bg-primary/5 rounded-xl">
-            <span className="material-symbols-outlined text-primary text-sm mt-0.5 flex-shrink-0">
-              info
-            </span>
-            <p className="text-xs text-primary/80 leading-relaxed">
-              Đơn vị tính này sẽ xuất hiện trong danh sách lựa chọn khi nhập kho
-              hoặc tạo mới sản phẩm dược phẩm. Hãy đảm bảo tính nhất quán để
-              việc thống kê chính xác.
-            </p>
-          </div>
-
           <div className="flex gap-3 pt-2">
-            <Button
-              variant="ghost"
+            <button
               type="button"
               onClick={() => setAddOpen(false)}
-              className="flex-1 justify-center"
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-surface-variant bg-surface-container-low hover:bg-surface-container transition-colors"
             >
-              Hủy
-            </Button>
-            <Button type="submit" icon="save" className="flex-1 justify-center">
+              Hủy bỏ
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-primary bg-primary hover:opacity-90 transition-opacity"
+            >
               Lưu đơn vị
-            </Button>
+            </button>
           </div>
         </form>
       </Modal>

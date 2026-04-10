@@ -113,6 +113,20 @@ export function AddMedicineModal({ open, onClose }: AddMedicineModalProps) {
               }
             />
           </div>
+
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <label className="text-xs font-label font-bold uppercase tracking-[0.05em] text-on-surface-variant">
+              Tải ảnh sản phẩm
+            </label>
+            <div className="w-full aspect-video bg-surface-container-low rounded-xl border-2 border-dashed border-outline-variant flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-surface-container transition-colors">
+              <span className="material-symbols-outlined text-on-surface-variant/40 text-4xl">
+                add_a_photo
+              </span>
+              <p className="text-xs text-on-surface-variant font-medium">
+                Tải ảnh sản phẩm lên hoặc kéo thả vào đây
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-3 pt-2">

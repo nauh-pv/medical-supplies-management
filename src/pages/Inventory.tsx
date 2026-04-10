@@ -5,8 +5,9 @@ import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { InventoryImportTab } from "@/components/inventory/InventoryImportTab";
 import { AddMedicineModal } from "@/components/inventory/AddMedicineModal";
 import { SetPriceModal } from "@/components/inventory/SetPriceModal";
+import { UnitTable } from "@/components/units/UnitTable";
 
-type InventoryTab = "medicines" | "imports";
+type InventoryTab = "medicines" | "imports" | "units";
 
 export function Inventory() {
   const [tab, setTab] = useState<InventoryTab>("medicines");
@@ -39,6 +40,11 @@ export function Inventory() {
             </>
           ) : null
         }
+        subtitle={
+          tab === "units"
+            ? "Quản lý các đơn vị đo lường cho dược phẩm và vật tư y tế trong hệ thống kho."
+            : undefined
+        }
       />
 
       <InventoryStats />
@@ -48,6 +54,7 @@ export function Inventory() {
         {[
           { id: "medicines" as InventoryTab, label: "Kho thuốc" },
           { id: "imports" as InventoryTab, label: "Quản lý nhập kho" },
+          { id: "units" as InventoryTab, label: "Đơn vị tính" },
         ].map((t) => (
           <button
             key={t.id}
@@ -64,7 +71,9 @@ export function Inventory() {
         ))}
       </div>
 
-      {tab === "medicines" ? <InventoryTable /> : <InventoryImportTab />}
+      {tab === "medicines" && <InventoryTable />}
+      {tab === "imports" && <InventoryImportTab />}
+      {tab === "units" && <UnitTable />}
 
       <AddMedicineModal open={addOpen} onClose={() => setAddOpen(false)} />
       <SetPriceModal open={priceOpen} onClose={() => setPriceOpen(false)} />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Input, Badge, Button, Pagination } from "@/components/common";
 import type { Medicine, StockStatus } from "@/types/medicine";
+import { BatchHistoryModal } from "./BatchHistoryModal";
 
 // ── Mock data ────────────────────────────────────────────────────────────────
 
@@ -90,6 +91,7 @@ const TOTAL_PAGES = 321;
 
 export function InventoryTable() {
   const [page, setPage] = useState(1);
+  const [batchMed, setBatchMed] = useState<Medicine | null>(null);
 
   return (
     <div className="bg-surface-container-lowest rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,80,203,0.03)] overflow-hidden">
@@ -226,13 +228,27 @@ export function InventoryTable() {
                     </Badge>
                   </td>
 
-                  {/* Actions (visible on hover) */}
+                  {/* Actions */}
                   <td className="px-8 py-5 text-right">
-                    <button className="opacity-0 group-hover:opacity-100 p-2 hover:bg-surface-container-high rounded-lg transition-all">
-                      <span className="material-symbols-outlined text-on-surface-variant">
-                        more_vert
-                      </span>
-                    </button>
+                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button
+                        onClick={() => setBatchMed(med)}
+                        className="p-2 hover:bg-primary/10 text-on-surface-variant hover:text-primary rounded-lg transition-colors"
+                        title="Xem lịch sử lô"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          visibility
+                        </span>
+                      </button>
+                      <button
+                        className="p-2 hover:bg-surface-container-high text-on-surface-variant rounded-lg transition-colors"
+                        title="Chỉnh sửa"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          edit
+                        </span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -256,6 +272,15 @@ export function InventoryTable() {
           onPageChange={setPage}
         />
       </div>
+
+      {batchMed && (
+        <BatchHistoryModal
+          open={!!batchMed}
+          onClose={() => setBatchMed(null)}
+          medicineName={batchMed.name}
+          sku={batchMed.id}
+        />
+      )}
     </div>
   );
 }

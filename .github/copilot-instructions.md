@@ -12,15 +12,18 @@ applyTo: "src/**/*.{tsx,ts}"
 > 4. When a new common is **created**: add it to `src/components/common/index.ts` AND add a section here.
 > 5. When a common is **modified** (new prop, new variant, changed behaviour): update the relevant section in this file to reflect the change.
 > 6. Never use hardcoded Tailwind colors (`slate-*`, `blue-*`, `red-*`). Always use design-token classes.
+> 7. **When the user sends an HTML mockup:** ONLY implement/update the components explicitly shown in that mockup. Never touch, refactor, or "improve" any other existing UI component that is not shown in the mockup. If a component already exists and the mockup shows an updated version of it, replace it with the new mockup version exactly — do not keep the old version.
+> 8. **Always prefer common components.** Before writing any UI primitive (button, badge, input, modal, table, pagination, stat card…), check if a matching common already exists. If a pattern appears in ≥ 2 places, extract it into `src/components/common/` immediately.
+> 9. **Always decompose large components.** Any JSX block > ~40 lines or with its own internal state must be extracted into a named sub-component in the appropriate `src/components/<feature>/` folder. Pages in `src/pages/` must remain thin orchestrators with no inline JSX blocks longer than ~15 lines.
 
 ---
 
 ## Design System Summary (from DESIGN.md)
 
 - **No 1px borders** — use background-color shifts (`surface-container-low`, `surface-container-lowest`, etc.) for containment.
-- **Shadow:** `shadow-[0_20px_40px_rgba(0,80,203,0.03)]` for cards; `shadow-lg shadow-primary/20` for elevated buttons.
+- **Shadow:** `shadow-[0_20px_40px_rgba(0,80,203,0.03)]` for cards; `shadow-lg shadow-primary/20` for elevated buttons; `shadow-sm` for subtle card elevation.
 - **Fonts:** `font-headline` (Manrope) for titles/display; `font-body`/`font-label` (Inter) for body/UI.
-- **Roundness:** `rounded-xl` (0.5rem) for inputs & buttons; `rounded-[1.5rem]` or `rounded-full` for cards.
+- **Roundness:** `rounded-[2rem]` for large content cards; `rounded-full` for pill-style cards/buttons/selects; `rounded-xl` for inputs & standard buttons.
 - **Text color:** Always use `text-on-surface` (#191c1d), never pure black.
 - **Primary:** `#0050cb` / `bg-primary`. Gradients: `from-primary to-primary-container` at 135°.
 
@@ -200,6 +203,31 @@ Props: `currentPage`, `totalPages`, `onPageChange`, `className?`
 import { Pagination } from "@/components/common";
 
 <Pagination currentPage={page} totalPages={321} onPageChange={setPage} />;
+```
+
+---
+
+### `<TabBar>`
+
+**File:** `src/components/common/TabBar.tsx`
+
+Variants: `underline` (default) — border-bottom style for page-level tabs | `pill` — filled chip style for section-level tabs  
+Props: `tabs: { id: string; label: string }[]`, `activeTab: string`, `onTabChange: (id: string) => void`, `variant?`, `className?`
+
+```tsx
+import { TabBar } from "@/components/common";
+
+const TABS = [
+  { id: "medicines", label: "Kho thuốc" },
+  { id: "imports", label: "Quản lý nhập kho" },
+] as const;
+type TabId = (typeof TABS)[number]["id"];
+
+// Underline variant (page-level tabs)
+<TabBar tabs={TABS} activeTab={tab} onTabChange={(id) => setTab(id as TabId)} />
+
+// Pill variant (section-level tabs)
+<TabBar tabs={TABS} activeTab={tab} onTabChange={(id) => setTab(id as TabId)} variant="pill" />
 ```
 
 ---

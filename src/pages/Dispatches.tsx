@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PageHeader, Button, TabBar } from "@/components/common";
+import { PageHeader, TabBar } from "@/components/common";
 import { DispatchList } from "@/components/dispatches/DispatchList";
 import { CreateDispatchForm } from "@/components/dispatches/CreateDispatchForm";
 
@@ -24,24 +24,13 @@ export function Dispatches() {
         title="Quản lý xuất kho"
         titleSize="text-4xl"
         actions={
-          tab === "history" ? (
-            <>
-              <Button variant="ghost" icon="download">
-                Xuất báo cáo (CSV)
-              </Button>
-              <Button icon="add" onClick={() => setTab("create")}>
-                Tạo đơn mới
-              </Button>
-            </>
-          ) : undefined
+          <TabBar
+            tabs={DISPATCH_TABS}
+            activeTab={tab}
+            onTabChange={(id) => setTab(id as DispatchTab)}
+            variant="pill"
+          />
         }
-      />
-
-      <TabBar
-        tabs={DISPATCH_TABS}
-        activeTab={tab}
-        onTabChange={(id) => setTab(id as DispatchTab)}
-        variant="pill"
       />
 
       {tab === "history" && <DispatchList />}

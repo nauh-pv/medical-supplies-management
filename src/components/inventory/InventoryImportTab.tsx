@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Input, Button, Badge, Pagination } from "@/components/common";
 import { ImportDetailModal } from "./ImportDetailModal";
+import { CreateImportModal } from "../imports/CreateImportModal";
 
 type ImportStatus = "received" | "pending" | "shipping";
 
@@ -65,6 +66,7 @@ const statusConfig: Record<
 export function InventoryImportTab() {
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isOpenCreateImportModal, setIsOpenCreateImportModal] = useState(false);
 
   return (
     <>
@@ -81,7 +83,11 @@ export function InventoryImportTab() {
             <Button variant="ghost" icon="calendar_month" size="sm">
               Chọn ngày
             </Button>
-            <Button icon="add_shopping_cart" size="sm">
+            <Button
+              icon="add_shopping_cart"
+              size="sm"
+              onClick={() => setIsOpenCreateImportModal(true)}
+            >
               Tạo đơn nhập mới
             </Button>
           </div>
@@ -196,6 +202,11 @@ export function InventoryImportTab() {
         open={!!selectedId}
         importId={selectedId ?? ""}
         onClose={() => setSelectedId(null)}
+      />
+
+      <CreateImportModal
+        open={isOpenCreateImportModal}
+        onClose={() => setIsOpenCreateImportModal(false)}
       />
     </>
   );

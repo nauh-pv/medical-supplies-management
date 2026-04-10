@@ -10,6 +10,7 @@ import { Imports } from "@/pages/Imports";
 import { Login } from "@/pages/Login";
 import { Register } from "@/pages/Register";
 import { Dispatches } from "@/pages/Dispatches";
+import { Branches } from "@/pages/Branches";
 import { PWAPrompt } from "@/components/PWAPrompt";
 import { onAuthChanged, type User } from "@/services/auth";
 import "./App.css";
@@ -24,6 +25,7 @@ const pages: Partial<Record<NavId, React.ReactNode>> = {
   alerts: <Alerts />,
   imports: <Imports />,
   medication: <Dispatches />,
+  branches: <Branches />,
 };
 
 function App() {

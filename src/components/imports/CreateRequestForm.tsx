@@ -1,54 +1,96 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DrugRequestRow } from "./DrugRequestRow";
 import type { DrugRow } from "./DrugRequestRow";
+import { getMedicines, createImportRequest } from "@/services/inventory";
+import type { MedicineDoc } from "@/types/firestore";
+import { useUserContext } from "@/contexts/UserContext";
 
-const DRUGS = [
+const PRIORITY_OPTIONS = [
   {
-    name: "Amoxicillin 500mg (Tồn: 450)",
-    category: "Kháng sinh • Hộp 100 viên",
-    unit: "Hộp",
-    unitPrice: "155.000đ",
-    icon: "pill",
+    value: "urgent" as const,
+    label: "Cao (Trong vòng 24h)",
+    color: "text-tertiary",
   },
   {
-    name: "Paracetamol 500mg (Tồn: 1200)",
-    category: "Giảm đau hạ sốt • Hộp 200 viên",
-    unit: "Vỉ",
-    unitPrice: "85.000đ",
-    icon: "vaccines",
+    value: "normal" as const,
+    label: "Trung bình (2–3 ngày)",
+    color: "text-primary",
   },
   {
-    name: "Ibuprofen 400mg (Tồn: 80)",
-    category: "Kháng viêm • Hộp 100 viên",
-    unit: "Hộp",
-    unitPrice: "120.000đ",
-    icon: "medication",
+    value: "low" as const,
+    label: "Bình thường (1 tuần)",
+    color: "text-on-surface-variant",
   },
-];
-
-const initialRows: DrugRow[] = [
-  { id: 1, ...DRUGS[0], qty: 50 },
-  { id: 2, ...DRUGS[1], qty: 100 },
-];
-
-const WAREHOUSES = [
-  "Kho dược tổng Miền Nam",
-  "Kho dược tổng Miền Bắc",
-  "Kho dược tổng Miền Trung",
-];
-
-const PRIORITIES = [
-  { label: "Cao (Trong vòng 24h)", color: "text-tertiary" },
-  { label: "Trung bình (2–3 ngày)", color: "text-primary" },
-  { label: "Bình thường (1 tuần)", color: "text-on-surface-variant" },
 ];
 
 export function CreateRequestForm() {
-  const [rows, setRows] = useState<DrugRow[]>(initialRows);
+  const userDoc = useUserContext();
+  const [medicines, setMedicines] = useState<MedicineDoc[]>([]);
+  const [rows, setRows] = useState<DrugRow[]>([]);
+  const [priority, setPriority] = useState<"urgent" | "normal" | "low">(
+    "normal",
+  );
+  const [notes, setNotes] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    getMedicines().then((meds) => {
+      setMedicines(meds);
+      if (meds.length > 0) {
+        const first = meds[0];
+        setRows([
+          {
+            id: 1,
+            name: first.name,
+            category:
+              first.category === "prescribed" ? "Thuốc kê đơn" : "Thuốc OTC",
+            unit: first.unitName,
+            qty: 1,
+            unitPrice: `${first.sellPrice.toLocaleString("vi-VN")}đ`,
+            icon: first.icon,
+            medicineId: first.id,
+            medicineSku: first.sku,
+            unitId: first.unitId,
+            estimatedPrice: first.sellPrice,
+          },
+        ]);
+      }
+    });
+  }, []);
+
+  const drugOptions = medicines.map((m) => ({
+    name: m.name,
+    category: m.category === "prescribed" ? "Thuốc kê đơn" : "Thuốc OTC",
+    unit: m.unitName,
+    unitPrice: `${m.sellPrice.toLocaleString("vi-VN")}đ`,
+    icon: m.icon,
+    medicineId: m.id,
+    medicineSku: m.sku,
+    unitId: m.unitId,
+    estimatedPrice: m.sellPrice,
+  }));
 
   function addRow() {
-    const next = DRUGS[rows.length % DRUGS.length];
-    setRows((prev) => [...prev, { id: Date.now(), ...next, qty: 1 }]);
+    if (medicines.length === 0) return;
+    const med = medicines[rows.length % medicines.length];
+    setRows((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        name: med.name,
+        category: med.category === "prescribed" ? "Thuốc kê đơn" : "Thuốc OTC",
+        unit: med.unitName,
+        qty: 1,
+        unitPrice: `${med.sellPrice.toLocaleString("vi-VN")}đ`,
+        icon: med.icon,
+        medicineId: med.id,
+        medicineSku: med.sku,
+        unitId: med.unitId,
+        estimatedPrice: med.sellPrice,
+      },
+    ]);
   }
 
   function removeRow(id: number) {
@@ -61,7 +103,76 @@ export function CreateRequestForm() {
     );
   }
 
+  function selectMedicine(rowId: number, medicineName: string) {
+    const med = medicines.find((m) => m.name === medicineName);
+    if (!med) return;
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id === rowId
+          ? {
+              ...r,
+              name: med.name,
+              category:
+                med.category === "prescribed" ? "Thuốc kê đơn" : "Thuốc OTC",
+              unit: med.unitName,
+              unitPrice: `${med.sellPrice.toLocaleString("vi-VN")}đ`,
+              icon: med.icon,
+              medicineId: med.id,
+              medicineSku: med.sku,
+              unitId: med.unitId,
+              estimatedPrice: med.sellPrice,
+            }
+          : r,
+      ),
+    );
+  }
+
+  async function handleSubmit() {
+    if (!userDoc) {
+      setError("Chưa đăng nhập.");
+      return;
+    }
+    if (rows.length === 0) {
+      setError("Vui lòng thêm ít nhất một loại thuốc.");
+      return;
+    }
+    setSending(true);
+    setError("");
+    try {
+      await createImportRequest({
+        branchId: userDoc.branchId ?? "WAREHOUSE",
+        branchName: userDoc.branchName ?? "Kho Tổng",
+        createdBy: userDoc.uid,
+        createdByName: userDoc.displayName,
+        priority,
+        items: rows.map((r) => ({
+          medicineId: r.medicineId ?? r.name,
+          medicineName: r.name,
+          medicineSku: r.medicineSku ?? "",
+          quantity: r.qty,
+          unitId: r.unitId ?? "",
+          unitName: r.unit,
+          estimatedPrice: r.estimatedPrice ?? 0,
+          notes: "",
+        })),
+        notes,
+      });
+      setSent(true);
+      setTimeout(() => setSent(false), 3000);
+      setRows([]);
+      setNotes("");
+    } catch {
+      setError("Đã xảy ra lỗi khi gửi yêu cầu. Vui lòng thử lại.");
+    } finally {
+      setSending(false);
+    }
+  }
+
   const totalTypes = rows.length;
+  const totalValue = rows.reduce(
+    (s, r) => s + (r.estimatedPrice ?? 0) * r.qty,
+    0,
+  );
 
   return (
     <div className="space-y-8">
@@ -69,18 +180,35 @@ export function CreateRequestForm() {
       <div className="bg-primary rounded-full p-8 text-on-primary shadow-[0_20px_40px_rgba(0,80,203,0.25)] flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
         <div className="absolute -right-16 -top-16 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="flex-1 relative z-10">
-          <h3 className="text-xl font-headline font-bold mb-2">
-            Gửi yêu cầu ngay
-          </h3>
+          {sent ? (
+            <h3 className="text-xl font-headline font-bold mb-2">
+              ✅ Đã gửi yêu cầu thành công!
+            </h3>
+          ) : (
+            <h3 className="text-xl font-headline font-bold mb-2">
+              Gửi yêu cầu ngay
+            </h3>
+          )}
           <p className="text-sm leading-relaxed opacity-90 max-w-2xl">
             Vui lòng kiểm tra kỹ danh sách thuốc và số lượng trước khi xác nhận
             gửi về Kho tổng. Lệnh yêu cầu sau khi gửi sẽ không thể chỉnh sửa.
           </p>
+          {error && (
+            <p className="text-sm text-error-container font-semibold mt-2">
+              {error}
+            </p>
+          )}
         </div>
         <div className="shrink-0 relative z-10">
-          <button className="bg-surface-container-lowest text-primary px-8 py-4 rounded-xl font-bold hover:bg-surface-container-low transition-all flex items-center gap-2 whitespace-nowrap shadow-lg">
-            <span className="material-symbols-outlined">send</span>
-            Gửi yêu cầu nhập hàng
+          <button
+            onClick={handleSubmit}
+            disabled={sending || rows.length === 0}
+            className="bg-surface-container-lowest text-primary px-8 py-4 rounded-xl font-bold hover:bg-surface-container-low transition-all flex items-center gap-2 whitespace-nowrap shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span className="material-symbols-outlined">
+              {sending ? "progress_activity" : "send"}
+            </span>
+            {sending ? "Đang gửi..." : "Gửi yêu cầu nhập hàng"}
           </button>
         </div>
       </div>
@@ -93,15 +221,21 @@ export function CreateRequestForm() {
           Thông tin chung
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Warehouse select */}
+          {/* Priority select */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-label font-bold uppercase tracking-wider text-on-surface-variant">
-              Kho nguồn (Tổng)
+              Mức độ ưu tiên
             </label>
             <div className="relative">
-              <select className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm text-on-surface font-medium outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer">
-                {WAREHOUSES.map((w) => (
-                  <option key={w}>{w}</option>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as typeof priority)}
+                className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm text-on-surface font-medium outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer"
+              >
+                {PRIORITY_OPTIONS.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
                 ))}
               </select>
               <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl">
@@ -110,21 +244,18 @@ export function CreateRequestForm() {
             </div>
           </div>
 
-          {/* Priority select */}
+          {/* Notes */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-label font-bold uppercase tracking-wider text-on-surface-variant">
-              Mức độ ưu tiên
+              Ghi chú
             </label>
-            <div className="relative">
-              <select className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm text-on-surface font-medium outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer">
-                {PRIORITIES.map((p) => (
-                  <option key={p.label}>{p.label}</option>
-                ))}
-              </select>
-              <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-xl">
-                expand_more
-              </span>
-            </div>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Ghi chú thêm (tuỳ chọn)..."
+              className="w-full bg-surface-container-low border-none rounded-xl px-4 py-3 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/20"
+            />
           </div>
         </div>
       </section>
@@ -153,11 +284,17 @@ export function CreateRequestForm() {
             <DrugRequestRow
               key={row.id}
               row={row}
-              drugs={DRUGS}
+              drugs={drugOptions}
               onQtyChange={changeQty}
               onRemove={removeRow}
+              onSelectMedicine={selectMedicine}
             />
           ))}
+          {rows.length === 0 && (
+            <p className="text-sm text-on-surface-variant text-center py-8">
+              Chưa có thuốc nào. Nhấn "Thêm thuốc" để thêm.
+            </p>
+          )}
         </div>
 
         {/* Summary */}
@@ -173,7 +310,7 @@ export function CreateRequestForm() {
               Tổng giá trị ước tính:
             </span>
             <span className="text-xl font-headline font-extrabold text-primary">
-              16.250.000đ
+              {totalValue.toLocaleString("vi-VN")}đ
             </span>
           </div>
         </div>

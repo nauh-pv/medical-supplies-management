@@ -1,102 +1,121 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge, Pagination } from "@/components/common";
-import { ImportDetailModal } from "@/components/inventory/ImportDetailModal";
+import { getImportRequests } from "@/services/inventory";
+import type { ImportRequestDoc, ImportRequestStatus } from "@/types/firestore";
+import { ImportRequestDetailModal } from "./ImportRequestDetailModal";
 
-type ImportStatus = "received" | "pending" | "shipping" | "approved";
-
-interface ImportRow {
-  id: string;
-  type: "warehouse" | "branch";
-  date: string;
-  status: ImportStatus;
-  total: string;
-}
-
-const mockImports: ImportRow[] = [
-  {
-    id: "WH-REQ-8821",
-    type: "warehouse",
-    date: "12/10/2023 14:30",
-    status: "shipping",
-    total: "14.200.000\u0111",
-  },
-  {
-    id: "BR-REQ-4490",
-    type: "branch",
-    date: "11/10/2023 09:15",
-    status: "pending",
-    total: "5.800.000\u0111",
-  },
-  {
-    id: "WH-REQ-8815",
-    type: "warehouse",
-    date: "10/10/2023 16:45",
-    status: "received",
-    total: "28.500.000\u0111",
-  },
-  {
-    id: "WH-REQ-8812",
-    type: "warehouse",
-    date: "10/10/2023 08:20",
-    status: "shipping",
-    total: "42.000.000\u0111",
-  },
-];
+const ITEMS_PER_PAGE = 10;
 
 const statusConfig: Record<
-  ImportStatus,
-  { label: string; variant: "info" | "warning" | "neutral" | "success" }
+  ImportRequestStatus,
+  {
+    label: string;
+    variant: "info" | "warning" | "neutral" | "success" | "error";
+  }
 > = {
-  shipping: { label: "\u0110ang v\u1eadn chuy\u1ec3n", variant: "warning" },
-  pending: { label: "Ch\u1edd duy\u1ec7t", variant: "info" },
-  received: { label: "\u0110\u00e3 nh\u1eadn", variant: "neutral" },
-  approved: { label: "\u0110\u00e3 duy\u1ec7t", variant: "success" },
+  pending: { label: "Chờ duyệt", variant: "info" },
+  approved: { label: "Đã duyệt", variant: "success" },
+  rejected: { label: "Từ chối", variant: "error" },
+  fulfilled: { label: "Đã hoàn thành", variant: "neutral" },
 };
 
-const stats = [
-  {
-    label: "T\u1ed5ng l\u1ec7nh",
-    value: "124",
-    icon: "package_2",
-    iconColor: "text-primary",
-    sub: "+12% th\u00e1ng n\u00e0y",
-    subColor: "text-green-600",
-  },
-  {
-    label: "\u0110ang v\u1eadn chuy\u1ec3n",
-    value: "08",
-    icon: "local_shipping",
-    iconColor: "text-tertiary",
-    sub: "D\u1ef1 ki\u1ebfn \u0111\u1ebfn trong h\u00f4m nay",
-    subColor: "text-on-surface-variant",
-  },
-  {
-    label: "Ch\u1edd duy\u1ec7t",
-    value: "15",
-    icon: "hourglass_empty",
-    iconColor: "text-secondary",
-    sub: "Y\u00eau c\u1ea7u t\u1eeb chi nh\u00e1nh",
-    subColor: "text-on-surface-variant",
-  },
-  {
-    label: "\u0110\u00e3 nh\u1eadn",
-    value: "101",
-    icon: "task_alt",
-    iconColor: "text-green-600",
-    sub: "Ho\u00e0n th\u00e0nh trong qu\u00fd",
-    subColor: "text-on-surface-variant",
-  },
-];
+function formatTs(ts: { seconds: number } | undefined): string {
+  if (!ts) return "—";
+  return new Date(ts.seconds * 1000).toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 export function ImportList() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [requests, setRequests] = useState<ImportRequestDoc[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ImportRequestStatus | "all">(
+    "all",
+  );
   const [page, setPage] = useState(1);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    getImportRequests()
+      .then((data) => {
+        if (!cancelled) {
+          setRequests(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("ImportList fetch error:", err);
+          setError("Không thể tải dữ liệu yêu cầu nhập.");
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filtered = requests.filter(
+    (r) => statusFilter === "all" || r.status === statusFilter,
+  );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paged = filtered.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE,
+  );
+
+  // Stat counts
+  const counts = {
+    total: requests.length,
+    pending: requests.filter((r) => r.status === "pending").length,
+    approved: requests.filter((r) => r.status === "approved").length,
+    fulfilled: requests.filter((r) => r.status === "fulfilled").length,
+  };
+
+  const statCards = [
+    {
+      label: "Tổng lệnh",
+      value: String(counts.total),
+      icon: "package_2",
+      iconColor: "text-primary",
+      sub: "Tất cả yêu cầu nhập",
+    },
+    {
+      label: "Chờ duyệt",
+      value: String(counts.pending),
+      icon: "hourglass_empty",
+      iconColor: "text-secondary",
+      sub: "Cần xử lý",
+    },
+    {
+      label: "Đã duyệt",
+      value: String(counts.approved),
+      icon: "check_circle",
+      iconColor: "text-tertiary",
+      sub: "Chờ thực hiện",
+    },
+    {
+      label: "Hoàn thành",
+      value: String(counts.fulfilled),
+      icon: "task_alt",
+      iconColor: "text-green-600",
+      sub: "Đã nhập kho",
+    },
+  ];
 
   return (
     <>
       {/* Stat cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
-        {stats.map((s) => (
+        {statCards.map((s) => (
           <div
             key={s.label}
             className="bg-surface-container-lowest rounded-[1.5rem] p-6 shadow-[0_20px_40px_rgba(0,80,203,0.03)]"
@@ -114,117 +133,158 @@ export function ImportList() {
             <p className="text-xs font-label text-on-surface-variant mb-2">
               {s.label}
             </p>
-            <p className={`text-xs font-label ${s.subColor}`}>{s.sub}</p>
+            <p className="text-xs font-label text-on-surface-variant">
+              {s.sub}
+            </p>
           </div>
         ))}
       </div>
 
-      {/* Filter bar */}
+      {/* Table */}
       <div className="bg-surface-container-lowest rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,80,203,0.03)] overflow-hidden">
+        {/* Filter bar */}
         <div className="px-8 py-5 flex items-center gap-4 border-b border-outline-variant/10">
-          <select className="h-9 rounded-xl px-3 text-sm font-label bg-surface-container-low text-on-surface-variant focus:outline-none">
-            <option>T\u1ea5t c\u1ea3 tr\u1ea1ng th\u00e1i</option>
-            <option>\u0110ang v\u1eadn chuy\u1ec3n</option>
-            <option>Ch\u1edd duy\u1ec7t</option>
-            <option>\u0110\u00e3 nh\u1eadn</option>
-            <option>\u0110\u00e3 duy\u1ec7t</option>
-          </select>
-          <select className="h-9 rounded-xl px-3 text-sm font-label bg-surface-container-low text-on-surface-variant focus:outline-none">
-            <option>T\u1ea5t c\u1ea3 lo\u1ea1i</option>
-            <option>Kho t\u1ed5ng</option>
-            <option>Chi nh\u00e1nh</option>
+          <select
+            className="h-9 rounded-xl px-3 text-sm font-label bg-surface-container-low text-on-surface-variant focus:outline-none"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as ImportRequestStatus | "all");
+              setPage(1);
+            }}
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="pending">Chờ duyệt</option>
+            <option value="approved">Đã duyệt</option>
+            <option value="rejected">Từ chối</option>
+            <option value="fulfilled">Hoàn thành</option>
           </select>
         </div>
 
-        {/* Table */}
-        <table className="w-full">
-          <thead>
-            <tr className="bg-surface-container-low/30">
-              <th className="px-8 py-3 text-left text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
-                M\u00e3 \u0111\u01a1n
-              </th>
-              <th className="px-4 py-3 text-left text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
-                Lo\u1ea1i
-              </th>
-              <th className="px-4 py-3 text-left text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
-                Ng\u00e0y t\u1ea1o
-              </th>
-              <th className="px-4 py-3 text-left text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
-                Tr\u1ea1ng th\u00e1i
-              </th>
-              <th className="px-4 py-3 text-left text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
-                T\u1ed5ng gi\u00e1 tr\u1ecb
-              </th>
-              <th className="px-4 py-3 text-left text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant">
-                H\u00e0nh \u0111\u1ed9ng
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {mockImports.map((row, i) => (
-              <tr
-                key={row.id}
-                className={`group ${i % 2 === 0 ? "bg-white" : "bg-surface-container-lowest/30"} hover:bg-primary/5 transition-colors`}
-              >
-                <td className="px-8 py-4 text-sm font-label font-semibold text-primary">
-                  {row.id}
-                </td>
-                <td className="px-4 py-4 text-sm font-label text-on-surface-variant">
-                  {row.type === "warehouse"
-                    ? "Kho t\u1ed5ng"
-                    : "Chi nh\u00e1nh"}
-                </td>
-                <td className="px-4 py-4 text-sm font-label text-on-surface-variant">
-                  {row.date}
-                </td>
-                <td className="px-4 py-4">
-                  <Badge variant={statusConfig[row.status].variant}>
-                    {statusConfig[row.status].label}
-                  </Badge>
-                </td>
-                <td className="px-4 py-4 text-sm font-label font-semibold text-on-surface">
-                  {row.total}
-                </td>
-                <td className="px-4 py-4 flex items-center gap-2">
-                  <button
-                    onClick={() => setSelectedId(row.id)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-label font-semibold text-primary bg-primary/8 hover:bg-primary/15 transition-colors"
+        {loading ? (
+          <div className="flex items-center justify-center py-16 gap-3 text-on-surface-variant">
+            <span className="material-symbols-outlined animate-spin text-primary text-3xl">
+              progress_activity
+            </span>
+            <span className="text-sm">Đang tải dữ liệu...</span>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-error">
+            <span className="material-symbols-outlined text-4xl">error</span>
+            <span className="text-sm">{error}</span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant">
+            <span className="material-symbols-outlined text-4xl">inbox</span>
+            <span className="text-sm">Không có yêu cầu nhập nào.</span>
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="bg-surface-container-low/30">
+                {[
+                  { label: "Mã yêu cầu", cls: "pl-8" },
+                  { label: "Chi nhánh" },
+                  { label: "Ngày tạo" },
+                  { label: "Ưu tiên" },
+                  { label: "Trạng thái" },
+                  { label: "Tổng giá trị", cls: "text-right" },
+                  { label: "Hành động", cls: "text-center" },
+                ].map((h) => (
+                  <th
+                    key={h.label}
+                    className={[
+                      "px-4 py-3 text-left text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant",
+                      h.cls ?? "",
+                    ].join(" ")}
                   >
-                    Xem chi ti\u1ebft
-                  </button>
-                  {row.status === "shipping" && (
-                    <button className="px-3 py-1.5 rounded-lg text-xs font-label font-semibold text-white bg-green-600 hover:bg-green-700 transition-colors">
-                      \u0110\u00e3 nh\u1eadn
-                    </button>
-                  )}
-                </td>
+                    {h.label}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {paged.map((row, i) => {
+                const cfg = statusConfig[row.status];
+                const priorityVariant =
+                  row.priority === "urgent"
+                    ? "error"
+                    : row.priority === "normal"
+                      ? "info"
+                      : "neutral";
+                const priorityLabel =
+                  row.priority === "urgent"
+                    ? "Khẩn cấp"
+                    : row.priority === "normal"
+                      ? "Bình thường"
+                      : "Thấp";
+                return (
+                  <tr
+                    key={row.id}
+                    className={`group ${i % 2 === 0 ? "" : "bg-surface-container-lowest/30"} hover:bg-primary/5 transition-colors`}
+                  >
+                    <td className="px-8 py-4 text-sm font-label font-semibold text-primary font-mono">
+                      {row.code}
+                    </td>
+                    <td className="px-4 py-4 text-sm font-label text-on-surface">
+                      {row.branchName}
+                    </td>
+                    <td className="px-4 py-4 text-sm font-label text-on-surface-variant">
+                      {formatTs(
+                        row.createdAt as unknown as
+                          | { seconds: number }
+                          | undefined,
+                      )}
+                    </td>
+                    <td className="px-4 py-4">
+                      <Badge variant={priorityVariant}>{priorityLabel}</Badge>
+                    </td>
+                    <td className="px-4 py-4">
+                      <Badge variant={cfg.variant}>{cfg.label}</Badge>
+                    </td>
+                    <td className="px-4 py-4 text-right text-sm font-semibold font-mono text-on-surface">
+                      {row.total.toLocaleString("vi-VN")}đ
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <button
+                        onClick={() => setSelectedId(row.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-label font-semibold text-primary bg-primary/8 hover:bg-primary/15 transition-colors"
+                      >
+                        Xem chi tiết
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
 
-        {/* Pagination */}
-        <div className="px-8 py-5 border-t border-outline-variant/10 bg-surface-container-low/20 flex items-center justify-between">
-          <p className="text-xs text-on-surface-variant">
-            Hi\u1ec3n th\u1ecb{" "}
-            <span className="font-bold text-on-surface">
-              {(page - 1) * 4 + 1}&ndash;{Math.min(page * 4, 124)}
-            </span>{" "}
-            tr\u00ean 124 l\u1ec7nh nh\u1eadp h\u00e0ng
-          </p>
-          <Pagination
-            currentPage={page}
-            totalPages={31}
-            onPageChange={setPage}
-          />
-        </div>
+        {!loading && filtered.length > 0 && (
+          <div className="px-8 py-5 border-t border-outline-variant/10 bg-surface-container-low/20 flex items-center justify-between">
+            <p className="text-xs text-on-surface-variant">
+              Hiển thị{" "}
+              <span className="font-bold text-on-surface">
+                {(page - 1) * ITEMS_PER_PAGE + 1}–
+                {Math.min(page * ITEMS_PER_PAGE, filtered.length)}
+              </span>{" "}
+              trên {filtered.length.toLocaleString("vi-VN")} yêu cầu
+            </p>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
       </div>
 
-      <ImportDetailModal
-        open={!!selectedId}
-        importId={selectedId ?? ""}
-        onClose={() => setSelectedId(null)}
-      />
+      {selectedId && (
+        <ImportRequestDetailModal
+          open={!!selectedId}
+          requestId={selectedId}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
     </>
   );
 }

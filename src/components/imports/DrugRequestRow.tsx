@@ -6,6 +6,10 @@ export interface DrugRow {
   qty: number;
   unitPrice: string;
   icon: string;
+  medicineId?: string;
+  medicineSku?: string;
+  unitId?: string;
+  estimatedPrice?: number;
 }
 
 interface DrugOption {
@@ -14,6 +18,10 @@ interface DrugOption {
   unit: string;
   unitPrice: string;
   icon: string;
+  medicineId?: string;
+  medicineSku?: string;
+  unitId?: string;
+  estimatedPrice?: number;
 }
 
 interface DrugRequestRowProps {
@@ -21,6 +29,7 @@ interface DrugRequestRowProps {
   drugs: DrugOption[];
   onQtyChange: (id: number, val: number) => void;
   onRemove: (id: number) => void;
+  onSelectMedicine?: (rowId: number, medicineName: string) => void;
 }
 
 export function DrugRequestRow({
@@ -28,6 +37,7 @@ export function DrugRequestRow({
   drugs,
   onQtyChange,
   onRemove,
+  onSelectMedicine,
 }: DrugRequestRowProps) {
   return (
     <div className="flex flex-col md:flex-row items-start md:items-center gap-6 p-4 rounded-2xl hover:bg-surface-container-low transition-colors">
@@ -43,9 +53,15 @@ export function DrugRequestRow({
         <label className="text-[10px] uppercase font-bold text-on-surface-variant block mb-1">
           Tên thuốc
         </label>
-        <select className="w-full bg-transparent border-none p-0 font-bold text-sm text-on-surface focus:ring-0 cursor-pointer outline-none appearance-none">
+        <select
+          className="w-full bg-transparent border-none p-0 font-bold text-sm text-on-surface focus:ring-0 cursor-pointer outline-none appearance-none"
+          value={row.name}
+          onChange={(e) => onSelectMedicine?.(row.id, e.target.value)}
+        >
           {drugs.map((d) => (
-            <option key={d.name}>{d.name}</option>
+            <option key={d.name} value={d.name}>
+              {d.name}
+            </option>
           ))}
         </select>
         <p className="text-xs text-on-surface-variant mt-0.5">{row.category}</p>

@@ -1,6 +1,11 @@
-import { useState, useEffect } from "react";
-import { Modal, Button, Input } from "@/components/common";
-import { addMedicine, getUnits, updateMedicine } from "@/services/inventory";
+import { useState, useEffect, useRef } from "react";
+import { Modal, Button } from "@/components/common";
+import {
+  addMedicine,
+  getUnits,
+  updateMedicine,
+  uploadMedicineImage,
+} from "@/services/inventory";
 import type { UnitDoc, MedicineDoc } from "@/types/firestore";
 
 interface AddMedicineModalProps {
@@ -10,26 +15,39 @@ interface AddMedicineModalProps {
   medicine?: MedicineDoc | null;
 }
 
-const ICON_OPTIONS = [
-  { icon: "medication", bg: "bg-primary/10", color: "text-primary" },
-  {
-    icon: "pill",
-    bg: "bg-secondary-fixed-dim",
-    color: "text-on-secondary-fixed-variant",
-  },
-  { icon: "vaccines", bg: "bg-tertiary-fixed", color: "text-tertiary" },
-  { icon: "medication_liquid", bg: "bg-primary/10", color: "text-primary" },
-  { icon: "emergency", bg: "bg-error-container", color: "text-error" },
-  { icon: "science", bg: "bg-secondary/10", color: "text-secondary" },
-];
-
-function generateSku() {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "MED-";
-  for (let i = 0; i < 5; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result;
+async function compressImage(
+  file: File,
+  maxPx = 800,
+  quality = 0.8,
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxPx || height > maxPx) {
+        if (width > height) {
+          height = Math.round((height * maxPx) / width);
+          width = maxPx;
+        } else {
+          width = Math.round((width * maxPx) / height);
+          height = maxPx;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("compress failed"))),
+        "image/jpeg",
+        quality,
+      );
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
 }
 
 export function AddMedicineModal({
@@ -42,53 +60,54 @@ export function AddMedicineModal({
   const [units, setUnits] = useState<UnitDoc[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [iconIdx, setIconIdx] = useState(0);
   const [form, setForm] = useState({
-    sku: generateSku(),
     name: "",
     description: "",
     category: "" as "" | "prescribed" | "otc",
     unitId: "",
-    importPrice: "",
-    sellPrice: "",
-    minStockLevel: "",
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       getUnits().then(setUnits);
       if (medicine) {
-        // Edit mode — prefill from existing medicine
-        const iconMatch = ICON_OPTIONS.findIndex(
-          (o) => o.icon === medicine.icon,
-        );
-        setIconIdx(iconMatch >= 0 ? iconMatch : 0);
         setForm({
-          sku: medicine.sku,
           name: medicine.name,
           description: medicine.description,
           category: medicine.category,
           unitId: medicine.unitId,
-          importPrice: String(medicine.importPrice),
-          sellPrice: String(medicine.sellPrice),
-          minStockLevel: String(medicine.minStockLevel),
         });
+        setImagePreview(medicine.imageUrl ?? null);
       } else {
-        setForm({
-          sku: generateSku(),
-          name: "",
-          description: "",
-          category: "",
-          unitId: "",
-          importPrice: "",
-          sellPrice: "",
-          minStockLevel: "",
-        });
-        setIconIdx(0);
+        setForm({ name: "", description: "", category: "", unitId: "" });
+        setImagePreview(null);
       }
+      setImageFile(null);
       setError("");
     }
   }, [open, medicine]);
+
+  function handleFileSelect(file: File) {
+    if (!file.type.startsWith("image/")) {
+      setError("Vui lòng chọn file ảnh.");
+      return;
+    }
+    setImageFile(file);
+    const url = URL.createObjectURL(file);
+    setImagePreview(url);
+    setError("");
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect(file);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -96,58 +115,48 @@ export function AddMedicineModal({
       setError("Vui lòng điền đầy đủ các trường bắt buộc.");
       return;
     }
-    const importPrice = Number(form.importPrice);
-    const sellPrice = Number(form.sellPrice);
-    const minStockLevel = Number(form.minStockLevel);
-    if (importPrice <= 0 || sellPrice <= 0) {
-      setError("Giá nhập và giá bán phải lớn hơn 0.");
-      return;
-    }
-
     const selectedUnit = units.find((u) => u.id === form.unitId);
     if (!selectedUnit) {
       setError("Đơn vị tính không hợp lệ.");
       return;
     }
 
-    const { icon, bg: iconBg, color: iconColor } = ICON_OPTIONS[iconIdx];
-
     setSaving(true);
     setError("");
     try {
       if (isEdit && medicine) {
+        let imageUrl = medicine.imageUrl ?? null;
+        if (imageFile) {
+          const compressed = await compressImage(imageFile);
+          imageUrl = await uploadMedicineImage(medicine.id, compressed);
+        }
         await updateMedicine(medicine.id, {
-          sku: form.sku,
           name: form.name.trim(),
           description: form.description.trim(),
-          category: form.category,
+          category: form.category as "prescribed" | "otc",
           unitId: selectedUnit.id,
           unitName: selectedUnit.name,
-          importPrice,
-          sellPrice,
-          minStockLevel: minStockLevel || 10,
-          icon,
-          iconBg,
-          iconColor,
+          imageUrl,
         });
       } else {
-        await addMedicine({
-          sku: form.sku,
+        // Create medicine first (gets auto-generated ID), then upload image
+        const id = await addMedicine({
           name: form.name.trim(),
           description: form.description.trim(),
-          category: form.category,
+          category: form.category as "prescribed" | "otc",
           unitId: selectedUnit.id,
           unitName: selectedUnit.name,
-          importPrice,
-          sellPrice,
-          minStockLevel: minStockLevel || 10,
-          icon,
-          iconBg,
-          iconColor,
+          imageUrl: null,
         });
+        if (imageFile) {
+          const compressed = await compressImage(imageFile);
+          const imageUrl = await uploadMedicineImage(id, compressed);
+          await updateMedicine(id, { imageUrl });
+        }
       }
       onSuccess?.();
-    } catch {
+    } catch (err) {
+      console.error("AddMedicineModal submit error:", err);
       setError("Đã xảy ra lỗi. Vui lòng thử lại.");
     } finally {
       setSaving(false);
@@ -164,39 +173,25 @@ export function AddMedicineModal({
           ? "Cập nhật thông tin dược phẩm trong hệ thống."
           : "Đăng ký dược phẩm mới vào cơ sở dữ liệu hệ thống."
       }
-      maxWidth="max-w-2xl"
+      maxWidth="max-w-xl"
     >
-      <form className="px-10 py-8 space-y-6" onSubmit={handleSubmit}>
-        {/* Row 1: SKU + Tên thuốc */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-label font-bold uppercase tracking-[0.05em] text-on-surface-variant">
-              Mã SKU
-            </label>
-            <input
-              type="text"
-              className="w-full bg-surface-container-high border-none rounded-xl py-3 px-4 text-sm text-on-surface font-mono outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-              value={form.sku}
-              onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
-              required
-            />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <label className="text-xs font-label font-bold uppercase tracking-[0.05em] text-on-surface-variant">
-              Tên thuốc/vật tư <span className="text-error">*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Nhập tên thuốc hoặc vật tư y tế..."
-              className="w-full bg-surface-container-high border-none rounded-xl py-3 px-4 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none focus:ring-2 focus:ring-primary/30 transition-all"
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              required
-            />
-          </div>
+      <form className="px-8 py-6 space-y-5" onSubmit={handleSubmit}>
+        {/* Tên thuốc */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-label font-bold uppercase tracking-[0.05em] text-on-surface-variant">
+            Tên thuốc / vật tư <span className="text-error">*</span>
+          </label>
+          <input
+            type="text"
+            placeholder="Nhập tên thuốc hoặc vật tư y tế..."
+            className="w-full bg-surface-container-high border-none rounded-xl py-3 px-4 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            required
+          />
         </div>
 
-        {/* Row 2: Danh mục + Đơn vị */}
+        {/* Danh mục + Đơn vị */}
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-label font-bold uppercase tracking-[0.05em] text-on-surface-variant">
@@ -251,46 +246,15 @@ export function AddMedicineModal({
           </div>
         </div>
 
-        {/* Row 3: Giá nhập + Giá bán + Tồn kho tối thiểu */}
-        <div className="grid grid-cols-3 gap-4">
-          <Input
-            label="Giá nhập (VNĐ) *"
-            type="number"
-            placeholder="VD: 45000"
-            value={form.importPrice}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, importPrice: e.target.value }))
-            }
-          />
-          <Input
-            label="Giá bán (VNĐ) *"
-            type="number"
-            placeholder="VD: 62000"
-            value={form.sellPrice}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, sellPrice: e.target.value }))
-            }
-          />
-          <Input
-            label="Tồn kho tối thiểu"
-            type="number"
-            placeholder="Mặc định: 10"
-            value={form.minStockLevel}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, minStockLevel: e.target.value }))
-            }
-          />
-        </div>
-
-        {/* Row 4: Mô tả */}
+        {/* Mô tả */}
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-label font-bold uppercase tracking-[0.05em] text-on-surface-variant">
             Mô tả
           </label>
-          <input
-            type="text"
-            placeholder="Mô tả ngắn cho thuốc/vật tư này..."
-            className="w-full bg-surface-container-high border-none rounded-xl py-3 px-4 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+          <textarea
+            rows={2}
+            placeholder="Mô tả ngắn về thuốc / vật tư này..."
+            className="w-full bg-surface-container-high border-none rounded-xl py-3 px-4 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none focus:ring-2 focus:ring-primary/30 transition-all resize-none"
             value={form.description}
             onChange={(e) =>
               setForm((f) => ({ ...f, description: e.target.value }))
@@ -298,32 +262,83 @@ export function AddMedicineModal({
           />
         </div>
 
-        {/* Row 5: Chọn icon */}
-        <div className="flex flex-col gap-2">
+        {/* Image upload */}
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-label font-bold uppercase tracking-[0.05em] text-on-surface-variant">
-            Biểu tượng
+            Ảnh sản phẩm
           </label>
-          <div className="flex gap-3">
-            {ICON_OPTIONS.map((opt, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setIconIdx(i)}
-                className={[
-                  "w-10 h-10 rounded-lg flex items-center justify-center transition-all",
-                  opt.bg,
-                  opt.color,
-                  i === iconIdx
-                    ? "ring-2 ring-primary ring-offset-2"
-                    : "opacity-50 hover:opacity-100",
-                ].join(" ")}
-              >
-                <span className="material-symbols-outlined text-xl">
-                  {opt.icon}
+          <div
+            className={[
+              "relative rounded-xl border-2 border-dashed transition-colors cursor-pointer",
+              isDragging
+                ? "border-primary bg-primary/5"
+                : "border-outline-variant/40 hover:border-primary/50",
+            ].join(" ")}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {imagePreview ? (
+              <div className="flex items-center gap-4 p-4">
+                <img
+                  src={imagePreview}
+                  alt="preview"
+                  className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-on-surface truncate">
+                    {imageFile ? imageFile.name : "Ảnh hiện tại"}
+                  </p>
+                  <p className="text-xs text-on-surface-variant mt-0.5">
+                    {imageFile
+                      ? `${(imageFile.size / 1024).toFixed(0)} KB · Sẽ được nén trước khi lưu`
+                      : "Click để thay đổi ảnh"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setImageFile(null);
+                    setImagePreview(medicine?.imageUrl ?? null);
+                  }}
+                  className="p-1.5 text-on-surface-variant hover:text-error rounded-lg transition-colors"
+                >
+                  <span className="material-symbols-outlined text-lg">
+                    close
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 gap-2">
+                <span className="material-symbols-outlined text-3xl text-on-surface-variant/50">
+                  add_photo_alternate
                 </span>
-              </button>
-            ))}
+                <p className="text-sm text-on-surface-variant">
+                  Kéo thả hoặc{" "}
+                  <span className="text-primary font-semibold">chọn file</span>
+                </p>
+                <p className="text-xs text-on-surface-variant/60">
+                  JPG, PNG, WEBP · Ảnh lớn sẽ tự động nén xuống 800px
+                </p>
+              </div>
+            )}
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleFileSelect(file);
+              e.target.value = "";
+            }}
+          />
         </div>
 
         {error && (
@@ -332,7 +347,7 @@ export function AddMedicineModal({
           </p>
         )}
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex gap-3 pt-1">
           <Button
             variant="ghost"
             type="button"
@@ -345,8 +360,9 @@ export function AddMedicineModal({
             type="submit"
             icon={saving ? "progress_activity" : "save"}
             className="flex-1 justify-center"
+            disabled={saving}
           >
-            {saving ? "Đang lưu..." : "Thêm thuốc"}
+            {saving ? "Đang lưu..." : isEdit ? "Lưu thay đổi" : "Thêm thuốc"}
           </Button>
         </div>
       </form>

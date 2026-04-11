@@ -16,7 +16,12 @@ import {
   increment,
   type DocumentSnapshot,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+import { db, storage } from "./firebase";
 import type {
   MedicineDoc,
   InventoryDoc,
@@ -31,6 +36,17 @@ import type {
   RequestPriority,
 } from "@/types/firestore";
 
+// ── Medicine Image ─────────────────────────────────────────────────────────
+
+export async function uploadMedicineImage(
+  medicineId: string,
+  blob: Blob,
+): Promise<string> {
+  const fileRef = storageRef(storage, `medicine-images/${medicineId}.jpg`);
+  await uploadBytes(fileRef, blob, { contentType: "image/jpeg" });
+  return getDownloadURL(fileRef);
+}
+
 // ── Medicines ──────────────────────────────────────────────────────────────
 
 export async function getMedicines(): Promise<MedicineDoc[]> {
@@ -43,41 +59,55 @@ export async function getMedicines(): Promise<MedicineDoc[]> {
 }
 
 export interface AddMedicineInput {
-  sku: string;
   name: string;
   description: string;
   category: MedicineCategory;
   unitId: string;
   unitName: string;
-  importPrice: number;
-  sellPrice: number;
-  minStockLevel: number;
-  icon: string;
-  iconBg: string;
-  iconColor: string;
+  imageUrl?: string | null;
+}
+
+function generateSku(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "MED-";
+  for (let i = 0; i < 5; i++) {
+    result += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return result;
 }
 
 export async function addMedicine(data: AddMedicineInput): Promise<string> {
   const ref = doc(collection(db, "medicines"));
+  const sku = generateSku();
 
   await setDoc(ref, {
-    ...data,
-    imageUrl: null,
+    id: ref.id,
+    sku,
+    name: data.name,
+    description: data.description,
+    category: data.category,
+    unitId: data.unitId,
+    unitName: data.unitName,
+    importPrice: 0,
+    sellPrice: 0,
+    minStockLevel: 10,
+    imageUrl: data.imageUrl ?? null,
     isActive: true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 
-  // Create initial inventory record at WAREHOUSE with 0 quantity
-  const invRef = doc(collection(db, "inventory"));
+  // Use deterministic ID so createImportOrder can find and increment this record
+  const invRef = doc(db, "inventory", `WAREHOUSE_${ref.id}`);
   await setDoc(invRef, {
+    id: `WAREHOUSE_${ref.id}`,
     medicineId: ref.id,
     medicineName: data.name,
-    medicineSku: data.sku,
+    medicineSku: sku,
     locationId: "WAREHOUSE",
     locationType: "warehouse",
     quantity: 0,
-    minStockLevel: data.minStockLevel,
+    minStockLevel: 10,
     updatedAt: serverTimestamp(),
   });
 
@@ -86,7 +116,7 @@ export async function addMedicine(data: AddMedicineInput): Promise<string> {
 
 export async function updateMedicine(
   id: string,
-  data: Partial<AddMedicineInput>,
+  data: Partial<AddMedicineInput> & { imageUrl?: string | null },
 ): Promise<void> {
   await updateDoc(doc(db, "medicines", id), {
     ...data,
@@ -131,6 +161,14 @@ export async function addUnit(
 
 export async function deleteUnit(id: string): Promise<void> {
   await deleteDoc(doc(db, "units", id));
+}
+
+export async function updateUnit(
+  id: string,
+  name: string,
+  description: string,
+): Promise<void> {
+  await updateDoc(doc(db, "units", id), { name, description });
 }
 
 // ── Paginated Medicines ────────────────────────────────────────────────────
@@ -258,8 +296,8 @@ export async function createImportOrder(
     (s, i) => s + i.quantity * i.unitPrice,
     0,
   );
-  const vat = Math.round(subtotal * 0.08);
-  const total = subtotal + vat;
+  const vat = 0;
+  const total = subtotal;
 
   const orderItems: ImportOrderItem[] = input.items.map((item) => ({
     medicineId: item.medicineId,

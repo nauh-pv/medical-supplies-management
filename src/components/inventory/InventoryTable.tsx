@@ -91,6 +91,10 @@ export function InventoryTable({
   );
 
   function getStock(medicineId: string) {
+    // Prefer the deterministic WAREHOUSE_ doc (created by createImportOrder);
+    // fall back to any matching record for backward compat with older data.
+    const preferred = inventory.find((i) => i.id === `WAREHOUSE_${medicineId}`);
+    if (preferred) return preferred.quantity;
     return inventory.find((i) => i.medicineId === medicineId)?.quantity ?? 0;
   }
 
@@ -195,17 +199,19 @@ export function InventoryTable({
                     {/* Name */}
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-3">
-                        <div
-                          className={[
-                            "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
-                            med.iconBg,
-                            med.iconColor,
-                          ].join(" ")}
-                        >
-                          <span className="material-symbols-outlined">
-                            {med.icon}
-                          </span>
-                        </div>
+                        {med.imageUrl ? (
+                          <img
+                            src={med.imageUrl}
+                            alt={med.name}
+                            className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
+                            <span className="material-symbols-outlined text-on-surface-variant">
+                              medication
+                            </span>
+                          </div>
+                        )}
                         <div>
                           <p className="font-bold text-on-surface">
                             {med.name}

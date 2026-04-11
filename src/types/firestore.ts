@@ -81,9 +81,9 @@ export interface MedicineDoc {
   sellPrice: number;
   minStockLevel: number;
   imageUrl: string | null;
-  icon: string;
-  iconBg: string;
-  iconColor: string;
+  icon?: string;
+  iconBg?: string;
+  iconColor?: string;
   isActive: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;

@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import { Modal, Input, Button, Pagination } from "@/components/common";
-import { getUnits, addUnit, deleteUnit } from "@/services/inventory";
+import {
+  getUnits,
+  addUnit,
+  deleteUnit,
+  updateUnit,
+} from "@/services/inventory";
 import type { UnitDoc } from "@/types/firestore";
 
 const ITEMS_PER_PAGE = 4;
@@ -9,6 +14,7 @@ export function UnitTable() {
   const [units, setUnits] = useState<UnitDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
+  const [editUnit, setEditUnit] = useState<UnitDoc | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", description: "" });
   const [page, setPage] = useState(1);
@@ -49,6 +55,22 @@ export function UnitTable() {
     setForm({ name: "", description: "" });
     setAddOpen(false);
     setPage(1);
+    await loadUnits();
+    setSaving(false);
+  }
+
+  function openEdit(unit: UnitDoc) {
+    setEditUnit(unit);
+    setForm({ name: unit.name, description: unit.description });
+  }
+
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editUnit || !form.name.trim()) return;
+    setSaving(true);
+    await updateUnit(editUnit.id, form.name.trim(), form.description.trim());
+    setEditUnit(null);
+    setForm({ name: "", description: "" });
     await loadUnits();
     setSaving(false);
   }
@@ -129,6 +151,7 @@ export function UnitTable() {
                     <td className="px-8 py-5 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
+                          onClick={() => openEdit(unit)}
                           className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
                           title="Chỉnh sửa"
                         >
@@ -215,6 +238,54 @@ export function UnitTable() {
               className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-primary bg-primary hover:opacity-90 transition-opacity disabled:opacity-60"
             >
               Lưu đơn vị
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Unit Modal */}
+      <Modal
+        open={!!editUnit}
+        onClose={() => setEditUnit(null)}
+        title="Chỉnh sửa đơn vị tính"
+        subtitle="Cập nhật tên và mô tả đơn vị tính"
+        maxWidth="max-w-lg"
+      >
+        <form className="px-10 py-8 space-y-6" onSubmit={handleEdit}>
+          <Input
+            label="Tên đơn vị tính"
+            placeholder="VD: Chai, Lọ, Viên, Vỉ, Ống"
+            value={form.name}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+          />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-label font-bold uppercase tracking-[0.05em] text-on-surface-variant">
+              Mô tả
+            </label>
+            <textarea
+              rows={3}
+              placeholder="Nhập ghi chú về cách sử dụng đơn vị này..."
+              className="w-full bg-surface-container-low rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/40 outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+              value={form.description}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, description: e.target.value }))
+              }
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setEditUnit(null)}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-surface-variant bg-surface-container-low hover:bg-surface-container transition-colors"
+            >
+              Hủy bỏ
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-primary bg-primary hover:opacity-90 transition-opacity disabled:opacity-60"
+            >
+              {saving ? "Đang lưu..." : "Lưu thay đổi"}
             </button>
           </div>
         </form>

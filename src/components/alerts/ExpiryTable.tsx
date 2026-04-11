@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Badge, Button } from "@/components/common";
+import { Badge, Button, TabBar } from "@/components/common";
 
-const TABS = ["Thuốc sắp hết hạn", "Tồn kho thấp"] as const;
-type Tab = (typeof TABS)[number];
+const TABS = [
+  { id: "expiry", label: "Thuốc sắp hết hạn" },
+  { id: "low-stock", label: "Tồn kho thấp" },
+] as const;
+type TabId = (typeof TABS)[number]["id"];
 
 const EXPIRY_ITEMS = [
   {
@@ -81,7 +84,7 @@ function formatDate(dateStr: string) {
 }
 
 export function ExpiryTable() {
-  const [tab, setTab] = useState<Tab>("Thuốc sắp hết hạn");
+  const [tab, setTab] = useState<TabId>("expiry");
   const [branch, setBranch] = useState(BRANCHES[0]);
   const [category, setCategory] = useState(CATEGORIES[0]);
 
@@ -90,23 +93,12 @@ export function ExpiryTable() {
       {/* Tab + filters header */}
       <div className="px-8 pt-6 pb-0">
         <div className="flex items-center justify-between mb-5">
-          {/* Tabs */}
-          <div className="flex bg-surface-container-low rounded-xl p-1 gap-1">
-            {TABS.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={[
-                  "px-4 py-2 rounded-lg text-sm font-label font-semibold transition-all",
-                  tab === t
-                    ? "bg-primary text-on-primary shadow-sm"
-                    : "text-on-surface-variant hover:text-on-surface",
-                ].join(" ")}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+          <TabBar
+            tabs={TABS}
+            activeTab={tab}
+            onTabChange={(id) => setTab(id as TabId)}
+            variant="pill"
+          />
 
           {/* Filters */}
           <div className="flex gap-3">

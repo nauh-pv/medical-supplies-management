@@ -1,3 +1,5 @@
+import type { UserRole } from "@/types/firestore";
+
 export type NavId =
   | "dashboard"
   | "inventory"
@@ -12,8 +14,8 @@ export type NavId =
 const navItems: { icon: string; label: string; id: NavId }[] = [
   { icon: "dashboard", label: "Tổng quan", id: "dashboard" },
   { icon: "inventory_2", label: "Kho hàng", id: "inventory" },
-  { icon: "analytics", label: "Báo cáo", id: "reports" },
-  { icon: "warning", label: "Cảnh báo hàng hóa", id: "alerts" },
+  // { icon: "analytics", label: "Báo cáo", id: "reports" },
+  // { icon: "warning", label: "Cảnh báo hàng hóa", id: "alerts" },
   { icon: "point_of_sale", label: "POS", id: "pos" },
   { icon: "medication", label: "Điều phối thuốc", id: "medication" },
   { icon: "account_tree", label: "Chi nhánh", id: "branches" },
@@ -21,12 +23,20 @@ const navItems: { icon: string; label: string; id: NavId }[] = [
   { icon: "settings", label: "Cài đặt", id: "settings" },
 ];
 
+const BRANCH_NAV_IDS: NavId[] = ["dashboard", "pos", "imports", "alerts", "settings"];
+
 interface SidebarProps {
   active: NavId;
   onNavigate: (id: NavId) => void;
+  role: UserRole;
+  onLogout: () => void;
 }
 
-export function Sidebar({ active, onNavigate }: SidebarProps) {
+export function Sidebar({ active, onNavigate, role, onLogout }: SidebarProps) {
+  const visibleItems = navItems.filter(
+    (item) => role === "warehouse_manager" || BRANCH_NAV_IDS.includes(item.id),
+  );
+
   return (
     <aside className="fixed left-0 top-0 flex flex-col z-40 bg-surface-container-low h-screen w-72 flex-shrink-0 border-r border-outline-variant/20">
       <div className="px-6 py-8 mb-2">
@@ -39,7 +49,7 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
       </div>
 
       <nav className="flex-1 px-4 space-y-1">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = active === item.id;
           return (
             <a
@@ -79,6 +89,10 @@ export function Sidebar({ active, onNavigate }: SidebarProps) {
         </a>
         <a
           href="#"
+          onClick={(e) => {
+            e.preventDefault();
+            onLogout();
+          }}
           className="flex items-center gap-3 text-on-surface-variant pl-5 py-3 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl"
         >
           <span className="material-symbols-outlined">logout</span>

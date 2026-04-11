@@ -86,12 +86,17 @@ applyTo: "src/**/*.{tsx,ts}"
 
 ## Spacing & Roundness
 
-| Element                | Rounding           |
-| ---------------------- | ------------------ |
-| Cards, panels          | `rounded-[1.5rem]` |
-| Buttons, inputs, chips | `rounded-xl`       |
-| Avatars, dots          | `rounded-full`     |
-| Small icon containers  | `rounded-lg`       |
+| Element                            | Rounding           |
+| ---------------------------------- | ------------------ |
+| Large content cards / panels       | `rounded-[2rem]`   |
+| Medium cards (e.g. stat cards)     | `rounded-[1.5rem]` |
+| Pill-style containers / stat cards | `rounded-full`     |
+| Buttons, inputs, chips             | `rounded-xl`       |
+| Pill buttons / pill selects        | `rounded-full`     |
+| Avatars, dots                      | `rounded-full`     |
+| Small icon containers              | `rounded-lg`       |
+
+**Rule:** Always derive roundness from mockup first, then fall back to this table. When the mockup shows a pill shape, always use `rounded-full`.
 
 **Page content:** `px-8 pb-12 pt-24 space-y-8`  
 **Card inner padding:** `p-6` (sm card) / `p-8` (lg card)
@@ -107,7 +112,7 @@ applyTo: "src/**/*.{tsx,ts}"
 | Floating modal          | `shadow-[0_20px_40px_rgba(0,80,203,0.06)] backdrop-blur-xl` |
 | TopBar                  | `shadow-[0_20px_40px_rgba(0,80,203,0.06)]`                  |
 
-**Never use default Tailwind `shadow` / `drop-shadow` — always use the tinted ambient shadows above.**
+**Prefer tinted ambient shadows above over generic Tailwind shadows.** Exception: `shadow-sm` is allowed for subtle card elevation (e.g. rounded-full stat cards, table containers) when no specific tinted shadow is specified in the mockup.
 
 ---
 

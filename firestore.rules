@@ -1,0 +1,163 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────────────────────
+    // Helper functions
+    // ─────────────────────────────────────────────────────────
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isWarehouseManager() {
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'warehouse_manager';
+    }
+
+    function isBranch() {
+      return isAuth() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'branch';
+    }
+
+    function myBranchId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.branchId;
+    }
+
+    function isMyBranch(branchId) {
+      return isBranch() && myBranchId() == branchId;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 1. users
+    // ─────────────────────────────────────────────────────────
+    match /users/{uid} {
+      allow read: if isAuth() && (request.auth.uid == uid || isWarehouseManager());
+      allow create: if isAuth() && request.auth.uid == uid;
+      allow update: if isAuth() && (request.auth.uid == uid || isWarehouseManager());
+      allow delete: if isWarehouseManager();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 2. branches
+    // ─────────────────────────────────────────────────────────
+    match /branches/{branchId} {
+      allow read: if isAuth();
+      allow write: if isWarehouseManager();
+
+      // ── daily_stats subcollection ──
+      match /daily_stats/{dateId} {
+        allow read: if isWarehouseManager() || isMyBranch(branchId);
+        allow write: if isWarehouseManager() || isMyBranch(branchId);
+      }
+
+      // ── monthly_stats subcollection ──
+      match /monthly_stats/{monthId} {
+        allow read: if isWarehouseManager() || isMyBranch(branchId);
+        allow write: if isWarehouseManager() || isMyBranch(branchId);
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 3. medicines
+    // ─────────────────────────────────────────────────────────
+    match /medicines/{medicineId} {
+      allow read: if isAuth();
+      allow write: if isWarehouseManager();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 4. inventory
+    // ─────────────────────────────────────────────────────────
+    match /inventory/{inventoryId} {
+      allow read: if isWarehouseManager() ||
+        (isBranch() && resource.data.locationId == myBranchId());
+      allow write: if isWarehouseManager() ||
+        (isBranch() && resource.data.locationId == myBranchId());
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 5. batches
+    // ─────────────────────────────────────────────────────────
+    match /batches/{batchId} {
+      allow read: if isWarehouseManager() ||
+        (isBranch() && resource.data.locationId == myBranchId());
+      allow write: if isWarehouseManager() ||
+        (isBranch() && resource.data.locationId == myBranchId());
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 6. suppliers
+    // ─────────────────────────────────────────────────────────
+    match /suppliers/{supplierId} {
+      allow read, write: if isWarehouseManager();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 7. units
+    // ─────────────────────────────────────────────────────────
+    match /units/{unitId} {
+      allow read: if isAuth();
+      allow write: if isWarehouseManager();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 8. import_orders
+    // ─────────────────────────────────────────────────────────
+    match /import_orders/{orderId} {
+      allow read, write: if isWarehouseManager();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 9. dispatch_orders
+    // ─────────────────────────────────────────────────────────
+    match /dispatch_orders/{orderId} {
+      allow read, write: if isWarehouseManager();
+      // branch: đọc các phiếu gửi đến chi nhánh mình
+      allow read: if isBranch() && resource.data.toLocationId == myBranchId();
+      // branch: chỉ được update status → "received"
+      allow update: if isBranch() &&
+        resource.data.toLocationId == myBranchId() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'receivedAt', 'updatedAt']) &&
+        request.resource.data.status == 'received';
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 10. import_requests
+    // ─────────────────────────────────────────────────────────
+    match /import_requests/{requestId} {
+      allow read, write: if isWarehouseManager();
+      // branch: đọc/ghi yêu cầu của chi nhánh mình
+      allow read: if isBranch() && resource.data.branchId == myBranchId();
+      allow create: if isBranch() && request.resource.data.branchId == myBranchId();
+      allow update: if isBranch() &&
+        resource.data.branchId == myBranchId() &&
+        resource.data.status == 'pending'; // chỉ được sửa khi chưa duyệt
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 11. pos_transactions
+    // ─────────────────────────────────────────────────────────
+    match /pos_transactions/{txId} {
+      allow read: if isWarehouseManager();
+      allow read, create: if isBranch() && (
+        request.auth != null &&
+        (resource == null || resource.data.branchId == myBranchId())
+      );
+      // Không cho phép update/delete transaction đã tạo
+      allow update, delete: if isWarehouseManager();
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 12. stock_movements (append-only, không ai được xoá)
+    // ─────────────────────────────────────────────────────────
+    match /stock_movements/{movementId} {
+      allow read: if isWarehouseManager();
+      allow read: if isBranch() && resource.data.locationId == myBranchId();
+      allow create: if isAuth(); // ghi tự động qua runTransaction
+      allow update, delete: if false; // không bao giờ được sửa/xoá
+    }
+
+  }
+}

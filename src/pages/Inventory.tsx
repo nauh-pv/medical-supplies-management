@@ -1,17 +1,23 @@
 import { useState } from "react";
-import { PageHeader, Button } from "@/components/common";
+import { PageHeader, TabBar } from "@/components/common";
 import { InventoryStats } from "@/components/inventory/InventoryStats";
 import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { InventoryImportTab } from "@/components/inventory/InventoryImportTab";
 import { AddMedicineModal } from "@/components/inventory/AddMedicineModal";
-import { SetPriceModal } from "@/components/inventory/SetPriceModal";
+import { UnitTable } from "@/components/units/UnitTable";
 
-type InventoryTab = "medicines" | "imports";
+type InventoryTab = "medicines" | "imports" | "units";
+
+const INVENTORY_TABS = [
+  { id: "medicines" as InventoryTab, label: "Kho thuốc" },
+  { id: "imports" as InventoryTab, label: "Quản lý nhập kho" },
+  { id: "units" as InventoryTab, label: "Quản lý đơn vị tính" },
+] as const;
 
 export function Inventory() {
   const [tab, setTab] = useState<InventoryTab>("medicines");
   const [addOpen, setAddOpen] = useState(false);
-  const [priceOpen, setPriceOpen] = useState(false);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   return (
     <main className="ml-72 pt-24 px-8 pb-12 space-y-8 min-h-screen bg-background">
@@ -23,51 +29,33 @@ export function Inventory() {
         }
         title="Quản lý Kho Tổng"
         titleSize="text-4xl"
-        actions={
-          tab === "medicines" ? (
-            <>
-              <Button
-                variant="ghost"
-                icon="payments"
-                onClick={() => setPriceOpen(true)}
-              >
-                Thiết lập giá
-              </Button>
-              <Button icon="add" onClick={() => setAddOpen(true)}>
-                Thêm thuốc mới
-              </Button>
-            </>
-          ) : null
-        }
       />
 
       <InventoryStats />
 
-      {/* Tab navigation */}
-      <div className="flex gap-8 border-b border-outline-variant/20">
-        {[
-          { id: "medicines" as InventoryTab, label: "Kho thuốc" },
-          { id: "imports" as InventoryTab, label: "Quản lý nhập kho" },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={[
-              "pb-4 px-2 text-sm font-medium transition-all",
-              tab === t.id
-                ? "text-primary font-bold border-b-2 border-primary"
-                : "text-on-surface-variant hover:text-primary",
-            ].join(" ")}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
+      <TabBar
+        tabs={INVENTORY_TABS}
+        activeTab={tab}
+        onTabChange={(id) => setTab(id as InventoryTab)}
+      />
 
-      {tab === "medicines" ? <InventoryTable /> : <InventoryImportTab />}
+      {tab === "medicines" && (
+        <InventoryTable
+          onAddClick={() => setAddOpen(true)}
+          refetchTrigger={refetchTrigger}
+        />
+      )}
+      {tab === "imports" && <InventoryImportTab />}
+      {tab === "units" && <UnitTable />}
 
-      <AddMedicineModal open={addOpen} onClose={() => setAddOpen(false)} />
-      <SetPriceModal open={priceOpen} onClose={() => setPriceOpen(false)} />
+      <AddMedicineModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSuccess={() => {
+          setAddOpen(false);
+          setRefetchTrigger((n) => n + 1);
+        }}
+      />
     </main>
   );
 }

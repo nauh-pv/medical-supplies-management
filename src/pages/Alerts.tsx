@@ -1,6 +1,7 @@
 import { PageHeader, Button } from "@/components/common";
 import { LowStockGrid } from "@/components/alerts/LowStockGrid";
 import { ExpiryTable } from "@/components/alerts/ExpiryTable";
+import { AlertSectionHeader } from "@/components/alerts/AlertSectionHeader";
 
 export function Alerts() {
   return (
@@ -25,28 +26,23 @@ export function Alerts() {
 
       {/* Low stock warning cards */}
       <div>
-        <div className="flex items-center gap-3 mb-5">
-          <span className="material-symbols-outlined text-error">warning</span>
-          <h2 className="text-lg font-headline font-bold text-on-surface">
-            Tồn kho nguy hiểm
-          </h2>
-          <span className="px-2 py-0.5 rounded-lg bg-error/10 text-error text-xs font-label font-bold">
-            4 mặt hàng
-          </span>
-        </div>
+        <AlertSectionHeader
+          icon="warning"
+          iconColor="text-error"
+          title="Tồn kho nguy hiểm"
+          badgeLabel="4 mặt hàng"
+          badgeVariant="error"
+        />
         <LowStockGrid />
       </div>
 
       {/* Expiry / low stock table */}
       <div>
-        <div className="flex items-center gap-3 mb-5">
-          <span className="material-symbols-outlined text-warning">
-            schedule
-          </span>
-          <h2 className="text-lg font-headline font-bold text-on-surface">
-            Theo dõi hạn dùng & tồn kho
-          </h2>
-        </div>
+        <AlertSectionHeader
+          icon="schedule"
+          iconColor="text-warning"
+          title="Theo dõi hạn dùng & tồn kho"
+        />
         <ExpiryTable />
       </div>
     </main>

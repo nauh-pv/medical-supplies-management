@@ -16,7 +16,10 @@ src/
     common/          ← Shared UI primitives (Button, Badge, Input, etc.)
     layout/          ← App-wide shell: Sidebar, TopBar
     dashboard/       ← Sub-components for the Dashboard page only
-    inventory/       ← Sub-components for the Inventory page only (InventoryStats, InventoryTable, SupportCards, AddMedicineModal, SetPriceModal)
+    inventory/       ← Sub-components for the Inventory page (InventoryStats, InventoryTable, AddMedicineModal, ImportDetailModal, InventoryImportTab)
+    units/           ← Sub-components for the Units tab (UnitTable)
+    imports/         ← Sub-components for the Imports page (ImportList, CreateRequestForm, ImportUploadZone, CreateImportModal)
+    dispatches/      ← Sub-components for the Dispatches/Shipping page (CreateDispatchForm)
     reports/         ← Sub-components for the Reports page (RevenueChartPanel, ReportStatCards, BestSellersPanel, BranchDistribution)
     pos/             ← Sub-components for the POS page (ProductGrid, OrderSummary)
     alerts/          ← Sub-components for the Alerts page (LowStockGrid, ExpiryTable)
@@ -131,7 +134,7 @@ const pages: Partial<Record<NavId, React.ReactNode>> = {
 ## Anti-patterns — Never Do These
 
 - ❌ Inline `<table>` raw markup on a page — use `<DataTable>` or a feature sub-component.
-- ❌ Inline `<button>` with hand-rolled styles — use `<Button>`.
+- ❌ Hand-rolled `<button>` using standard Tailwind button styles — use `<Button>` from common. **Exception:** raw `<button>` is allowed ONLY when the mockup specifies a pill/custom shape that `<Button>` variants cannot match (e.g. `rounded-full` pill with non-standard background).
 - ❌ Hardcoded `slate-*`, `blue-*`, `red-*` Tailwind colors — use design tokens.
 - ❌ Navigation state inside `Sidebar` — it lives in `App.tsx`.
 - ❌ A page file doing data-fetching, layout, AND render logic all at once.

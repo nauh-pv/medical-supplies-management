@@ -1,161 +1,255 @@
-import { useState } from "react";
-import { ImportDetailModal } from "@/components/inventory/ImportDetailModal";
+import { useState, useEffect } from "react";
+import { Badge, Pagination } from "@/components/common";
+import { getImportRequests } from "@/services/inventory";
+import type { ImportRequestDoc, ImportRequestStatus } from "@/types/firestore";
+import { ImportRequestDetailModal } from "./ImportRequestDetailModal";
 
-type ImportStatus = "received" | "pending" | "shipping";
+const ITEMS_PER_PAGE = 10;
 
-interface ImportRow {
-  id: string;
-  date: string;
-  supplier: string;
-  qty: number;
-  total: string;
-  status: ImportStatus;
+const statusConfig: Record<
+  ImportRequestStatus,
+  {
+    label: string;
+    variant: "info" | "warning" | "neutral" | "success" | "error";
+  }
+> = {
+  pending: { label: "Chờ duyệt", variant: "info" },
+  approved: { label: "Đã duyệt", variant: "success" },
+  rejected: { label: "Từ chối", variant: "error" },
+  fulfilled: { label: "Đã hoàn thành", variant: "neutral" },
+};
+
+function formatTs(ts: { seconds: number } | undefined): string {
+  if (!ts) return "—";
+  return new Date(ts.seconds * 1000).toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
-const mockImports: ImportRow[] = [
-  {
-    id: "#IM-2023-001",
-    date: "24/10/2023",
-    supplier: "Pharma Group VN",
-    qty: 1200,
-    total: "45.000.000 đ",
-    status: "received",
-  },
-  {
-    id: "#IM-2023-002",
-    date: "23/10/2023",
-    supplier: "Medical Tech Inc",
-    qty: 450,
-    total: "12.300.000 đ",
-    status: "pending",
-  },
-  {
-    id: "#IM-2023-003",
-    date: "22/10/2023",
-    supplier: "Dược phẩm TW1",
-    qty: 2800,
-    total: "89.500.000 đ",
-    status: "received",
-  },
-];
+export function ImportList() {
+  const [requests, setRequests] = useState<ImportRequestDoc[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ImportRequestStatus | "all">(
+    "all",
+  );
+  const [page, setPage] = useState(1);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-const statusConfig: Record<ImportStatus, { label: string; className: string }> =
-  {
-    received: { label: "Đã nhập", className: "bg-green-100 text-green-700" },
-    pending: {
-      label: "Chờ kiểm định",
-      className: "bg-amber-100 text-amber-700",
-    },
-    shipping: {
-      label: "Đang vận chuyển",
-      className: "bg-primary/10 text-primary",
-    },
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    getImportRequests()
+      .then((data) => {
+        if (!cancelled) {
+          setRequests(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("ImportList fetch error:", err);
+          setError("Không thể tải dữ liệu yêu cầu nhập.");
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filtered = requests.filter(
+    (r) => statusFilter === "all" || r.status === statusFilter,
+  );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paged = filtered.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE,
+  );
+
+  // Stat counts
+  const counts = {
+    total: requests.length,
+    pending: requests.filter((r) => r.status === "pending").length,
+    approved: requests.filter((r) => r.status === "approved").length,
+    fulfilled: requests.filter((r) => r.status === "fulfilled").length,
   };
 
-/** Import list table with filters for Imports page. */
-export function ImportList() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const statCards = [
+    {
+      label: "Tổng lệnh",
+      value: String(counts.total),
+      icon: "package_2",
+      iconColor: "text-primary",
+      sub: "Tất cả yêu cầu nhập",
+    },
+    {
+      label: "Chờ duyệt",
+      value: String(counts.pending),
+      icon: "hourglass_empty",
+      iconColor: "text-secondary",
+      sub: "Cần xử lý",
+    },
+    {
+      label: "Đã duyệt",
+      value: String(counts.approved),
+      icon: "check_circle",
+      iconColor: "text-tertiary",
+      sub: "Chờ thực hiện",
+    },
+    {
+      label: "Hoàn thành",
+      value: String(counts.fulfilled),
+      icon: "task_alt",
+      iconColor: "text-green-600",
+      sub: "Đã nhập kho",
+    },
+  ];
 
   return (
     <>
-      <div className="bg-surface-container-lowest rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,80,203,0.04)] overflow-hidden flex flex-col">
-        {/* Filter header */}
-        <div className="p-6 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-low/30">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-on-surface-variant">
-            Danh sách đợt nhập hàng gần đây
-          </h3>
-          <div className="flex gap-3">
-            <div className="relative">
-              <select className="pl-4 pr-10 py-2 bg-surface-container-lowest border border-outline-variant/20 rounded-xl text-xs font-semibold appearance-none focus:ring-2 focus:ring-primary/20 outline-none text-on-surface">
-                <option>Tất cả nhà cung cấp</option>
-                <option>Pharma Group VN</option>
-                <option>Medical Tech Inc</option>
-              </select>
-              <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm">
-                expand_more
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+        {statCards.map((s) => (
+          <div
+            key={s.label}
+            className="bg-surface-container-lowest rounded-[1.5rem] p-6 shadow-[0_20px_40px_rgba(0,80,203,0.03)]"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <span
+                className={`material-symbols-outlined text-2xl ${s.iconColor}`}
+              >
+                {s.icon}
               </span>
             </div>
-            <input
-              type="date"
-              className="pl-4 pr-4 py-2 bg-surface-container-lowest border border-outline-variant/20 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-primary/20 outline-none text-on-surface"
-            />
-            <button className="p-2 bg-surface-container rounded-lg hover:bg-surface-container-high transition-colors">
-              <span className="material-symbols-outlined text-on-surface-variant">
-                filter_list
-              </span>
-            </button>
+            <p className="text-3xl font-headline font-bold text-on-surface mb-1">
+              {s.value}
+            </p>
+            <p className="text-xs font-label text-on-surface-variant mb-2">
+              {s.label}
+            </p>
+            <p className="text-xs font-label text-on-surface-variant">
+              {s.sub}
+            </p>
           </div>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div className="bg-surface-container-lowest rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,80,203,0.03)] overflow-hidden">
+        {/* Filter bar */}
+        <div className="px-8 py-5 flex items-center gap-4 border-b border-outline-variant/10">
+          <select
+            className="h-9 rounded-xl px-3 text-sm font-label bg-surface-container-low text-on-surface-variant focus:outline-none"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value as ImportRequestStatus | "all");
+              setPage(1);
+            }}
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="pending">Chờ duyệt</option>
+            <option value="approved">Đã duyệt</option>
+            <option value="rejected">Từ chối</option>
+            <option value="fulfilled">Hoàn thành</option>
+          </select>
         </div>
 
-        {/* Table */}
-        <div className="flex-1 overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        {loading ? (
+          <div className="flex items-center justify-center py-16 gap-3 text-on-surface-variant">
+            <span className="material-symbols-outlined animate-spin text-primary text-3xl">
+              progress_activity
+            </span>
+            <span className="text-sm">Đang tải dữ liệu...</span>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-error">
+            <span className="material-symbols-outlined text-4xl">error</span>
+            <span className="text-sm">{error}</span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant">
+            <span className="material-symbols-outlined text-4xl">inbox</span>
+            <span className="text-sm">Không có yêu cầu nhập nào.</span>
+          </div>
+        ) : (
+          <table className="w-full">
             <thead>
-              <tr className="bg-surface-container-low/40">
+              <tr className="bg-surface-container-low/30">
                 {[
-                  "Mã đơn nhập",
-                  "Ngày nhập",
-                  "Nhà cung cấp",
-                  "Số lượng",
-                  "Tổng giá trị",
-                  "Trạng thái",
-                  "",
-                ].map((h, i) => (
+                  { label: "Mã yêu cầu", cls: "pl-8" },
+                  { label: "Chi nhánh" },
+                  { label: "Ngày tạo" },
+                  { label: "Ưu tiên" },
+                  { label: "Trạng thái" },
+                  { label: "Tổng giá trị", cls: "text-right" },
+                  { label: "Hành động", cls: "text-center" },
+                ].map((h) => (
                   <th
-                    key={i}
+                    key={h.label}
                     className={[
-                      "px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant",
-                      i === 3 || i === 4 ? "text-right" : "",
+                      "px-4 py-3 text-left text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant",
+                      h.cls ?? "",
                     ].join(" ")}
                   >
-                    {h}
+                    {h.label}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant/10">
-              {mockImports.map((row) => {
-                const { label, className } = statusConfig[row.status];
+            <tbody>
+              {paged.map((row, i) => {
+                const cfg = statusConfig[row.status];
+                const priorityVariant =
+                  row.priority === "urgent"
+                    ? "error"
+                    : row.priority === "normal"
+                      ? "info"
+                      : "neutral";
+                const priorityLabel =
+                  row.priority === "urgent"
+                    ? "Khẩn cấp"
+                    : row.priority === "normal"
+                      ? "Bình thường"
+                      : "Thấp";
                 return (
                   <tr
                     key={row.id}
-                    className="hover:bg-surface-container-low/40 transition-colors"
+                    className={`group ${i % 2 === 0 ? "" : "bg-surface-container-lowest/30"} hover:bg-primary/5 transition-colors`}
                   >
-                    <td className="px-6 py-5">
-                      <span className="font-mono text-xs font-bold text-primary">
-                        {row.id}
-                      </span>
+                    <td className="px-8 py-4 text-sm font-label font-semibold text-primary font-mono">
+                      {row.code}
                     </td>
-                    <td className="px-6 py-5 text-sm text-on-surface-variant">
-                      {row.date}
+                    <td className="px-4 py-4 text-sm font-label text-on-surface">
+                      {row.branchName}
                     </td>
-                    <td className="px-6 py-5 text-sm font-semibold text-on-surface">
-                      {row.supplier}
+                    <td className="px-4 py-4 text-sm font-label text-on-surface-variant">
+                      {formatTs(
+                        row.createdAt as unknown as
+                          | { seconds: number }
+                          | undefined,
+                      )}
                     </td>
-                    <td className="px-6 py-5 text-sm text-right font-medium text-on-surface-variant">
-                      {row.qty.toLocaleString()}
+                    <td className="px-4 py-4">
+                      <Badge variant={priorityVariant}>{priorityLabel}</Badge>
                     </td>
-                    <td className="px-6 py-5 text-sm text-right font-bold text-on-surface">
-                      {row.total}
+                    <td className="px-4 py-4">
+                      <Badge variant={cfg.variant}>{cfg.label}</Badge>
                     </td>
-                    <td className="px-6 py-5">
-                      <span
-                        className={[
-                          "px-3 py-1 rounded-full text-[10px] font-bold uppercase",
-                          className,
-                        ].join(" ")}
-                      >
-                        {label}
-                      </span>
+                    <td className="px-4 py-4 text-right text-sm font-semibold font-mono text-on-surface">
+                      {row.total.toLocaleString("vi-VN")}đ
                     </td>
-                    <td className="px-6 py-5 text-center">
+                    <td className="px-4 py-4 text-center">
                       <button
                         onClick={() => setSelectedId(row.id)}
-                        className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        className="px-3 py-1.5 rounded-lg text-xs font-label font-semibold text-primary bg-primary/8 hover:bg-primary/15 transition-colors"
                       >
-                        <span className="material-symbols-outlined">
-                          visibility
-                        </span>
+                        Xem chi tiết
                       </button>
                     </td>
                   </tr>
@@ -163,14 +257,34 @@ export function ImportList() {
               })}
             </tbody>
           </table>
-        </div>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <div className="px-8 py-5 border-t border-outline-variant/10 bg-surface-container-low/20 flex items-center justify-between">
+            <p className="text-xs text-on-surface-variant">
+              Hiển thị{" "}
+              <span className="font-bold text-on-surface">
+                {(page - 1) * ITEMS_PER_PAGE + 1}–
+                {Math.min(page * ITEMS_PER_PAGE, filtered.length)}
+              </span>{" "}
+              trên {filtered.length.toLocaleString("vi-VN")} yêu cầu
+            </p>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
       </div>
 
-      <ImportDetailModal
-        open={!!selectedId}
-        importId={selectedId ?? ""}
-        onClose={() => setSelectedId(null)}
-      />
+      {selectedId && (
+        <ImportRequestDetailModal
+          open={!!selectedId}
+          requestId={selectedId}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
     </>
   );
 }

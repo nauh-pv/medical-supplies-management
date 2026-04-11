@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Input, Button } from "@/components/common";
 
 interface CartItem {
@@ -11,19 +12,29 @@ interface OrderSummaryProps {
   items: CartItem[];
   onQtyChange: (id: string, delta: number) => void;
   onRemove: (id: string) => void;
+  onCheckout?: (
+    paymentMethod: "cash" | "card" | "transfer",
+    discount: number,
+  ) => Promise<void>;
+  checkingOut?: boolean;
 }
 
 const VAT_RATE = 0.08;
-const DISCOUNT = 50000;
 
 export function OrderSummary({
   items,
   onQtyChange,
   onRemove,
+  onCheckout,
+  checkingOut,
 }: OrderSummaryProps) {
+  const [discount, setDiscount] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<
+    "cash" | "card" | "transfer"
+  >("cash");
   const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
   const vat = subtotal * VAT_RATE;
-  const total = subtotal + vat - DISCOUNT;
+  const total = subtotal + vat - discount;
 
   return (
     <div className="w-[400px] flex-shrink-0 flex flex-col bg-surface-container-lowest border-l border-surface-container-low h-full overflow-hidden">
@@ -104,11 +115,43 @@ export function OrderSummary({
       {/* Summary */}
       {items.length > 0 && (
         <div className="px-6 py-5 border-t border-surface-container-low space-y-3">
+          {/* Payment method */}
+          <div className="flex gap-2">
+            {(["cash", "card", "transfer"] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => setPaymentMethod(m)}
+                className={[
+                  "flex-1 py-1.5 rounded-xl text-xs font-label font-semibold transition-all",
+                  paymentMethod === m
+                    ? "bg-primary text-on-primary"
+                    : "bg-surface-container-low text-on-surface-variant hover:bg-surface-container",
+                ].join(" ")}
+              >
+                {{ cash: "Tiền mặt", card: "Thẻ", transfer: "Chuyển khoản" }[m]}
+              </button>
+            ))}
+          </div>
+
+          {/* Discount input */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-on-surface-variant whitespace-nowrap">
+              Giảm giá (₫):
+            </label>
+            <input
+              type="number"
+              min={0}
+              value={discount}
+              onChange={(e) => setDiscount(Number(e.target.value))}
+              className="flex-1 bg-surface-container-low rounded-xl text-sm text-right font-mono px-3 py-1.5 outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+
           <div className="space-y-2">
             {[
               { label: "Tạm tính", value: subtotal },
               { label: `VAT (${VAT_RATE * 100}%)`, value: vat },
-              { label: "Giảm giá", value: -DISCOUNT },
+              { label: "Giảm giá", value: -discount },
             ].map(({ label, value }) => (
               <div key={label} className="flex justify-between text-sm">
                 <span className="text-on-surface-variant">{label}</span>
@@ -134,8 +177,12 @@ export function OrderSummary({
             </span>
           </div>
 
-          <Button icon="payments" className="w-full justify-center">
-            Thanh toán
+          <Button
+            icon={checkingOut ? "progress_activity" : "payments"}
+            className="w-full justify-center"
+            onClick={() => onCheckout?.(paymentMethod, discount)}
+          >
+            {checkingOut ? "Đang xử lý..." : "Thanh toán"}
           </Button>
 
           <div className="grid grid-cols-2 gap-2">

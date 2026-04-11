@@ -1,41 +1,38 @@
 import { useState } from "react";
-import { PageHeader, Button } from "@/components/common";
-import { ImportUploadZone } from "@/components/imports/ImportUploadZone";
+import { PageHeader, TabBar } from "@/components/common";
 import { ImportList } from "@/components/imports/ImportList";
-import { CreateImportModal } from "@/components/imports/CreateImportModal";
+import { CreateRequestForm } from "@/components/imports/CreateRequestForm";
+
+type ImportsTab = "create" | "manage";
+
+const IMPORTS_TABS = [
+  { id: "create" as ImportsTab, label: "Tạo yêu cầu" },
+  { id: "manage" as ImportsTab, label: "Quản lý nhập hàng" },
+] as const;
 
 export function Imports() {
-  const [createOpen, setCreateOpen] = useState(false);
+  const [tab, setTab] = useState<ImportsTab>("create");
 
   return (
-    <main className="ml-72 pt-24 px-8 pb-12 min-h-screen bg-background">
+    <main className="ml-72 pt-24 px-8 pb-12 space-y-8 min-h-screen bg-background">
       <PageHeader
-        title="Quản lý Nhập kho"
-        actions={
-          <>
-            <Button variant="ghost" icon="file_upload">
-              Nhập từ file Excel
-            </Button>
-            <Button icon="add_circle" onClick={() => setCreateOpen(true)}>
-              Nhập hàng thủ công
-            </Button>
-          </>
+        eyebrow={
+          <span className="text-xs font-label font-bold uppercase tracking-widest text-primary">
+            Cung ứng dược phẩm
+          </span>
         }
+        title="Yêu cầu nhập thuốc"
+        subtitle="Quản lý và tạo mới các đơn hàng cung ứng dược phẩm cho chi nhánh."
       />
 
-      <div className="mt-8 grid grid-cols-12 gap-6">
-        <div className="col-span-12 lg:col-span-4">
-          <ImportUploadZone />
-        </div>
-        <div className="col-span-12 lg:col-span-8">
-          <ImportList />
-        </div>
-      </div>
-
-      <CreateImportModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+      <TabBar
+        tabs={IMPORTS_TABS}
+        activeTab={tab}
+        onTabChange={(id) => setTab(id as ImportsTab)}
       />
+
+      {tab === "create" && <CreateRequestForm />}
+      {tab === "manage" && <ImportList />}
     </main>
   );
 }

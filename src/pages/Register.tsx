@@ -8,9 +8,8 @@ interface RegisterProps {
 }
 
 const ROLES = [
-  { value: "admin", label: "Quản trị viên" },
-  { value: "staff", label: "Nhân viên chi nhánh" },
-  { value: "manager", label: "Quản lý kho" },
+  { value: "warehouse_manager", label: "Quản lý kho tổng" },
+  { value: "branch", label: "Nhân viên chi nhánh" },
 ];
 
 export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
@@ -38,7 +37,7 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
     }
     setLoading(true);
     try {
-      await signUp(email, password, fullName, role);
+      await signUp(email, password, fullName, role, phone);
       onRegister?.();
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? "";

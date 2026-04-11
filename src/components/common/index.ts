@@ -1,6 +1,7 @@
 export { Button } from "./Button";
 export type {} from "./Button";
 export { Badge } from "./Badge";
+export { TabBar } from "./TabBar";
 export { StatCard } from "./StatCard";
 export { Input } from "./Input";
 export { SectionLabel } from "./SectionLabel";

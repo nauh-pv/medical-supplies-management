@@ -1,9 +1,27 @@
 import { Input } from "@/components/common";
+import type { UserDoc } from "@/types/firestore";
 
-export function TopBar() {
+const ROLE_LABEL: Record<string, string> = {
+  warehouse_manager: "Quản lý kho tổng",
+  branch: "Nhân viên chi nhánh",
+};
+
+interface TopBarProps {
+  userDoc?: UserDoc | null;
+}
+
+export function TopBar({ userDoc }: TopBarProps) {
+  const displayName = userDoc?.displayName ?? "Người dùng";
+  const roleLabel = userDoc ? (ROLE_LABEL[userDoc.role] ?? userDoc.role) : "—";
+  const initials = displayName
+    .split(" ")
+    .map((w) => w[0])
+    .slice(-2)
+    .join("")
+    .toUpperCase();
   return (
     <header className="fixed top-0 right-0 left-0 flex items-center justify-between px-8 z-30 ml-72 w-[calc(100%-18rem)] h-16 bg-white/80 backdrop-blur-xl shadow-sm">
-      <div className="flex items-center flex-1 max-w-xl">
+      <div className="flex items-center flex-1 w-full">
         <Input
           leadingIcon="search"
           placeholder="Tìm kiếm kho dược, SKU, hoặc đơn hàng..."
@@ -36,16 +54,14 @@ export function TopBar() {
 
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <p className="text-xs font-bold text-on-surface">Quản trị viên</p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-tighter">
-              Trưởng kho tổng
+            <p className="text-xs font-bold text-on-surface">{displayName}</p>
+            <p className="text-[10px] text-on-surface-variant uppercase tracking-tighter">
+              {roleLabel}
             </p>
           </div>
-          <img
-            alt="Administrator Profile"
-            className="w-10 h-10 rounded-[9999px] object-cover border-2 border-primary-container"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBb3vtFugWbKFXae9TAAu-HGxniX-h-Kjg1OTIG6TxDCyCkPu1GZNakFb-hku4Y4bG0W1AW_RMVKCsjqfUom-gJ3Ne-bTjvnR3FyL2Hx7gjeikhLOkBbYR08TLITcY2SFmjTCCq3dBv3FwVMXOhD1T4sBBHReaUhxfZ87ABifzzmHUJOAmZqvwPSZL8GGaDxkCBNAvGC9YrG3UQ8MpdjnfY-tQoWEfoLegiC5Z4egIZi0roK3036X20zubHc6sboPGfh8TIVjXd8FQ"
-          />
+          <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center border-2 border-primary-container text-white font-bold text-sm flex-shrink-0">
+            {initials}
+          </div>
         </div>
       </div>
     </header>

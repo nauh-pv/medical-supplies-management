@@ -12,7 +12,10 @@ import { Register } from "@/pages/Register";
 import { Dispatches } from "@/pages/Dispatches";
 import { Branches } from "@/pages/Branches";
 import { PWAPrompt } from "@/components/PWAPrompt";
-import { onAuthChanged, type User } from "@/services/auth";
+import { onAuthChanged, signOut, type User } from "@/services/auth";
+import { getUserProfile } from "@/services/user";
+import type { UserDoc } from "@/types/firestore";
+import { UserContext } from "@/contexts/UserContext";
 import "./App.css";
 
 type AuthView = "login" | "register";
@@ -30,11 +33,20 @@ const pages: Partial<Record<NavId, React.ReactNode>> = {
 
 function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
+  const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
   const [authView, setAuthView] = useState<AuthView>("login");
   const [activePage, setActivePage] = useState<NavId>("dashboard");
 
   useEffect(() => {
-    const unsubscribe = onAuthChanged((u) => setUser(u));
+    const unsubscribe = onAuthChanged(async (u) => {
+      setUser(u);
+      if (u) {
+        const profile = await getUserProfile(u.uid);
+        setUserDoc(profile);
+      } else {
+        setUserDoc(null);
+      }
+    });
     return unsubscribe;
   }, []);
 
@@ -73,9 +85,15 @@ function App() {
   }
 
   return (
+    <UserContext.Provider value={userDoc}>
     <div className="bg-background text-on-surface overflow-x-hidden">
-      <Sidebar active={activePage} onNavigate={setActivePage} />
-      <TopBar />
+      <Sidebar
+        active={activePage}
+        onNavigate={setActivePage}
+        role={userDoc?.role ?? "branch"}
+        onLogout={signOut}
+      />
+      <TopBar userDoc={userDoc} />
       {pages[activePage] ?? (
         <main className="ml-72 pt-24 px-8 py-12 min-h-screen bg-background">
           <p className="text-on-surface-variant">Trang đang phát triển.</p>
@@ -90,6 +108,7 @@ function App() {
         </button>
       </div>
     </div>
+    </UserContext.Provider>
   );
 }
 

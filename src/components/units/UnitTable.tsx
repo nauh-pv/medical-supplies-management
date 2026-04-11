@@ -1,75 +1,61 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal, Input, Button, Pagination } from "@/components/common";
-
-interface Unit {
-  id: number;
-  name: string;
-  description: string;
-}
-
-const initialUnits: Unit[] = [
-  {
-    id: 1,
-    name: "Vỉ",
-    description: "Đơn vị đóng gói dạng vỉ thuốc (thường 10 viên/vỉ)",
-  },
-  {
-    id: 2,
-    name: "Chai",
-    description: "Đựng dung dịch, siro hoặc số lượng viên nén lớn",
-  },
-  {
-    id: 3,
-    name: "Ống",
-    description: "Đơn vị dùng cho vắc-xin hoặc thuốc tiêm",
-  },
-  { id: 4, name: "Hộp", description: "Quy cách đóng gói tổng hợp bên ngoài" },
-  {
-    id: 5,
-    name: "Viên",
-    description: "Đơn vị nhỏ nhất cho các loại thuốc nén, thuốc nang",
-  },
-  { id: 6, name: "Tuýp", description: "Dạng tuýp mềm cho thuốc bôi, kem, gel" },
-];
+import { getUnits, addUnit, deleteUnit } from "@/services/inventory";
+import type { UnitDoc } from "@/types/firestore";
 
 const ITEMS_PER_PAGE = 4;
 
 export function UnitTable() {
-  const [units, setUnits] = useState<Unit[]>(initialUnits);
+  const [units, setUnits] = useState<UnitDoc[]>([]);
+  const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", description: "" });
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    loadUnits();
+  }, []);
+
+  async function loadUnits() {
+    setLoading(true);
+    try {
+      const data = await getUnits();
+      setUnits(data);
+    } catch (err) {
+      console.error("UnitTable fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const filtered = units.filter(
     (u) =>
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       u.description.toLowerCase().includes(search.toLowerCase()),
   );
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paged = filtered.slice(
     (page - 1) * ITEMS_PER_PAGE,
     page * ITEMS_PER_PAGE,
   );
 
-  function handleAdd(e: React.FormEvent) {
+  async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name.trim()) return;
-    setUnits((prev) => [
-      ...prev,
-      {
-        id: Date.now(),
-        name: form.name.trim(),
-        description: form.description.trim(),
-      },
-    ]);
+    setSaving(true);
+    await addUnit(form.name.trim(), form.description.trim());
     setForm({ name: "", description: "" });
     setAddOpen(false);
     setPage(1);
+    await loadUnits();
+    setSaving(false);
   }
 
-  function handleDelete(id: number) {
-    setUnits((prev) => prev.filter((u) => u.id !== id));
+  async function handleDelete(id: string) {
+    await deleteUnit(id);
+    await loadUnits();
   }
 
   return (
@@ -95,68 +81,77 @@ export function UnitTable() {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low border-b border-outline-variant/10">
-                <th className="px-8 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest w-20">
-                  STT
-                </th>
-                <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                  Tên đơn vị tính
-                </th>
-                <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                  Mô tả
-                </th>
-                <th className="px-8 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest text-center">
-                  Thao tác
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/10">
-              {paged.map((unit, i) => (
-                <tr
-                  key={unit.id}
-                  className="hover:bg-surface-bright transition-colors group"
-                >
-                  <td className="px-8 py-5 text-sm text-on-surface-variant font-medium">
-                    {String((page - 1) * ITEMS_PER_PAGE + i + 1).padStart(
-                      2,
-                      "0",
-                    )}
-                  </td>
-                  <td className="px-6 py-5">
-                    <p className="font-bold text-on-surface">{unit.name}</p>
-                  </td>
-                  <td className="px-6 py-5">
-                    <p className="text-sm text-on-surface-variant">
-                      {unit.description || "—"}
-                    </p>
-                  </td>
-                  <td className="px-8 py-5 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                        title="Chỉnh sửa"
-                      >
-                        <span className="material-symbols-outlined text-xl">
-                          edit
-                        </span>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(unit.id)}
-                        className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/50 rounded-lg transition-colors"
-                        title="Xóa"
-                      >
-                        <span className="material-symbols-outlined text-xl">
-                          delete
-                        </span>
-                      </button>
-                    </div>
-                  </td>
+          {loading ? (
+            <div className="flex items-center justify-center py-16 text-on-surface-variant gap-3">
+              <span className="material-symbols-outlined animate-spin text-primary text-3xl">
+                progress_activity
+              </span>
+              <span className="text-sm">Đang tải...</span>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-surface-container-low border-b border-outline-variant/10">
+                  <th className="px-8 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest w-20">
+                    STT
+                  </th>
+                  <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                    Tên đơn vị tính
+                  </th>
+                  <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
+                    Mô tả
+                  </th>
+                  <th className="px-8 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest text-center">
+                    Thao tác
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/10">
+                {paged.map((unit, i) => (
+                  <tr
+                    key={unit.id}
+                    className="hover:bg-surface-bright transition-colors group"
+                  >
+                    <td className="px-8 py-5 text-sm text-on-surface-variant font-medium">
+                      {String((page - 1) * ITEMS_PER_PAGE + i + 1).padStart(
+                        2,
+                        "0",
+                      )}
+                    </td>
+                    <td className="px-6 py-5">
+                      <p className="font-bold text-on-surface">{unit.name}</p>
+                    </td>
+                    <td className="px-6 py-5">
+                      <p className="text-sm text-on-surface-variant">
+                        {unit.description || "—"}
+                      </p>
+                    </td>
+                    <td className="px-8 py-5 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          title="Chỉnh sửa"
+                        >
+                          <span className="material-symbols-outlined text-xl">
+                            edit
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(unit.id)}
+                          className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/50 rounded-lg transition-colors"
+                          title="Xóa"
+                        >
+                          <span className="material-symbols-outlined text-xl">
+                            delete
+                          </span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Pagination footer */}
@@ -216,7 +211,8 @@ export function UnitTable() {
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-primary bg-primary hover:opacity-90 transition-opacity"
+              disabled={saving}
+              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-primary bg-primary hover:opacity-90 transition-opacity disabled:opacity-60"
             >
               Lưu đơn vị
             </button>

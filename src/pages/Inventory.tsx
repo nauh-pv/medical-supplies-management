@@ -17,6 +17,7 @@ const INVENTORY_TABS = [
 export function Inventory() {
   const [tab, setTab] = useState<InventoryTab>("medicines");
   const [addOpen, setAddOpen] = useState(false);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   return (
     <main className="ml-72 pt-24 px-8 pb-12 space-y-8 min-h-screen bg-background">
@@ -39,12 +40,22 @@ export function Inventory() {
       />
 
       {tab === "medicines" && (
-        <InventoryTable onAddClick={() => setAddOpen(true)} />
+        <InventoryTable
+          onAddClick={() => setAddOpen(true)}
+          refetchTrigger={refetchTrigger}
+        />
       )}
       {tab === "imports" && <InventoryImportTab />}
       {tab === "units" && <UnitTable />}
 
-      <AddMedicineModal open={addOpen} onClose={() => setAddOpen(false)} />
+      <AddMedicineModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSuccess={() => {
+          setAddOpen(false);
+          setRefetchTrigger((n) => n + 1);
+        }}
+      />
     </main>
   );
 }

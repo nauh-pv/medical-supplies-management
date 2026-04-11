@@ -1,72 +1,56 @@
-import { useState } from "react";
-import { Input, Button, Badge, Pagination } from "@/components/common";
+import { useState, useEffect, useCallback } from "react";
+import { Input, Button, Pagination } from "@/components/common";
 import { ImportDetailModal } from "./ImportDetailModal";
 import { CreateImportModal } from "../imports/CreateImportModal";
+import { getImportOrders } from "@/services/inventory";
+import type { ImportOrderDoc } from "@/types/firestore";
 
-type ImportStatus = "received" | "pending" | "shipping";
+const ITEMS_PER_PAGE = 10;
 
-interface ImportRow {
-  id: string;
+function formatTimestamp(ts: { seconds: number } | undefined): {
   date: string;
   time: string;
-  supplier: string;
-  qty: number;
-  total: string;
-  status: ImportStatus;
+} {
+  if (!ts) return { date: "—", time: "" };
+  const d = new Date(ts.seconds * 1000);
+  return {
+    date: d.toLocaleDateString("vi-VN"),
+    time: d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+  };
 }
 
-const mockImports: ImportRow[] = [
-  {
-    id: "#IM-2023-001",
-    date: "24/10/2023",
-    time: "14:20 PM",
-    supplier: "Pharma Group VN",
-    qty: 1200,
-    total: "45.000.000 đ",
-    status: "received",
-  },
-  {
-    id: "#IM-2023-002",
-    date: "23/10/2023",
-    time: "09:15 AM",
-    supplier: "Medical Tech Inc",
-    qty: 450,
-    total: "12.300.000 đ",
-    status: "pending",
-  },
-  {
-    id: "#IM-2023-003",
-    date: "22/10/2023",
-    time: "16:45 PM",
-    supplier: "Dược phẩm TW1",
-    qty: 2800,
-    total: "89.500.000 đ",
-    status: "received",
-  },
-  {
-    id: "#IM-2023-004",
-    date: "21/10/2023",
-    time: "10:00 AM",
-    supplier: "BioHealth Solutions",
-    qty: 150,
-    total: "32.000.000 đ",
-    status: "shipping",
-  },
-];
-
-const statusConfig: Record<
-  ImportStatus,
-  { label: string; variant: "success" | "warning" | "info" }
-> = {
-  received: { label: "Đã nhập", variant: "success" },
-  pending: { label: "Chờ kiểm định", variant: "warning" },
-  shipping: { label: "Đang vận chuyển", variant: "info" },
-};
-
 export function InventoryImportTab() {
+  const [orders, setOrders] = useState<ImportOrderDoc[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isOpenCreateImportModal, setIsOpenCreateImportModal] = useState(false);
+
+  const loadOrders = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getImportOrders();
+      setOrders(data);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadOrders();
+  }, [loadOrders]);
+
+  const filtered = orders.filter(
+    (o) =>
+      o.code.toLowerCase().includes(search.toLowerCase()) ||
+      o.supplierName.toLowerCase().includes(search.toLowerCase()),
+  );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paged = filtered.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE,
+  );
 
   return (
     <>
@@ -77,6 +61,11 @@ export function InventoryImportTab() {
             <Input
               leadingIcon="search"
               placeholder="Tìm kiếm mã đơn, nhà cung cấp..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
           <div className="flex items-center gap-3">
@@ -85,117 +74,135 @@ export function InventoryImportTab() {
             </Button>
             <Button
               icon="add_shopping_cart"
-              size="sm"
               onClick={() => setIsOpenCreateImportModal(true)}
             >
-              Tạo đơn nhập mới
+              Nhập hàng
             </Button>
           </div>
         </div>
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low border-b border-outline-variant/10">
-                {[
-                  { label: "Mã đơn nhập", cls: "pl-8" },
-                  { label: "Ngày nhập" },
-                  { label: "Nhà cung cấp" },
-                  { label: "Số lượng", cls: "text-right" },
-                  { label: "Tổng giá trị", cls: "text-right" },
-                  { label: "Trạng thái", cls: "text-center" },
-                  { label: "Thao tác", cls: "text-center" },
-                ].map((h, i) => (
-                  <th
-                    key={i}
-                    className={[
-                      "px-6 py-4 text-xs font-label font-bold text-on-surface-variant uppercase tracking-widest",
-                      h.cls ?? "",
-                    ].join(" ")}
-                  >
-                    {h.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/10">
-              {mockImports.map((row) => {
-                return (
-                  <tr
-                    key={row.id}
-                    className="hover:bg-surface-container-low/30 transition-colors"
-                  >
-                    <td className="px-8 py-5">
-                      <span className="font-mono text-xs font-bold text-primary">
-                        {row.id}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5">
-                      <p className="text-sm font-medium text-on-surface">
-                        {row.date}
-                      </p>
-                      <p className="text-[10px] text-on-surface-variant">
-                        {row.time}
-                      </p>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded bg-surface-container flex items-center justify-center">
-                          <span className="material-symbols-outlined text-sm text-on-surface-variant">
-                            business
+          {loading ? (
+            <div className="flex items-center justify-center py-16 text-on-surface-variant gap-3">
+              <span className="material-symbols-outlined animate-spin text-primary text-3xl">
+                progress_activity
+              </span>
+              <span className="text-sm">Đang tải dữ liệu...</span>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-on-surface-variant gap-3">
+              <span className="material-symbols-outlined text-4xl">inbox</span>
+              <span className="text-sm">Chưa có đơn nhập kho nào.</span>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-surface-container-low border-b border-outline-variant/10">
+                  {[
+                    { label: "Mã đơn nhập", cls: "pl-8" },
+                    { label: "Ngày nhập" },
+                    { label: "Nhà cung cấp" },
+                    { label: "Số lượng", cls: "text-right" },
+                    { label: "Tổng giá trị", cls: "text-right" },
+                    { label: "Thao tác", cls: "text-center" },
+                  ].map((h, i) => (
+                    <th
+                      key={i}
+                      className={[
+                        "px-6 py-4 text-xs font-label font-bold text-on-surface-variant uppercase tracking-widest",
+                        h.cls ?? "",
+                      ].join(" ")}
+                    >
+                      {h.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-outline-variant/10">
+                {paged.map((order) => {
+                  const totalQty = order.items.reduce(
+                    (s, i) => s + i.quantity,
+                    0,
+                  );
+                  const { date, time } = formatTimestamp(
+                    order.createdAt as unknown as
+                      | { seconds: number }
+                      | undefined,
+                  );
+                  return (
+                    <tr
+                      key={order.id}
+                      className="hover:bg-surface-container-low/30 transition-colors"
+                    >
+                      <td className="px-8 py-5">
+                        <span className="font-mono text-xs font-bold text-primary">
+                          {order.code}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5">
+                        <p className="text-sm font-medium text-on-surface">
+                          {date}
+                        </p>
+                        <p className="text-[10px] text-on-surface-variant">
+                          {time}
+                        </p>
+                      </td>
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded bg-surface-container flex items-center justify-center">
+                            <span className="material-symbols-outlined text-sm text-on-surface-variant">
+                              business
+                            </span>
+                          </div>
+                          <span className="text-sm font-semibold text-on-surface">
+                            {order.supplierName}
                           </span>
                         </div>
-                        <span className="text-sm font-semibold text-on-surface">
-                          {row.supplier}
+                      </td>
+                      <td className="px-6 py-5 text-right">
+                        <span className="text-sm font-medium text-on-surface-variant">
+                          {totalQty.toLocaleString("vi-VN")}
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5 text-right">
-                      <span className="text-sm font-medium text-on-surface-variant">
-                        {row.qty.toLocaleString()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 text-right font-mono text-sm font-bold text-on-surface">
-                      {row.total}
-                    </td>
-                    <td className="px-8 py-5 text-center">
-                      <Badge variant={statusConfig[row.status].variant}>
-                        {statusConfig[row.status].label}
-                      </Badge>
-                    </td>
-                    <td className="px-8 py-5 text-center">
-                      <button
-                        onClick={() => setSelectedId(row.id)}
-                        className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                      >
-                        <span className="material-symbols-outlined">
-                          visibility
-                        </span>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td className="px-6 py-5 text-right font-mono text-sm font-bold text-on-surface">
+                        {order.total.toLocaleString("vi-VN")}đ
+                      </td>
+                      <td className="px-8 py-5 text-center">
+                        <button
+                          onClick={() => setSelectedId(order.id)}
+                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        >
+                          <span className="material-symbols-outlined">
+                            visibility
+                          </span>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
 
-        {/* Footer */}
-        <div className="px-8 py-6 flex items-center justify-between border-t border-outline-variant/10 bg-surface-container-low/20">
-          <p className="text-sm text-on-surface-variant">
-            Hiển thị{" "}
-            <span className="font-bold text-on-surface">
-              1 - {mockImports.length}
-            </span>{" "}
-            của 84 đợt nhập hàng
-          </p>
-          <Pagination
-            currentPage={page}
-            totalPages={21}
-            onPageChange={setPage}
-          />
-        </div>
+        {!loading && filtered.length > 0 && (
+          <div className="px-8 py-6 flex items-center justify-between border-t border-outline-variant/10 bg-surface-container-low/20">
+            <p className="text-sm text-on-surface-variant">
+              Hiển thị{" "}
+              <span className="font-bold text-on-surface">
+                {(page - 1) * ITEMS_PER_PAGE + 1} –{" "}
+                {Math.min(page * ITEMS_PER_PAGE, filtered.length)}
+              </span>{" "}
+              của {filtered.length} đợt nhập hàng
+            </p>
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
       </div>
 
       <ImportDetailModal
@@ -207,6 +214,10 @@ export function InventoryImportTab() {
       <CreateImportModal
         open={isOpenCreateImportModal}
         onClose={() => setIsOpenCreateImportModal(false)}
+        onSuccess={() => {
+          setIsOpenCreateImportModal(false);
+          loadOrders();
+        }}
       />
     </>
   );

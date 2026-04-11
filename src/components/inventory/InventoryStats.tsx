@@ -1,5 +1,27 @@
+import { useState, useEffect } from "react";
+import { getMedicines, getInventory } from "@/services/inventory";
+
 /** Bento-grid KPI section at the top of the Inventory page. */
 export function InventoryStats() {
+  const [total, setTotal] = useState<number | null>(null);
+  const [lowStock, setLowStock] = useState<number | null>(null);
+
+  useEffect(() => {
+    Promise.all([getMedicines(), getInventory("WAREHOUSE")])
+      .then(([meds, inv]) => {
+        setTotal(meds.length);
+        const low = meds.filter((m) => {
+          const stock = inv.find((i) => i.medicineId === m.id)?.quantity ?? 0;
+          const min =
+            inv.find((i) => i.medicineId === m.id)?.minStockLevel ??
+            m.minStockLevel;
+          return stock <= min;
+        }).length;
+        setLowStock(low);
+      })
+      .catch(console.error);
+  }, []);
+
   return (
     <div className="grid grid-cols-12 gap-6">
       {/* ── Large card: total products ── */}
@@ -12,7 +34,11 @@ export function InventoryStats() {
             </h3>
             <div className="flex items-baseline gap-4">
               <span className="text-5xl font-extrabold text-on-surface tracking-tighter font-headline">
-                1,284
+                {total === null ? (
+                  <span className="inline-block w-24 h-10 bg-surface-container-high rounded-lg animate-pulse" />
+                ) : (
+                  total.toLocaleString("vi-VN")
+                )}
               </span>
               <span className="text-emerald-600 font-bold flex items-center text-sm gap-0.5">
                 <span className="material-symbols-outlined text-sm">
@@ -56,7 +82,11 @@ export function InventoryStats() {
           </h3>
           <div className="flex items-baseline gap-2">
             <span className="text-5xl font-extrabold tracking-tighter font-headline">
-              12
+              {lowStock === null ? (
+                <span className="inline-block w-12 h-10 bg-white/20 rounded-lg animate-pulse" />
+              ) : (
+                lowStock
+              )}
             </span>
             <span className="text-sm font-medium">mặt hàng</span>
           </div>

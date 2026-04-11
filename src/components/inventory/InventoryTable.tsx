@@ -1,77 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input, Badge, Button, Pagination } from "@/components/common";
-import type { Medicine, StockStatus } from "@/types/medicine";
+import type { MedicineDoc, InventoryDoc } from "@/types/firestore";
+import { getMedicines, getInventory } from "@/services/inventory";
 import { BatchHistoryModal } from "./BatchHistoryModal";
-
-// ── Mock data ────────────────────────────────────────────────────────────────
-
-const medicines: Medicine[] = [
-  {
-    id: "AMOX-500",
-    name: "Amoxicillin 500mg",
-    description: "Kháng sinh phổ rộng",
-    icon: "medication",
-    iconBg: "bg-primary-fixed",
-    iconColor: "text-primary",
-    category: "prescribed",
-    unit: "Vỉ (10 viên)",
-    importPrice: "45.000đ",
-    sellPrice: "62.000đ",
-    stock: 420,
-    stockPercent: 80,
-    status: "in-stock",
-  },
-  {
-    id: "PARA-500",
-    name: "Paracetamol 500mg",
-    description: "Giảm đau, hạ sốt",
-    icon: "pill",
-    iconBg: "bg-secondary-fixed-dim",
-    iconColor: "text-on-secondary-fixed-variant",
-    category: "otc",
-    unit: "Chai (500 viên)",
-    importPrice: "120.000đ",
-    sellPrice: "185.000đ",
-    stock: 15,
-    stockPercent: 20,
-    status: "out-of-stock",
-  },
-  {
-    id: "INF-2024",
-    name: "Vắc-xin Influenza 2024",
-    description: "Dung dịch tiêm",
-    icon: "vaccines",
-    iconBg: "bg-tertiary-fixed",
-    iconColor: "text-tertiary",
-    category: "prescribed",
-    unit: "Ống (1ml)",
-    importPrice: "250.000đ",
-    sellPrice: "310.000đ",
-    stock: 88,
-    stockPercent: 60,
-    status: "low-stock",
-  },
-  {
-    id: "PROS-100",
-    name: "Siro ho Prospan",
-    description: "Thảo dược",
-    icon: "medication_liquid",
-    iconBg: "bg-primary-fixed",
-    iconColor: "text-primary",
-    category: "otc",
-    unit: "Chai (100ml)",
-    importPrice: "68.000đ",
-    sellPrice: "85.000đ",
-    stock: 156,
-    stockPercent: 67,
-    status: "in-stock",
-  },
-];
+import { AddMedicineModal } from "./AddMedicineModal";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+type DisplayStatus = "in-stock" | "low-stock" | "out-of-stock";
+
+function getDisplayStatus(qty: number, minLevel: number): DisplayStatus {
+  if (qty === 0) return "out-of-stock";
+  if (qty <= minLevel) return "low-stock";
+  return "in-stock";
+}
+
 const statusConfig: Record<
-  StockStatus,
+  DisplayStatus,
   { label: string; variant: "success" | "error" | "info" }
 > = {
   "in-stock": { label: "Còn hàng", variant: "success" },
@@ -79,23 +24,82 @@ const statusConfig: Record<
   "low-stock": { label: "Sắp hết", variant: "info" },
 };
 
-const stockBarColor: Record<StockStatus, string> = {
+const stockBarColor: Record<DisplayStatus, string> = {
   "in-stock": "bg-green-500",
   "out-of-stock": "bg-error",
   "low-stock": "bg-primary",
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
+const ITEMS_PER_PAGE = 10;
 
-const TOTAL_PAGES = 321;
+// ── Component ─────────────────────────────────────────────────────────────────
 
 interface InventoryTableProps {
   onAddClick?: () => void;
+  refetchTrigger?: number;
 }
 
-export function InventoryTable({ onAddClick }: InventoryTableProps) {
+export function InventoryTable({
+  onAddClick,
+  refetchTrigger,
+}: InventoryTableProps) {
+  const [medicines, setMedicines] = useState<MedicineDoc[]>([]);
+  const [inventory, setInventory] = useState<InventoryDoc[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [batchMed, setBatchMed] = useState<Medicine | null>(null);
+  const [batchMed, setBatchMed] = useState<MedicineDoc | null>(null);
+  const [editMed, setEditMed] = useState<MedicineDoc | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError("");
+    Promise.all([getMedicines(), getInventory("WAREHOUSE")])
+      .then(([meds, inv]) => {
+        if (!cancelled) {
+          setMedicines(meds);
+          setInventory(inv);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          console.error("InventoryTable fetch error:", err);
+          setError(
+            "Không thể tải dữ liệu. Vui lòng kiểm tra kết nối và Firestore rules.",
+          );
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [refetchTrigger]);
+
+  const filtered = medicines.filter(
+    (m) =>
+      m.name.toLowerCase().includes(search.toLowerCase()) ||
+      m.sku.toLowerCase().includes(search.toLowerCase()) ||
+      m.unitName.toLowerCase().includes(search.toLowerCase()),
+  );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const paged = filtered.slice(
+    (page - 1) * ITEMS_PER_PAGE,
+    page * ITEMS_PER_PAGE,
+  );
+
+  function getStock(medicineId: string) {
+    return inventory.find((i) => i.medicineId === medicineId)?.quantity ?? 0;
+  }
+
+  function getMinLevel(med: MedicineDoc) {
+    return (
+      inventory.find((i) => i.medicineId === med.id)?.minStockLevel ??
+      med.minStockLevel
+    );
+  }
 
   return (
     <div className="bg-surface-container-lowest rounded-[2rem] shadow-sm overflow-hidden border border-outline-variant/10">
@@ -104,7 +108,12 @@ export function InventoryTable({ onAddClick }: InventoryTableProps) {
         <div className="flex-1 min-w-[300px]">
           <Input
             leadingIcon="search"
-            placeholder="Tìm kiếm tên thuốc, loại hoặc đơn vị..."
+            placeholder="Tìm kiếm tên thuốc, SKU hoặc đơn vị..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
         <div className="flex items-center gap-3">
@@ -122,169 +131,219 @@ export function InventoryTable({ onAddClick }: InventoryTableProps) {
 
       {/* ── Table ── */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-surface-container-low">
-              {[
-                { label: "Tên thuốc", cls: "pl-8" },
-                { label: "Loại" },
-                { label: "Đơn vị tính", cls: "text-center" },
-                { label: "Giá nhập", cls: "text-right" },
-                { label: "Giá bán", cls: "text-right" },
-                { label: "Tồn kho", cls: "text-center" },
-                { label: "Trạng thái", cls: "text-center" },
-                { label: "Thao tác", cls: "text-center" },
-              ].map((h, i) => (
-                <th
-                  key={i}
-                  className={[
-                    "px-6 py-4 text-xs font-label font-bold text-on-surface-variant uppercase tracking-widest",
-                    h.cls ?? "",
-                  ].join(" ")}
-                >
-                  {h.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
+        {loading ? (
+          <div className="flex items-center justify-center py-20 text-on-surface-variant gap-3">
+            <span className="material-symbols-outlined animate-spin text-primary text-3xl">
+              progress_activity
+            </span>
+            <span className="text-sm">Đang tải dữ liệu...</span>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-20 text-error gap-3">
+            <span className="material-symbols-outlined text-4xl">error</span>
+            <span className="text-sm text-center max-w-sm">{error}</span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant gap-3">
+            <span className="material-symbols-outlined text-4xl">
+              inventory_2
+            </span>
+            <span className="text-sm">Không tìm thấy sản phẩm nào.</span>
+          </div>
+        ) : (
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-surface-container-low">
+                {[
+                  { label: "Tên thuốc", cls: "pl-8" },
+                  { label: "Danh mục" },
+                  { label: "Đơn vị tính", cls: "text-center" },
+                  { label: "Giá nhập", cls: "text-right" },
+                  { label: "Giá bán", cls: "text-right" },
+                  { label: "Tồn kho", cls: "text-center" },
+                  { label: "Trạng thái", cls: "text-center" },
+                  { label: "Thao tác", cls: "text-center" },
+                ].map((h, i) => (
+                  <th
+                    key={i}
+                    className={[
+                      "px-6 py-4 text-xs font-label font-bold text-on-surface-variant uppercase tracking-widest",
+                      h.cls ?? "",
+                    ].join(" ")}
+                  >
+                    {h.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
 
-          <tbody>
-            {medicines.map((med) => {
-              const { label, variant } = statusConfig[med.status];
-              const barColor = stockBarColor[med.status];
-              return (
-                <tr
-                  key={med.id}
-                  className="group hover:bg-surface-bright transition-colors border-t border-outline-variant/10"
-                >
-                  {/* Name */}
-                  <td className="px-8 py-5">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={[
-                          "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
-                          med.iconBg,
-                          med.iconColor,
-                        ].join(" ")}
-                      >
-                        <span className="material-symbols-outlined">
-                          {med.icon}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="font-bold text-on-surface">{med.name}</p>
-                        <p className="text-xs text-on-surface-variant">
-                          {med.description}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
+            <tbody>
+              {paged.map((med) => {
+                const stock = getStock(med.id);
+                const minLevel = getMinLevel(med);
+                const displayStatus = getDisplayStatus(stock, minLevel);
+                const { label, variant } = statusConfig[displayStatus];
+                const barColor = stockBarColor[displayStatus];
+                const maxStock = Math.max(stock, med.minStockLevel * 3, 1);
+                const stockPercent = Math.min(100, (stock / maxStock) * 100);
 
-                  {/* Category */}
-                  <td className="px-6 py-5">
-                    <Badge
-                      variant={
-                        med.category === "prescribed" ? "info" : "neutral"
-                      }
-                    >
-                      {med.category === "prescribed"
-                        ? "Kê đơn"
-                        : "Không kê đơn"}
-                    </Badge>
-                  </td>
-
-                  {/* Unit */}
-                  <td className="px-6 py-5 text-center text-sm font-medium text-on-surface-variant">
-                    {med.unit}
-                  </td>
-
-                  {/* Import price */}
-                  <td className="px-6 py-5 text-right text-sm font-mono text-on-surface-variant">
-                    {med.importPrice}
-                  </td>
-
-                  {/* Sell price */}
-                  <td className="px-6 py-5 text-right text-sm font-mono font-bold text-on-surface">
-                    {med.sellPrice}
-                  </td>
-
-                  {/* Stock with mini bar */}
-                  <td className="px-6 py-5 text-center">
-                    <div className="inline-flex flex-col items-center gap-1">
-                      <span className="text-sm font-bold text-on-surface">
-                        {med.stock}
-                      </span>
-                      <div className="w-12 h-1 bg-surface-container-high rounded-full overflow-hidden">
+                return (
+                  <tr
+                    key={med.id}
+                    className="group hover:bg-surface-bright transition-colors border-t border-outline-variant/10"
+                  >
+                    {/* Name */}
+                    <td className="px-8 py-5">
+                      <div className="flex items-center gap-3">
                         <div
-                          className={["h-full rounded-full", barColor].join(
-                            " ",
-                          )}
-                          style={{ width: `${med.stockPercent}%` }}
-                        />
+                          className={[
+                            "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+                            med.iconBg,
+                            med.iconColor,
+                          ].join(" ")}
+                        >
+                          <span className="material-symbols-outlined">
+                            {med.icon}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-bold text-on-surface">
+                            {med.name}
+                          </p>
+                          <p className="text-xs text-on-surface-variant">
+                            {med.sku}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  {/* Status badge */}
-                  <td className="px-6 py-5 text-center">
-                    <Badge variant={variant} dot>
-                      {label}
-                    </Badge>
-                  </td>
+                    {/* Category */}
+                    <td className="px-6 py-5">
+                      <Badge
+                        variant={
+                          med.category === "prescribed" ? "info" : "neutral"
+                        }
+                      >
+                        {med.category === "prescribed"
+                          ? "Kê đơn"
+                          : "Không kê đơn"}
+                      </Badge>
+                    </td>
 
-                  {/* Actions */}
-                  <td className="px-8 py-5 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => setBatchMed(med)}
-                        className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                        title="Xem chi tiết"
-                      >
-                        <span className="material-symbols-outlined text-xl">
-                          visibility
+                    {/* Unit */}
+                    <td className="px-6 py-5 text-center text-sm font-medium text-on-surface-variant">
+                      {med.unitName}
+                    </td>
+
+                    {/* Import price */}
+                    <td className="px-6 py-5 text-right text-sm font-mono text-on-surface-variant">
+                      {med.importPrice.toLocaleString("vi-VN")}đ
+                    </td>
+
+                    {/* Sell price */}
+                    <td className="px-6 py-5 text-right text-sm font-mono font-bold text-on-surface">
+                      {med.sellPrice.toLocaleString("vi-VN")}đ
+                    </td>
+
+                    {/* Stock with mini bar */}
+                    <td className="px-6 py-5 text-center">
+                      <div className="inline-flex flex-col items-center gap-1">
+                        <span className="text-sm font-bold text-on-surface">
+                          {stock.toLocaleString("vi-VN")}
                         </span>
-                      </button>
-                      <button
-                        className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                        title="Chỉnh sửa"
-                      >
-                        <span className="material-symbols-outlined text-xl">
-                          edit
-                        </span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                        <div className="w-12 h-1 bg-surface-container-high rounded-full overflow-hidden">
+                          <div
+                            className={["h-full rounded-full", barColor].join(
+                              " ",
+                            )}
+                            style={{ width: `${stockPercent}%` }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Status badge */}
+                    <td className="px-6 py-5 text-center">
+                      <Badge variant={variant} dot>
+                        {label}
+                      </Badge>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-8 py-5 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => setBatchMed(med)}
+                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          title="Lịch sử nhập kho theo lô"
+                        >
+                          <span className="material-symbols-outlined text-xl">
+                            visibility
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => setEditMed(med)}
+                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          title="Chỉnh sửa"
+                        >
+                          <span className="material-symbols-outlined text-xl">
+                            edit
+                          </span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* ── Pagination footer ── */}
-      <div className="px-8 py-6 flex items-center justify-between border-t border-outline-variant/10 bg-surface-container-low/20">
-        <p className="text-sm text-on-surface-variant">
-          Hiển thị{" "}
-          <span className="font-bold text-on-surface">
-            {(page - 1) * 4 + 1} – {Math.min(page * 4, 1284)}
-          </span>{" "}
-          của 1,284 sản phẩm
-        </p>
-        <Pagination
-          currentPage={page}
-          totalPages={TOTAL_PAGES}
-          onPageChange={setPage}
-        />
-      </div>
+      {!loading && filtered.length > 0 && (
+        <div className="px-8 py-6 flex items-center justify-between border-t border-outline-variant/10 bg-surface-container-low/20">
+          <p className="text-sm text-on-surface-variant">
+            Hiển thị{" "}
+            <span className="font-bold text-on-surface">
+              {(page - 1) * ITEMS_PER_PAGE + 1} –{" "}
+              {Math.min(page * ITEMS_PER_PAGE, filtered.length)}
+            </span>{" "}
+            của {filtered.length.toLocaleString("vi-VN")} kết quả
+          </p>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
 
       {batchMed && (
         <BatchHistoryModal
           open={!!batchMed}
           onClose={() => setBatchMed(null)}
+          medicineId={batchMed.id}
           medicineName={batchMed.name}
-          sku={batchMed.id}
+          unitName={batchMed.unitName}
+          sku={batchMed.sku}
         />
       )}
+
+      <AddMedicineModal
+        open={!!editMed}
+        medicine={editMed}
+        onClose={() => setEditMed(null)}
+        onSuccess={() => {
+          setEditMed(null);
+          Promise.all([getMedicines(), getInventory("WAREHOUSE")]).then(
+            ([meds, inv]) => {
+              setMedicines(meds);
+              setInventory(inv);
+            },
+          );
+        }}
+      />
     </div>
   );
 }

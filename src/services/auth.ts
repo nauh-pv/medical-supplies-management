@@ -21,6 +21,7 @@ export async function signUp(
   password: string,
   displayName: string,
   role: string,
+  phone = "",
 ): Promise<User> {
   const credential = await createUserWithEmailAndPassword(
     auth,
@@ -35,8 +36,13 @@ export async function signUp(
     uid: user.uid,
     email,
     displayName,
+    phone,
     role,
+    branchId: "",
+    branchName: "",
+    isActive: true,
     createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 
   return user;

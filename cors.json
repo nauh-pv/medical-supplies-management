@@ -1,0 +1,19 @@
+[
+  {
+    "origin": [
+      "http://localhost:5173",
+      "http://localhost:4173",
+      "https://btap3-193b1.web.app",
+      "https://btap3-193b1.firebaseapp.com",
+      "https://medical-supplies-management.vercel.app/"
+    ],
+    "method": ["GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "x-goog-resumable",
+      "x-goog-meta-*"
+    ]
+  }
+]

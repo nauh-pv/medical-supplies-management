@@ -20,6 +20,7 @@ function getDisplayStatus(qty: number, min: number) {
 }
 
 interface ProductGridProps {
+  refetchTrigger?: number;
   onAddToCart: (product: {
     id: string;
     name: string;
@@ -27,10 +28,11 @@ interface ProductGridProps {
     sku: string;
     unitId: string;
     unitName: string;
+    stock: number;
   }) => void;
 }
 
-export function ProductGrid({ onAddToCart }: ProductGridProps) {
+export function ProductGrid({ onAddToCart, refetchTrigger }: ProductGridProps) {
   const userDoc = useUserContext();
   const [medicines, setMedicines] = useState<MedicineDoc[]>([]);
   const [inventory, setInventory] = useState<InventoryDoc[]>([]);
@@ -41,15 +43,21 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
   const locationId = userDoc?.branchId || "WAREHOUSE";
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
     Promise.all([getMedicines(), getInventory(locationId)]).then(
       ([meds, inv]) => {
-        setMedicines(meds);
-        setInventory(inv);
-        setLoading(false);
+        if (!cancelled) {
+          setMedicines(meds);
+          setInventory(inv);
+          setLoading(false);
+        }
       },
     );
-  }, [locationId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [locationId, refetchTrigger]);
 
   const categories = [
     "Tất cả",
@@ -70,6 +78,11 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
   });
 
   function getStock(medicineId: string) {
+    // Prefer the deterministic doc ID to avoid stale zero-qty docs
+    const preferred = inventory.find(
+      (i) => i.id === `${locationId}_${medicineId}`,
+    );
+    if (preferred) return preferred.quantity;
     return inventory.find((i) => i.medicineId === medicineId)?.quantity ?? 0;
   }
 
@@ -128,6 +141,7 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
                     sku: m.sku,
                     unitId: m.unitId,
                     unitName: m.unitName,
+                    stock,
                   })
                 }
                 className={[
@@ -137,26 +151,39 @@ export function ProductGrid({ onAddToCart }: ProductGridProps) {
                     : "hover:shadow-[0_20px_40px_rgba(0,80,203,0.08)] hover:-translate-y-0.5 hover:bg-surface-bright",
                 ].join(" ")}
               >
-                <div
-                  className={[
-                    "w-12 h-12 rounded-xl flex items-center justify-center",
-                    m.iconBg,
-                  ].join(" ")}
-                >
-                  <span
-                    className={[
-                      "material-symbols-outlined text-2xl",
-                      m.iconColor,
-                    ].join(" ")}
-                  >
-                    {m.icon}
-                  </span>
-                </div>
+                {m.imageUrl ? (
+                  <img
+                    src={m.imageUrl}
+                    alt={m.name}
+                    className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-surface-container flex items-center justify-center">
+                    <span className="material-symbols-outlined text-2xl text-on-surface-variant">
+                      medication
+                    </span>
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-label font-semibold text-on-surface leading-snug mb-1">
+                  <p className="text-sm font-label font-semibold text-on-surface leading-snug mb-0.5">
                     {m.name}
                   </p>
                   <p className="text-xs text-on-surface-variant">{m.sku}</p>
+                  <p className="text-xs text-on-surface-variant/70 mt-0.5">
+                    Tồn kho:{" "}
+                    <span
+                      className={
+                        stock === 0
+                          ? "text-error font-semibold"
+                          : stock <= m.minStockLevel
+                            ? "text-warning font-semibold"
+                            : "font-semibold text-on-surface"
+                      }
+                    >
+                      {stock}
+                    </span>{" "}
+                    {m.unitName}
+                  </p>
                 </div>
                 <div className="flex items-end justify-between">
                   <span className="text-base font-headline font-bold text-primary">

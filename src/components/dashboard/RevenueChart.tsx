@@ -1,16 +1,7 @@
 import { useState } from "react";
+import type { DailyRevenue } from "@/services/dashboard";
 
 type ChartPeriod = "week" | "month" | "quarter" | "year";
-
-const chartData = [
-  { day: "THỨ 2", height: 120, value: "$12,450" },
-  { day: "THỨ 3", height: 140, value: "$15,200" },
-  { day: "THỨ 4", height: 110, value: "$11,800" },
-  { day: "THỨ 5", height: 170, value: "$18,900" },
-  { day: "THỨ 6", height: 200, value: "$22,400", highlight: true },
-  { day: "THỨ 7", height: 150, value: "$16,500" },
-  { day: "CN", height: 90, value: "$9,800" },
-];
 
 const periodLabels: Record<ChartPeriod, string> = {
   week: "Tuần",
@@ -19,9 +10,22 @@ const periodLabels: Record<ChartPeriod, string> = {
   year: "Năm",
 };
 
-/** Revenue trend bar chart — single bars, POS legend, hover tooltips. */
-export function RevenueChart() {
+interface RevenueChartProps {
+  data: DailyRevenue[];
+  loading: boolean;
+}
+
+/** Revenue trend bar chart — real 7-day POS data. */
+export function RevenueChart({ data, loading }: RevenueChartProps) {
   const [period, setPeriod] = useState<ChartPeriod>("week");
+
+  const maxRevenue = Math.max(...data.map((d) => d.revenue), 1);
+  const scaledBars = data.map((d) => ({
+    day: d.day,
+    height: Math.max(8, Math.round((d.revenue / maxRevenue) * 200)),
+    value: `${d.revenue.toLocaleString("vi-VN")}₫`,
+    highlight: d.highlight,
+  }));
 
   return (
     <section className="bg-surface-container-lowest rounded-[1.5rem] p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
@@ -54,7 +58,7 @@ export function RevenueChart() {
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-lg text-xs font-bold text-primary cursor-pointer">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-lg text-xs font-bold text-primary">
           <div className="w-2 h-2 rounded-full bg-secondary" />
           Bán lẻ POS
         </div>
@@ -62,29 +66,42 @@ export function RevenueChart() {
 
       {/* Bars */}
       <div className="h-64 flex items-end justify-between gap-8 px-8">
-        {chartData.map((bar) => (
-          <div
-            key={bar.day}
-            className="flex-1 flex flex-col items-center gap-2 relative group"
-          >
-            {/* Tooltip */}
-            <div className="absolute bottom-full mb-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded whitespace-nowrap z-10 pointer-events-none">
-              {bar.value}
-            </div>
-            <div
-              className="w-full bg-secondary-container rounded-t-lg transition-all hover:brightness-90 cursor-help"
-              style={{ height: `${bar.height}px` }}
-            />
-            <span
-              className={[
-                "text-[10px] font-bold",
-                bar.highlight ? "text-primary" : "text-on-surface-variant",
-              ].join(" ")}
-            >
-              {bar.day}
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center text-on-surface-variant text-sm gap-2">
+            <span className="material-symbols-outlined animate-spin text-primary">
+              progress_activity
             </span>
+            Đang tải...
           </div>
-        ))}
+        ) : scaledBars.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-on-surface-variant text-sm">
+            Không có dữ liệu
+          </div>
+        ) : (
+          scaledBars.map((bar) => (
+            <div
+              key={bar.day}
+              className="flex-1 flex flex-col items-center gap-2 relative group"
+            >
+              {/* Tooltip */}
+              <div className="absolute bottom-full mb-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded whitespace-nowrap z-10 pointer-events-none">
+                {bar.value}
+              </div>
+              <div
+                className="w-full bg-secondary-container rounded-t-lg transition-all hover:brightness-90 cursor-help"
+                style={{ height: `${bar.height}px` }}
+              />
+              <span
+                className={[
+                  "text-[10px] font-bold",
+                  bar.highlight ? "text-primary" : "text-on-surface-variant",
+                ].join(" ")}
+              >
+                {bar.day}
+              </span>
+            </div>
+          ))
+        )}
       </div>
     </section>
   );

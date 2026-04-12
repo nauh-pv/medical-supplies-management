@@ -1,11 +1,30 @@
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/common";
 import { StatSummaryRow } from "@/components/dashboard/StatSummaryRow";
 import { AlertsSection } from "@/components/dashboard/AlertsSection";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { TopSellingTable } from "@/components/dashboard/TopSellingTable";
 import { StockDynamicsPanel } from "@/components/dashboard/StockDynamicsPanel";
+import { getDashboardData } from "@/services/dashboard";
+import type { DashboardData } from "@/services/dashboard";
+import { useUserContext } from "@/contexts/UserContext";
 
 export function Dashboard() {
+  const userDoc = useUserContext();
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Wait until userDoc is resolved — avoids fetching with wrong locationId
+    if (userDoc === null) return;
+    const locationId = userDoc.branchId ?? "WAREHOUSE";
+    setLoading(true);
+    getDashboardData(locationId)
+      .then(setData)
+      .catch((err) => console.error("Dashboard fetch error:", err))
+      .finally(() => setLoading(false));
+  }, [userDoc]);
+
   return (
     <main className="ml-72 pt-24 px-8 pb-12 space-y-8 min-h-screen bg-background">
       <PageHeader
@@ -13,24 +32,29 @@ export function Dashboard() {
         subtitle={
           <>
             Trạng thái hệ thống:{" "}
-            <span className="text-green-600 font-semibold">Đang hoạt động</span>{" "}
-            • Đồng bộ lần cuối: 2 phút trước
+            <span className="text-green-600 font-semibold">Đang hoạt động</span>
           </>
         }
       />
 
-      <StatSummaryRow />
+      <StatSummaryRow
+        stats={data?.stats ?? null}
+        loading={loading}
+        role={userDoc?.role ?? "warehouse_manager"}
+      />
 
-      <AlertsSection />
+      <AlertsSection alerts={data?.stockAlerts ?? null} loading={loading} />
 
-      <RevenueChart />
+      <RevenueChart data={data?.revenueByDay ?? []} loading={loading} />
 
-      {/* ── Row 4: Top Selling + Stock Dynamics ── */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <TopSellingTable />
+          <TopSellingTable data={data?.topMedicines ?? []} loading={loading} />
         </div>
-        <StockDynamicsPanel />
+        <StockDynamicsPanel
+          activities={data?.recentActivity ?? []}
+          loading={loading}
+        />
       </section>
     </main>
   );

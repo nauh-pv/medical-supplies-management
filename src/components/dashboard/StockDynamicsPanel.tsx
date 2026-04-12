@@ -1,88 +1,65 @@
 import { Button } from "@/components/common";
+import type { RecentActivity } from "@/services/dashboard";
 
-interface StockEvent {
-  id: string;
-  icon: string;
-  iconBg: string;
-  name: string;
-  detail: string;
-  timeLabel: string;
-  timeLabelColor: string;
+interface StockDynamicsPanelProps {
+  activities: RecentActivity[];
+  loading: boolean;
 }
 
-const events: StockEvent[] = [
-  {
-    id: "1",
-    icon: "call_received",
-    iconBg: "bg-green-50 text-green-600",
-    name: "Insulin Glargine",
-    detail: "Vừa nhập +500 đơn vị",
-    timeLabel: "Vừa xong",
-    timeLabelColor: "text-on-surface-variant",
-  },
-  {
-    id: "2",
-    icon: "sync",
-    iconBg: "bg-primary/10 text-primary",
-    name: "Vitamin C 1000mg",
-    detail: "Tỉ lệ xoay vòng cao: 4.5x",
-    timeLabel: "HOT",
-    timeLabelColor: "text-primary",
-  },
-  {
-    id: "3",
-    icon: "call_made",
-    iconBg: "bg-error-container text-error",
-    name: "Cồn Y tế 70 độ",
-    detail: "Xuất kho lớn: -1.2K chai",
-    timeLabel: "1 giờ trước",
-    timeLabelColor: "text-on-surface-variant",
-  },
-  {
-    id: "4",
-    icon: "inventory",
-    iconBg: "bg-surface-container text-on-surface-variant",
-    name: "Băng gạc tiệt trùng",
-    detail: "Đang kiểm kê định kỳ",
-    timeLabel: "2 giờ trước",
-    timeLabelColor: "text-on-surface-variant",
-  },
-];
+const LOADING_ROWS = Array.from({ length: 4 }, (_, i) => i);
 
-/** Recent stock movement activity panel. */
-export function StockDynamicsPanel() {
+/** Recent stock movement activity panel — real POS transaction data. */
+export function StockDynamicsPanel({
+  activities,
+  loading,
+}: StockDynamicsPanelProps) {
   return (
     <div className="bg-surface-container-lowest rounded-[1.5rem] p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
       <h4 className="font-headline font-bold text-xl text-on-surface mb-8">
-        Biến động tồn kho
+        Giao dịch gần đây
       </h4>
 
       <div className="space-y-6">
-        {events.map((event) => (
-          <div key={event.id} className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={["p-2 rounded-xl", event.iconBg].join(" ")}>
-                <span className="material-symbols-outlined">{event.icon}</span>
+        {loading ? (
+          LOADING_ROWS.map((i) => (
+            <div
+              key={i}
+              className="h-10 bg-surface-container-low rounded-xl animate-pulse"
+            />
+          ))
+        ) : activities.length === 0 ? (
+          <p className="text-sm text-on-surface-variant text-center py-4">
+            Chưa có giao dịch nào
+          </p>
+        ) : (
+          activities.map((event) => (
+            <div key={event.id} className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={["p-2 rounded-xl", event.iconBg].join(" ")}>
+                  <span className="material-symbols-outlined">
+                    {event.icon}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-on-surface truncate max-w-[140px]">
+                    {event.name}
+                  </p>
+                  <p className="text-xs text-on-surface-variant">
+                    {event.detail}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-semibold text-on-surface">
-                  {event.name}
-                </p>
-                <p className="text-xs text-on-surface-variant">
-                  {event.detail}
-                </p>
-              </div>
+              <span
+                className={[
+                  "text-[10px] font-bold uppercase shrink-0",
+                  event.timeLabelColor,
+                ].join(" ")}
+              >
+                {event.timeLabel}
+              </span>
             </div>
-            <span
-              className={[
-                "text-[10px] font-bold uppercase",
-                event.timeLabelColor,
-              ].join(" ")}
-            >
-              {event.timeLabel}
-            </span>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       <Button variant="ghost" className="w-full justify-center mt-8">

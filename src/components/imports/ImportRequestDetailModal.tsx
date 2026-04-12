@@ -34,29 +34,39 @@ interface ImportRequestDetailModalProps {
   open: boolean;
   requestId: string;
   onClose: () => void;
+  /** Pass the full request object to skip fetching (branch side already has it). */
+  request?: ImportRequestDoc | null;
+  onConfirmFulfilled?: (requestId: string) => void;
+  confirmingId?: string | null;
 }
 
 export function ImportRequestDetailModal({
   open,
   requestId,
   onClose,
+  request: requestProp,
+  onConfirmFulfilled,
+  confirmingId,
 }: ImportRequestDetailModalProps) {
-  const [req, setReq] = useState<ImportRequestDoc | null>(null);
+  const [fetched, setFetched] = useState<ImportRequestDoc | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Use provided request or fetch by ID (manager side)
+  const req = requestProp ?? fetched;
+
   useEffect(() => {
+    if (requestProp) return; // already have the data
     if (!open || !requestId) return;
     let cancelled = false;
     setLoading(true);
     setError("");
-    setReq(null);
-    // getImportRequests filters by branchId optionally — load all then find by id
+    setFetched(null);
     getImportRequests()
       .then((all) => {
         if (!cancelled) {
           const found = all.find((r) => r.id === requestId) ?? null;
-          setReq(found);
+          setFetched(found);
           setLoading(false);
         }
       })
@@ -70,7 +80,7 @@ export function ImportRequestDetailModal({
     return () => {
       cancelled = true;
     };
-  }, [open, requestId]);
+  }, [open, requestId, requestProp]);
 
   return (
     <Modal
@@ -101,9 +111,8 @@ export function ImportRequestDetailModal({
         ) : (
           <>
             {/* Summary bento */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {[
-                { label: "Mã yêu cầu", value: req.code },
                 { label: "Chi nhánh", value: req.branchName },
                 { label: "Người tạo", value: req.createdByName },
                 {
@@ -165,6 +174,12 @@ export function ImportRequestDetailModal({
                   </span>
                   Danh mục yêu cầu
                 </h3>
+                <div className="flex">
+                  <p className="text-xs">Trạng thái:</p>
+                  <Badge variant={statusConfig[req.status].variant}>
+                    {statusConfig[req.status].label}
+                  </Badge>
+                </div>
                 <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider">
                   {req.items.length} mặt hàng
                 </span>
@@ -247,7 +262,20 @@ export function ImportRequestDetailModal({
               <Button variant="ghost" icon="print">
                 In phiếu
               </Button>
-              <Button onClick={onClose}>Đóng</Button>
+              <Button variant="ghost" onClick={onClose}>
+                Đóng
+              </Button>
+              {onConfirmFulfilled && req.status === "approved" && (
+                <Button
+                  icon="check_circle"
+                  onClick={() => onConfirmFulfilled(req.id)}
+                  disabled={confirmingId === req.id}
+                >
+                  {confirmingId === req.id
+                    ? "Đang xử lý…"
+                    : "Xác nhận nhập kho"}
+                </Button>
+              )}
             </div>
           </>
         )}

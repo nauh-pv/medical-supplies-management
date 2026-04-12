@@ -7,7 +7,7 @@ type ImportsTab = "create" | "manage";
 
 const IMPORTS_TABS = [
   { id: "create" as ImportsTab, label: "Tạo yêu cầu" },
-  { id: "manage" as ImportsTab, label: "Quản lý nhập hàng" },
+  { id: "manage" as ImportsTab, label: "Quản lý nhập thuốc" },
 ] as const;
 
 export function Imports() {

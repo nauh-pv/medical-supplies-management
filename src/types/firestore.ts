@@ -41,6 +41,9 @@ export interface UserDoc {
   role: UserRole;
   branchId: string | null;
   branchName: string | null;
+  branchCode: string | null;
+  branchAddress: string | null;
+  status: "active" | "paused";
   isActive: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Input, Badge, Button, Pagination } from "@/components/common";
 import type { MedicineDoc, InventoryDoc } from "@/types/firestore";
-import { getMedicines, getInventory } from "@/services/inventory";
+import { getMedicines, getInventory, getUnits } from "@/services/inventory";
 import { BatchHistoryModal } from "./BatchHistoryModal";
 import { AddMedicineModal } from "./AddMedicineModal";
 
@@ -51,6 +51,7 @@ export function InventoryTable({
   const [page, setPage] = useState(1);
   const [batchMed, setBatchMed] = useState<MedicineDoc | null>(null);
   const [editMed, setEditMed] = useState<MedicineDoc | null>(null);
+  const [units, setUnits] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +79,10 @@ export function InventoryTable({
     };
   }, [refetchTrigger]);
 
+  useEffect(() => {
+    loadUnits();
+  }, []);
+
   const filtered = medicines.filter(
     (m) =>
       m.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -104,6 +109,23 @@ export function InventoryTable({
       med.minStockLevel
     );
   }
+
+  async function loadUnits() {
+    setLoading(true);
+    try {
+      const data = await getUnits();
+      setUnits(data);
+    } catch (err) {
+      console.error("UnitTable fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const convertUnitIdToName = (unitId: string) => {
+    const unit = units.find((u) => u.id === unitId);
+    return unit ? unit.name : "N/A";
+  };
 
   return (
     <div className="bg-surface-container-lowest rounded-[2rem] shadow-sm overflow-hidden border border-outline-variant/10">
@@ -238,7 +260,7 @@ export function InventoryTable({
 
                     {/* Unit */}
                     <td className="px-6 py-5 text-center text-sm font-medium text-on-surface-variant">
-                      {med.unitName}
+                      {convertUnitIdToName(med.unitId)}
                     </td>
 
                     {/* Import price */}

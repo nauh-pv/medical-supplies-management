@@ -1,48 +1,49 @@
-interface StatCard {
-  label: string;
-  value: string;
-  suffix: string;
-  valueColor: string;
-  bottomIcon: string;
-  bottomIconColor: string;
-  bottomText: string;
-  bottomTextColor: string;
+﻿import type { UserDoc } from "@/types/firestore";
+
+interface BranchStatCardsProps {
+  branches: UserDoc[];
+  loading: boolean;
 }
 
-const STATS: StatCard[] = [
-  {
-    label: "Tổng số chi nhánh",
-    value: "24",
-    suffix: "cơ sở",
-    valueColor: "text-on-surface",
-    bottomIcon: "analytics",
-    bottomIconColor: "text-primary",
-    bottomText: "Toàn hệ thống",
-    bottomTextColor: "text-primary",
-  },
-  {
-    label: "Đang hoạt động",
-    value: "22",
-    suffix: "đang mở cửa",
-    valueColor: "text-emerald-600",
-    bottomIcon: "check_circle",
-    bottomIconColor: "text-emerald-600",
-    bottomText: "91.6% hiệu suất",
-    bottomTextColor: "text-emerald-600",
-  },
-  {
-    label: "Chi nhánh mới",
-    value: "+2",
-    suffix: "trong tháng này",
-    valueColor: "text-tertiary",
-    bottomIcon: "trending_up",
-    bottomIconColor: "text-tertiary",
-    bottomText: "Tăng trưởng 8.3%",
-    bottomTextColor: "text-tertiary",
-  },
-];
+export function BranchStatCards({ branches, loading }: BranchStatCardsProps) {
+  const total = branches.length;
+  const active = branches.filter((b) => b.status === "active").length;
+  const paused = total - active;
 
-export function BranchStatCards() {
+  const STATS = [
+    {
+      label: "Tổng số chi nhánh",
+      value: loading ? "—" : String(total),
+      suffix: "cơ sở",
+      valueColor: "text-on-surface",
+      bottomIcon: "analytics",
+      bottomIconColor: "text-primary",
+      bottomText: "Toàn hệ thống",
+      bottomTextColor: "text-primary",
+    },
+    {
+      label: "Đang hoạt động",
+      value: loading ? "—" : String(active),
+      suffix: "đang mở cửa",
+      valueColor: "text-emerald-600",
+      bottomIcon: "check_circle",
+      bottomIconColor: "text-emerald-600",
+      bottomText:
+        total > 0 ? `${Math.round((active / total) * 100)}% hiệu suất` : "—",
+      bottomTextColor: "text-emerald-600",
+    },
+    {
+      label: "Tạm dừng",
+      value: loading ? "—" : String(paused),
+      suffix: "chi nhánh",
+      valueColor: "text-on-surface-variant",
+      bottomIcon: "pause_circle",
+      bottomIconColor: "text-on-surface-variant",
+      bottomText: paused > 0 ? "Cần kiểm tra" : "Không có",
+      bottomTextColor: "text-on-surface-variant",
+    },
+  ];
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {STATS.map((s) => (

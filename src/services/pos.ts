@@ -36,11 +36,11 @@ export interface CreatePosTransactionInput {
   notes: string;
 }
 
-const VAT_RATE = 0.08;
-
 export async function createPosTransaction(
   input: CreatePosTransactionInput,
 ): Promise<string> {
+  // Normalize branchId — empty string behaves like null but breaks Firestore paths
+  const branchId = input.branchId || "WAREHOUSE";
   const ref = doc(collection(db, "pos_transactions"));
   const dateTag = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const code = `POS-${dateTag}-${ref.id.slice(-4).toUpperCase()}`;
@@ -60,30 +60,45 @@ export async function createPosTransaction(
   }));
 
   const subtotal = txItems.reduce((s, i) => s + i.total, 0);
-  const vat = Math.round(subtotal * VAT_RATE);
-  const total = subtotal + vat - input.discount;
+  const vat = 0; // VAT removed — price already includes tax
+  const total = subtotal - input.discount;
 
   await runTransaction(db, async (tx) => {
-    // Decrease inventory at branch for each item
-    for (const item of input.items) {
-      const invId = `${input.branchId}_${item.medicineId}`;
-      const invRef = doc(db, "inventory", invId);
-      const invSnap = await tx.get(invRef);
+    // ── ALL READS must come before any writes ────────────────────────────
+    const invRefs = input.items.map((item) => {
+      const invId = `${branchId}_${item.medicineId}`;
+      return doc(db, "inventory", invId);
+    });
+    const invSnaps = await Promise.all(invRefs.map((r) => tx.get(r)));
+
+    let statsSnap: Awaited<ReturnType<typeof tx.get>> | null = null;
+    const isRealBranch = branchId !== "WAREHOUSE";
+    const today = new Date().toISOString().slice(0, 10);
+    const statsRef = isRealBranch
+      ? doc(db, "branches", branchId, "daily_stats", today)
+      : null;
+    if (statsRef) {
+      statsSnap = await tx.get(statsRef);
+    }
+
+    // ── ALL WRITES after reads ────────────────────────────────────────────
+    // Decrease inventory
+    invSnaps.forEach((invSnap, idx) => {
       if (invSnap.exists()) {
         const current = invSnap.data().quantity as number;
-        tx.update(invRef, {
-          quantity: Math.max(0, current - item.quantity),
+        tx.update(invRefs[idx], {
+          quantity: Math.max(0, current - input.items[idx].quantity),
           updatedAt: serverTimestamp(),
         });
       }
-    }
+    });
 
     // Save transaction
     tx.set(ref, {
       id: ref.id,
       code,
-      branchId: input.branchId,
-      branchName: input.branchName,
+      branchId,
+      branchName: input.branchName || "Kho Tổng",
       createdBy: input.createdBy,
       createdByName: input.createdByName,
       items: txItems,
@@ -97,21 +112,20 @@ export async function createPosTransaction(
     });
 
     // Update branch daily stats
-    const today = new Date().toISOString().slice(0, 10);
-    const statsRef = doc(db, "branches", input.branchId, "daily_stats", today);
-    const statsSnap = await tx.get(statsRef);
-    if (statsSnap.exists()) {
-      tx.update(statsRef, {
-        revenue: increment(total),
-        txCount: increment(1),
-      });
-    } else {
-      tx.set(statsRef, {
-        date: today,
-        branchId: input.branchId,
-        revenue: total,
-        txCount: 1,
-      });
+    if (statsRef) {
+      if (statsSnap?.exists()) {
+        tx.update(statsRef, {
+          revenue: increment(total),
+          txCount: increment(1),
+        });
+      } else {
+        tx.set(statsRef, {
+          date: today,
+          branchId,
+          revenue: total,
+          txCount: 1,
+        });
+      }
     }
   });
 

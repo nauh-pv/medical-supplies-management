@@ -18,6 +18,9 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [role, setRole] = useState("");
+  const [branchName, setBranchName] = useState("");
+  const [branchCode, setBranchCode] = useState("");
+  const [branchAddress, setBranchAddress] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -37,7 +40,16 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
     }
     setLoading(true);
     try {
-      await signUp(email, password, fullName, role, phone);
+      await signUp(
+        email,
+        password,
+        fullName,
+        role,
+        phone,
+        branchName,
+        branchCode,
+        branchAddress,
+      );
       onRegister?.();
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? "";
@@ -84,7 +96,8 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
                 Nền tảng quản lý kho y tế tối ưu
               </h1>
               <p className="text-on-primary/80 leading-relaxed">
-                Hệ thống đồng bộ hóa dữ liệu thời gian thực, đảm bảo tính chính xác tuyệt đối cho vật tư y tế.
+                Hệ thống đồng bộ hóa dữ liệu thời gian thực, đảm bảo tính chính
+                xác tuyệt đối cho vật tư y tế.
               </p>
             </div>
             <div className="z-10 mt-auto">
@@ -201,6 +214,35 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
                 />
               </div>
 
+              {role === "branch" && (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <Input
+                      label="Tên chi nhánh"
+                      leadingIcon="store"
+                      placeholder="VD: Chi nhánh Đà Nẵng"
+                      value={branchName}
+                      onChange={(e) => setBranchName(e.target.value)}
+                      required
+                    />
+                    <Input
+                      label="Mã chi nhánh"
+                      leadingIcon="tag"
+                      placeholder="VD: DN-001"
+                      value={branchCode}
+                      onChange={(e) => setBranchCode(e.target.value)}
+                    />
+                  </div>
+                  <Input
+                    label="Địa chỉ chi nhánh"
+                    leadingIcon="location_on"
+                    placeholder="VD: 123 Trần Phú, Hải Châu, Đà Nẵng"
+                    value={branchAddress}
+                    onChange={(e) => setBranchAddress(e.target.value)}
+                  />
+                </>
+              )}
+
               <div className="pt-2 flex items-start gap-3">
                 <input
                   id="terms"
@@ -214,11 +256,17 @@ export function Register({ onNavigateToLogin, onRegister }: RegisterProps) {
                   className="text-xs text-on-surface-variant leading-relaxed"
                 >
                   Bằng cách nhấn đăng ký, bạn đồng ý với{" "}
-                  <a href="#" className="text-primary font-semibold hover:underline">
+                  <a
+                    href="#"
+                    className="text-primary font-semibold hover:underline"
+                  >
                     Điều khoản sử dụng
                   </a>{" "}
                   và{" "}
-                  <a href="#" className="text-primary font-semibold hover:underline">
+                  <a
+                    href="#"
+                    className="text-primary font-semibold hover:underline"
+                  >
                     Chính sách bảo mật
                   </a>{" "}
                   của MedPrecision Systems.

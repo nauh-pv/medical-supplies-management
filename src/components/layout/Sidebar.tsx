@@ -1,3 +1,4 @@
+import { Link, useLocation } from "react-router-dom";
 import type { UserRole } from "@/types/firestore";
 
 export type NavId =
@@ -11,31 +12,60 @@ export type NavId =
   | "imports"
   | "settings";
 
+const NAV_PATH: Record<NavId, string> = {
+  dashboard: "/",
+  inventory: "/inventory",
+  reports: "/reports",
+  alerts: "/alerts",
+  pos: "/pos",
+  medication: "/dispatches",
+  branches: "/branches",
+  imports: "/imports",
+  settings: "/settings",
+};
+
 const navItems: { icon: string; label: string; id: NavId }[] = [
   { icon: "dashboard", label: "Tổng quan", id: "dashboard" },
   { icon: "inventory_2", label: "Kho hàng", id: "inventory" },
   // { icon: "analytics", label: "Báo cáo", id: "reports" },
   // { icon: "warning", label: "Cảnh báo hàng hóa", id: "alerts" },
   { icon: "point_of_sale", label: "POS", id: "pos" },
-  { icon: "medication", label: "Điều phối thuốc", id: "medication" },
+  { icon: "medication", label: "Quản lý xuất kho", id: "medication" },
   { icon: "account_tree", label: "Chi nhánh", id: "branches" },
-  { icon: "input", label: "Quản lý nhập kho", id: "imports" },
+  { icon: "input", label: "Yêu cầu nhập thuốc", id: "imports" },
   { icon: "settings", label: "Cài đặt", id: "settings" },
 ];
 
-const BRANCH_NAV_IDS: NavId[] = ["dashboard", "pos", "imports", "alerts", "settings"];
+const BRANCH_NAV_IDS: NavId[] = [
+  "dashboard",
+  "pos",
+  "imports",
+  "alerts",
+  "settings",
+];
+
+// Nav items that are ONLY for branch users (hidden from warehouse_manager)
+const BRANCH_ONLY_IDS: NavId[] = ["imports"];
 
 interface SidebarProps {
-  active: NavId;
-  onNavigate: (id: NavId) => void;
   role: UserRole;
   onLogout: () => void;
 }
 
-export function Sidebar({ active, onNavigate, role, onLogout }: SidebarProps) {
-  const visibleItems = navItems.filter(
-    (item) => role === "warehouse_manager" || BRANCH_NAV_IDS.includes(item.id),
+export function Sidebar({ role, onLogout }: SidebarProps) {
+  const { pathname } = useLocation();
+
+  const visibleItems = navItems.filter((item) =>
+    role === "branch"
+      ? BRANCH_NAV_IDS.includes(item.id)
+      : !BRANCH_ONLY_IDS.includes(item.id),
   );
+
+  function isActive(id: NavId) {
+    const path = NAV_PATH[id];
+    if (path === "/") return pathname === "/";
+    return pathname.startsWith(path);
+  }
 
   return (
     <aside className="fixed left-0 top-0 flex flex-col z-40 bg-surface-container-low h-screen w-72 flex-shrink-0 border-r border-outline-variant/20">
@@ -50,17 +80,13 @@ export function Sidebar({ active, onNavigate, role, onLogout }: SidebarProps) {
 
       <nav className="flex-1 px-4 space-y-1">
         {visibleItems.map((item) => {
-          const isActive = active === item.id;
+          const active = isActive(item.id);
           return (
-            <a
+            <Link
               key={item.id}
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                onNavigate(item.id);
-              }}
+              to={NAV_PATH[item.id]}
               className={
-                isActive
+                active
                   ? "flex items-center gap-3 text-primary font-bold border-l-4 border-primary pl-4 py-3 bg-primary/5 transition-all"
                   : "flex items-center gap-3 text-on-surface-variant pl-5 py-3 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl"
               }
@@ -68,13 +94,13 @@ export function Sidebar({ active, onNavigate, role, onLogout }: SidebarProps) {
               <span
                 className="material-symbols-outlined"
                 style={
-                  isActive ? { fontVariationSettings: "'FILL' 1" } : undefined
+                  active ? { fontVariationSettings: "'FILL' 1" } : undefined
                 }
               >
                 {item.icon}
               </span>
               <span className="text-sm font-medium">{item.label}</span>
-            </a>
+            </Link>
           );
         })}
       </nav>

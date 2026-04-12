@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from "react";
-import { Sidebar, type NavId } from "@/components/layout/Sidebar";
+import { Routes, Route, Navigate, Outlet, useNavigate } from "react-router-dom";
+import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { Dashboard } from "@/pages/Dashboard";
 import { Inventory } from "@/pages/Inventory";
@@ -18,24 +19,46 @@ import type { UserDoc } from "@/types/firestore";
 import { UserContext } from "@/contexts/UserContext";
 import "./App.css";
 
-type AuthView = "login" | "register";
+function AppLayout({ userDoc }: { userDoc: UserDoc | null }) {
+  return (
+    <div className="bg-background text-on-surface overflow-x-hidden">
+      <Sidebar role={userDoc?.role ?? "branch"} onLogout={signOut} />
+      <TopBar userDoc={userDoc} />
+      <Outlet />
+      <PWAPrompt />
+    </div>
+  );
+}
 
-const pages: Partial<Record<NavId, React.ReactNode>> = {
-  dashboard: <Dashboard />,
-  inventory: <Inventory />,
-  reports: <Reports />,
-  pos: <POS />,
-  alerts: <Alerts />,
-  imports: <Imports />,
-  medication: <Dispatches />,
-  branches: <Branches />,
-};
+function LoginPage() {
+  const navigate = useNavigate();
+  return (
+    <>
+      <Login
+        onNavigateToRegister={() => navigate("/register")}
+        onLogin={() => navigate("/")}
+      />
+      <PWAPrompt />
+    </>
+  );
+}
+
+function RegisterPage() {
+  const navigate = useNavigate();
+  return (
+    <>
+      <Register
+        onNavigateToLogin={() => navigate("/login")}
+        onRegister={() => navigate("/login")}
+      />
+      <PWAPrompt />
+    </>
+  );
+}
 
 function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [userDoc, setUserDoc] = useState<UserDoc | null>(null);
-  const [authView, setAuthView] = useState<AuthView>("login");
-  const [activePage, setActivePage] = useState<NavId>("dashboard");
 
   useEffect(() => {
     const unsubscribe = onAuthChanged(async (u) => {
@@ -61,46 +84,49 @@ function App() {
     );
   }
 
-  if (!user) {
-    if (authView === "register") {
-      return (
-        <>
-          <Register
-            onNavigateToLogin={() => setAuthView("login")}
-            onRegister={() => setAuthView("login")}
-          />
-          <PWAPrompt />
-        </>
-      );
-    }
-    return (
-      <>
-        <Login
-          onNavigateToRegister={() => setAuthView("register")}
-          onLogin={() => {}}
-        />
-        <PWAPrompt />
-      </>
-    );
-  }
-
   return (
     <UserContext.Provider value={userDoc}>
-      <div className="bg-background text-on-surface overflow-x-hidden">
-        <Sidebar
-          active={activePage}
-          onNavigate={setActivePage}
-          role={userDoc?.role ?? "branch"}
-          onLogout={signOut}
+      <Routes>
+        {/* Public routes */}
+        <Route
+          path="/login"
+          element={user ? <Navigate to="/" replace /> : <LoginPage />}
         />
-        <TopBar userDoc={userDoc} />
-        {pages[activePage] ?? (
-          <main className="ml-72 pt-24 px-8 py-12 min-h-screen bg-background">
-            <p className="text-on-surface-variant">Trang đang phát triển.</p>
-          </main>
-        )}
-        <PWAPrompt />
-      </div>
+        <Route
+          path="/register"
+          element={user ? <Navigate to="/" replace /> : <RegisterPage />}
+        />
+
+        {/* Protected routes */}
+        <Route
+          element={
+            user ? (
+              <AppLayout userDoc={userDoc} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="/pos" element={<POS />} />
+          <Route path="/dispatches" element={<Dispatches />} />
+          <Route path="/branches" element={<Branches />} />
+          <Route path="/imports" element={<Imports />} />
+          <Route path="/alerts" element={<Alerts />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route
+            path="*"
+            element={
+              <main className="ml-72 pt-24 px-8 py-12 min-h-screen bg-background">
+                <p className="text-on-surface-variant">
+                  Trang đang phát triển.
+                </p>
+              </main>
+            }
+          />
+        </Route>
+      </Routes>
     </UserContext.Provider>
   );
 }

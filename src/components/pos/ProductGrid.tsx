@@ -42,6 +42,8 @@ export function ProductGrid({ onAddToCart, refetchTrigger }: ProductGridProps) {
 
   const locationId = userDoc?.branchId || "WAREHOUSE";
 
+  console.log("chekc locationId:", userDoc);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -59,6 +61,14 @@ export function ProductGrid({ onAddToCart, refetchTrigger }: ProductGridProps) {
     };
   }, [locationId, refetchTrigger]);
 
+  function getStock(medicineId: string) {
+    const preferred = inventory.find(
+      (i) => i.id === `${locationId}_${medicineId}`,
+    );
+    if (preferred) return preferred.quantity;
+    return inventory.find((i) => i.medicineId === medicineId)?.quantity ?? 0;
+  }
+
   const categories = [
     "Tất cả",
     ...Array.from(
@@ -68,23 +78,23 @@ export function ProductGrid({ onAddToCart, refetchTrigger }: ProductGridProps) {
     ),
   ];
 
-  const filtered = medicines.filter((m) => {
-    const matchSearch =
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.sku.toLowerCase().includes(search.toLowerCase());
-    const cat = m.category === "prescribed" ? "Kê đơn" : "OTC";
-    const matchCat = activeCategory === "Tất cả" || cat === activeCategory;
-    return matchSearch && matchCat;
-  });
-
-  function getStock(medicineId: string) {
-    // Prefer the deterministic doc ID to avoid stale zero-qty docs
-    const preferred = inventory.find(
-      (i) => i.id === `${locationId}_${medicineId}`,
-    );
-    if (preferred) return preferred.quantity;
-    return inventory.find((i) => i.medicineId === medicineId)?.quantity ?? 0;
-  }
+  const filtered = medicines
+    .filter((m) => {
+      const matchSearch =
+        m.name.toLowerCase().includes(search.toLowerCase()) ||
+        m.sku.toLowerCase().includes(search.toLowerCase());
+      const cat = m.category === "prescribed" ? "Kê đơn" : "OTC";
+      const matchCat = activeCategory === "Tất cả" || cat === activeCategory;
+      return matchSearch && matchCat;
+    })
+    .sort((a, b) => {
+      // Sort: in-stock first, out-of-stock last
+      const stockA = getStock(a.id);
+      const stockB = getStock(b.id);
+      if (stockA === 0 && stockB > 0) return 1;
+      if (stockB === 0 && stockA > 0) return -1;
+      return 0;
+    });
 
   return (
     <div className="flex-1 overflow-y-auto px-8 py-6 flex flex-col gap-6 min-w-0">

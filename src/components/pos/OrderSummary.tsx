@@ -19,8 +19,6 @@ interface OrderSummaryProps {
   checkingOut?: boolean;
 }
 
-const VAT_RATE = 0.08;
-
 export function OrderSummary({
   items,
   onQtyChange,
@@ -33,8 +31,7 @@ export function OrderSummary({
     "cash" | "card" | "transfer"
   >("cash");
   const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const vat = subtotal * VAT_RATE;
-  const total = subtotal + vat - discount;
+  const total = subtotal - discount;
 
   return (
     <div className="w-[400px] flex-shrink-0 flex flex-col bg-surface-container-lowest border-l border-surface-container-low h-full overflow-hidden">
@@ -53,7 +50,7 @@ export function OrderSummary({
             </button>
           )}
         </div>
-        <Input placeholder="Tên hoặc SĐT khách hàng" leadingIcon="person" />
+        <Input placeholder="Tên khách hàng" leadingIcon="person" />
       </div>
 
       {/* Cart items */}
@@ -112,7 +109,6 @@ export function OrderSummary({
         )}
       </div>
 
-      {/* Summary */}
       {items.length > 0 && (
         <div className="px-6 py-5 border-t border-surface-container-low space-y-3">
           {/* Payment method */}
@@ -150,7 +146,6 @@ export function OrderSummary({
           <div className="space-y-2">
             {[
               { label: "Tạm tính", value: subtotal },
-              { label: `VAT (${VAT_RATE * 100}%)`, value: vat },
               { label: "Giảm giá", value: -discount },
             ].map(({ label, value }) => (
               <div key={label} className="flex justify-between text-sm">

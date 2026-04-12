@@ -1,52 +1,46 @@
-import { useState } from "react";
+﻿import { useState, useEffect } from "react";
 import { DispatchProductRow } from "./DispatchProductRow";
 import type { ProductRow } from "./DispatchProductRow";
+import {
+  getBranches,
+  getActiveBatches,
+  createDispatchOrder,
+} from "@/services/inventory";
+import { useUserContext } from "@/contexts/UserContext";
+import type { UserDoc, BatchDoc } from "@/types/firestore";
 
-const AVAILABLE_PRODUCTS = [
-  {
-    name: "Paracetamol 500mg - Vỉ 10 viên",
-    sku: "MED-PARA-500",
-    lot: "#2024-X1",
-    stock: 1240,
-    unit: "vỉ",
-  },
-  {
-    name: "Amoxicillin 250mg - Hộp 100 viên",
-    sku: "AB-AMOX-250",
-    lot: "#2024-K2",
-    stock: 450,
-    unit: "hộp",
-  },
-  {
-    name: "Vitamin C 1000mg - Tuýp 20 viên",
-    sku: "VIT-C-1000",
-    lot: "#2024-M3",
-    stock: 800,
-    unit: "tuýp",
-  },
-  {
-    name: "Augmentin 625mg - Vỉ 14 viên",
-    sku: "AUG-625",
-    lot: "#2024-P4",
-    stock: 120,
-    unit: "vỉ",
-  },
-];
-
-const BRANCHES = [
-  "Bệnh viện Đa khoa Tâm Anh",
-  "Hệ thống Nhà thuốc Pharmacity - CN Quận 1",
-  "Bệnh viện Chợ Rẫy - Kho Dược A",
-  "Chi nhánh phân phối miền Tây",
-];
-
-const initialRows: ProductRow[] = [
-  { id: 1, ...AVAILABLE_PRODUCTS[0], qty: 100 },
-  { id: 2, ...AVAILABLE_PRODUCTS[1], qty: 20 },
-];
+// Extended row carries metadata needed for submission
+interface DispatchRow extends ProductRow {
+  batchId: string;
+  medicineId: string;
+  unitId: string;
+  unitPrice: number;
+}
 
 export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
-  const [rows, setRows] = useState<ProductRow[]>(initialRows);
+  const userDoc = useUserContext();
+
+  const [branches, setBranches] = useState<UserDoc[]>([]);
+  const [batches, setBatches] = useState<BatchDoc[]>([]);
+  const [rows, setRows] = useState<DispatchRow[]>([]);
+
+  const [selectedBranchId, setSelectedBranchId] = useState("");
+  const [selectedBatchId, setSelectedBatchId] = useState("");
+  const [notes, setNotes] = useState("");
+
+  const [loadingBranches, setLoadingBranches] = useState(true);
+  const [loadingBatches, setLoadingBatches] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    getBranches()
+      .then(setBranches)
+      .finally(() => setLoadingBranches(false));
+    getActiveBatches("WAREHOUSE")
+      .then(setBatches)
+      .finally(() => setLoadingBatches(false));
+  }, []);
 
   function updateQty(id: number, delta: number) {
     setRows((prev) =>
@@ -60,9 +54,85 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
     setRows((prev) => prev.filter((r) => r.id !== id));
   }
 
-  function addRow() {
-    const next = AVAILABLE_PRODUCTS[rows.length % AVAILABLE_PRODUCTS.length];
-    setRows((prev) => [...prev, { id: Date.now(), ...next, qty: 1 }]);
+  function addSelectedBatch() {
+    if (!selectedBatchId) return;
+    const batch = batches.find((b) => b.id === selectedBatchId);
+    if (!batch) return;
+    // Prevent duplicate
+    if (rows.some((r) => r.batchId === batch.id)) {
+      setSelectedBatchId("");
+      return;
+    }
+    const newRow: DispatchRow = {
+      id: Date.now(),
+      batchId: batch.id,
+      medicineId: batch.medicineId,
+      name: batch.medicineName,
+      sku: batch.medicineSku,
+      lot: batch.lot,
+      stock: batch.quantity,
+      unit: "", // unitName is not on batch — will be blank
+      qty: 1,
+      unitId: "",
+      unitPrice: batch.importPrice,
+    };
+    setRows((prev) => [...prev, newRow]);
+    setSelectedBatchId("");
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setErrorMsg("");
+
+    if (!selectedBranchId) {
+      setErrorMsg("Vui lòng chọn chi nhánh nhận hàng.");
+      return;
+    }
+    if (rows.length === 0) {
+      setErrorMsg("Vui lòng thêm ít nháº¥t má»™t sáº£n pháº©m.");
+      return;
+    }
+    for (const r of rows) {
+      if (r.qty > r.stock) {
+        setErrorMsg(`"${r.name}" xuất vượt quá tồn kho (tồn: ${r.stock}).`);
+        return;
+      }
+    }
+
+    const branch = branches.find((b) => b.uid === selectedBranchId);
+    if (!branch || !userDoc) return;
+
+    setSubmitting(true);
+    try {
+      await createDispatchOrder({
+        fromLocationId: "WAREHOUSE",
+        fromLocationType: "warehouse",
+        toLocationId: branch.uid,
+        toLocationType: "branch",
+        toLocationName: branch.branchName ?? branch.displayName,
+        createdBy: userDoc.uid,
+        createdByName: userDoc.displayName,
+        notes,
+        items: rows.map((r) => ({
+          medicineId: r.medicineId,
+          medicineName: r.name,
+          medicineSku: r.sku,
+          lot: r.lot,
+          batchId: r.batchId,
+          quantity: r.qty,
+          unitId: r.unitId,
+          unitName: r.unit,
+          unitPrice: r.unitPrice,
+        })),
+      });
+      onCancel(); // switch back to history tab on success
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error ? err.message : "Tạo lệnh xuất thất bại.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const totalTypes = rows.length;
@@ -70,7 +140,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
 
   return (
     <div className="grid grid-cols-12 gap-8">
-      {/* ── Left: Form ── */}
+      {/* â”€â”€ Left: Form â”€â”€ */}
       <div className="col-span-12 lg:col-span-8 space-y-6">
         <section className="bg-surface-container-lowest rounded-[2rem] p-8 shadow-sm">
           <div className="flex items-center justify-between mb-8 border-b border-surface-container pb-4">
@@ -80,27 +150,36 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
             <div className="flex items-center gap-2 text-on-surface-variant">
               <span className="material-symbols-outlined text-sm">info</span>
               <span className="text-xs font-label font-bold uppercase tracking-widest">
-                Mã số tự động
+                Mã sá»‘ tá»± Ä‘á»™ng
               </span>
             </div>
           </div>
 
-          <form className="space-y-8">
+          <form className="space-y-8" onSubmit={handleSubmit}>
             {/* Branch select */}
             <div className="space-y-3">
               <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant block ml-1">
-                Chi nhánh nhận thuốc
+                Chi nhánh nháº­n thuá»‘c
               </label>
               <div className="relative group">
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 group-focus-within:text-primary transition-colors pointer-events-none">
                   local_hospital
                 </span>
-                <select className="w-full pl-12 pr-4 py-4 bg-surface-container-high/40 border-none rounded-full focus:ring-0 focus:bg-surface-container-lowest focus:shadow-[0_4px_20px_rgba(0,80,203,0.08)] transition-all appearance-none cursor-pointer text-on-surface font-medium text-sm outline-none">
+                <select
+                  className="w-full pl-12 pr-4 py-4 bg-surface-container-high/40 border-none rounded-full focus:ring-0 focus:bg-surface-container-lowest focus:shadow-[0_4px_20px_rgba(0,80,203,0.08)] transition-all appearance-none cursor-pointer text-on-surface font-medium text-sm outline-none disabled:opacity-60"
+                  value={selectedBranchId}
+                  onChange={(e) => setSelectedBranchId(e.target.value)}
+                  disabled={loadingBranches}
+                >
                   <option value="">
-                    Chọn chi nhánh bệnh viện / nhà thuốc...
+                    {loadingBranches
+                      ? "Đang tải..."
+                      : "Chá»n chi nhánh bá»‡nh viá»‡n / nhà thuá»‘c..."}
                   </option>
-                  {BRANCHES.map((b) => (
-                    <option key={b}>{b}</option>
+                  {branches.map((b) => (
+                    <option key={b.uid} value={b.uid}>
+                      {b.branchName ?? b.displayName}
+                    </option>
                   ))}
                 </select>
                 <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">
@@ -112,72 +191,104 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
             {/* Product section */}
             <div className="space-y-4">
               <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant block ml-1">
-                Danh mục thuốc &amp; Vật tư
+                Danh má»¥c thuá»‘c &amp; Vật tư
               </label>
 
-              {/* Medicine dropdown */}
-              <div className="relative group">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 group-focus-within:text-primary transition-colors pointer-events-none">
-                  inventory
-                </span>
-                <select className="w-full pl-12 pr-10 py-4 bg-surface-container-high/40 border-none rounded-full focus:ring-0 focus:bg-surface-container-lowest focus:shadow-[0_4px_20px_rgba(0,80,203,0.08)] transition-all appearance-none cursor-pointer text-on-surface font-medium text-sm outline-none">
-                  <option value="">Chọn thuốc từ danh mục tồn kho...</option>
-                  {AVAILABLE_PRODUCTS.map((p) => (
-                    <option key={p.sku}>
-                      {p.name} (Tồn: {p.stock.toLocaleString()})
+              {/* Medicine dropdown + Add button */}
+              <div className="flex gap-3">
+                <div className="relative group flex-1">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 group-focus-within:text-primary transition-colors pointer-events-none">
+                    inventory
+                  </span>
+                  <select
+                    className="w-full pl-12 pr-10 py-4 bg-surface-container-high/40 border-none rounded-full focus:ring-0 focus:bg-surface-container-lowest focus:shadow-[0_4px_20px_rgba(0,80,203,0.08)] transition-all appearance-none cursor-pointer text-on-surface font-medium text-sm outline-none disabled:opacity-60"
+                    value={selectedBatchId}
+                    onChange={(e) => setSelectedBatchId(e.target.value)}
+                    disabled={loadingBatches}
+                  >
+                    <option value="">
+                      {loadingBatches
+                        ? "Đang tải..."
+                        : "Chá»n thuá»‘c tá»« danh má»¥c tá»“n kho..."}
                     </option>
-                  ))}
-                </select>
-                <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">
-                  expand_more
-                </span>
+                    {batches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.medicineName} — Lô {b.lot} (Tồn:{" "}
+                        {b.quantity.toLocaleString()})
+                      </option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">
+                    expand_more
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={addSelectedBatch}
+                  disabled={!selectedBatchId}
+                  className="px-6 py-4 bg-primary text-on-primary rounded-full font-bold text-sm disabled:opacity-40 hover:scale-[1.02] active:scale-95 transition-all shadow-md shadow-primary/20"
+                >
+                  Thêm
+                </button>
               </div>
 
               {/* Rows table */}
-              <div className="mt-6 space-y-2 overflow-hidden">
-                {/* Header */}
-                <div className="grid grid-cols-12 px-6 py-2 bg-surface-container-low rounded-t-xl text-[10px] font-label font-black uppercase tracking-widest text-on-surface-variant">
-                  <div className="col-span-6">Tên sản phẩm / SKU</div>
-                  <div className="col-span-2 text-center">Tồn kho</div>
-                  <div className="col-span-3 text-center">Số lượng xuất</div>
-                  <div className="col-span-1" />
+              {rows.length > 0 && (
+                <div className="mt-6 space-y-2 overflow-hidden">
+                  {/* Header */}
+                  <div className="grid grid-cols-12 px-6 py-2 bg-surface-container-low rounded-t-xl text-[10px] font-label font-black uppercase tracking-widest text-on-surface-variant">
+                    <div className="col-span-6">Tên sản phẩm / SKU</div>
+                    <div className="col-span-2 text-center">Tồn kho</div>
+                    <div className="col-span-3 text-center">
+                      Sá»‘ lưá»£ng xuáº¥t
+                    </div>
+                    <div className="col-span-1" />
+                  </div>
+
+                  {rows.map((row, i) => (
+                    <DispatchProductRow
+                      key={row.id}
+                      row={row}
+                      index={i}
+                      onQtyChange={updateQty}
+                      onQtyInput={(id, val) =>
+                        setRows((prev) =>
+                          prev.map((r) =>
+                            r.id === id ? { ...r, qty: val } : r,
+                          ),
+                        )
+                      }
+                      onRemove={removeRow}
+                    />
+                  ))}
                 </div>
-
-                {rows.map((row, i) => (
-                  <DispatchProductRow
-                    key={row.id}
-                    row={row}
-                    index={i}
-                    onQtyChange={updateQty}
-                    onQtyInput={(id, val) =>
-                      setRows((prev) =>
-                        prev.map((r) => (r.id === id ? { ...r, qty: val } : r)),
-                      )
-                    }
-                    onRemove={removeRow}
-                  />
-                ))}
-              </div>
-
-              {/* Add more */}
-              <button
-                type="button"
-                onClick={addRow}
-                className="w-full py-4 border-2 border-dashed border-outline-variant rounded-full text-on-surface-variant hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2 group mt-4"
-              >
-                <span className="material-symbols-outlined group-hover:scale-110 transition-transform">
-                  add_circle
-                </span>
-                <span className="text-sm font-bold">
-                  Thêm thuốc khác vào danh sách
-                </span>
-              </button>
+              )}
             </div>
+
+            {/* Notes */}
+            <div className="space-y-3">
+              <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant block ml-1">
+                Ghi chú
+              </label>
+              <textarea
+                className="w-full px-5 py-4 bg-surface-container-high/40 border-none rounded-3xl resize-none focus:ring-0 focus:bg-surface-container-lowest text-on-surface text-sm outline-none placeholder:text-on-surface-variant/50"
+                rows={3}
+                placeholder="Ghi chú yêu cầu vận chuyển, bảo quản..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+
+            {/* Error */}
+            {errorMsg && (
+              <p className="text-sm text-error font-semibold">{errorMsg}</p>
+            )}
 
             {/* Footer */}
             <div className="pt-8 border-t border-surface-container flex items-center justify-between">
               <p className="text-sm text-on-surface-variant italic">
-                * Lệnh xuất kho sẽ được gửi đến bộ phận kiểm kê để xác nhận.
+                * Lá»‡nh xuáº¥t kho sáº½ Ä‘ưá»£c gá»­i Ä‘áº¿n bá»™ pháº­n kiá»ƒm
+                kê Ä‘á»ƒ xác nháº­n.
               </p>
               <div className="flex gap-4">
                 <button
@@ -189,9 +300,10 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                 </button>
                 <button
                   type="submit"
-                  className="px-10 py-3 bg-primary text-on-primary rounded-full font-bold shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all"
+                  disabled={submitting}
+                  className="px-10 py-3 bg-primary text-on-primary rounded-full font-bold shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:scale-100"
                 >
-                  Tạo lệnh xuất kho
+                  {submitting ? "Đang táº¡o..." : "Tạo lệnh xuất kho"}
                 </button>
               </div>
             </div>
@@ -199,7 +311,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
         </section>
       </div>
 
-      {/* ── Right: Summary card ── */}
+      {/* â”€â”€ Right: Summary card â”€â”€ */}
       <div className="col-span-12 lg:col-span-4 space-y-6">
         <div className="bg-primary rounded-[2rem] p-8 text-on-primary shadow-xl shadow-primary/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none" />
@@ -208,23 +320,35 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
           </h4>
           <div className="space-y-4">
             <div className="flex justify-between items-center border-b border-white/10 pb-3">
-              <span className="text-sm opacity-90">Tổng số loại thuốc:</span>
+              <span className="text-sm opacity-90">
+                Tá»•ng sá»‘ loáº¡i thuá»‘c:
+              </span>
               <span className="text-xl font-bold">
                 {String(totalTypes).padStart(2, "0")}
               </span>
             </div>
             <div className="flex justify-between items-center border-b border-white/10 pb-3">
-              <span className="text-sm opacity-90">Tổng số lượng (đv):</span>
+              <span className="text-sm opacity-90">
+                Tá»•ng sá»‘ lưá»£ng (Ä‘v):
+              </span>
               <span className="text-xl font-bold">
                 {totalQty.toLocaleString()}
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm opacity-90">Trọng lượng dự kiến:</span>
-              <span className="text-xl font-bold">
-                4.2 <span className="text-xs">kg</span>
-              </span>
-            </div>
+            {selectedBranchId && (
+              <div className="flex flex-col gap-1 border-b border-white/10 pb-3">
+                <span className="text-xs opacity-70 uppercase tracking-wider">
+                  Chi nhánh nhận
+                </span>
+                <span className="text-sm font-bold">
+                  {branches.find((b) => b.uid === selectedBranchId)
+                    ?.branchName ??
+                    branches.find((b) => b.uid === selectedBranchId)
+                      ?.displayName ??
+                    "—"}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

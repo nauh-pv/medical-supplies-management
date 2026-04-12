@@ -1,46 +1,48 @@
-import { Modal, Button, Badge } from "@/components/common";
+﻿import { Modal, Button, Badge } from "@/components/common";
+import type { DispatchOrderDoc } from "@/types/firestore";
 
-interface DispatchItem {
-  name: string;
-  note?: string;
-  qty: number;
-  unit: string;
-  total: string;
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; variant: "info" | "success" | "warning" | "error" }
+> = {
+  pending: { label: "Chờ xử lý", variant: "warning" },
+  shipping: { label: "Đang vận chuyển", variant: "info" },
+  received: { label: "Đã nhận", variant: "success" },
+  cancelled: { label: "Đã hủy", variant: "error" },
+};
+
+function formatTs(ts: unknown): string {
+  if (!ts) return "—";
+  const secs = (ts as { seconds: number }).seconds;
+  if (!secs) return "—";
+  return new Date(secs * 1000).toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 interface DispatchDetailModalProps {
   open: boolean;
   onClose: () => void;
-  orderId: string;
+  order: DispatchOrderDoc | null;
+  onConfirmReceived?: (orderId: string) => void;
+  confirmingId?: string | null;
 }
-
-const mockItems: DispatchItem[] = [
-  {
-    name: "Remdesivir 100mg",
-    note: "Bảo quản lạnh",
-    qty: 50,
-    unit: "Lọ",
-    total: "25.000.000đ",
-  },
-  {
-    name: "Dexamethasone 4mg/ml",
-    qty: 200,
-    unit: "Ống",
-    total: "8.000.000đ",
-  },
-  {
-    name: "Kim tiêm vô trùng 1ml",
-    qty: 1000,
-    unit: "Chiếc",
-    total: "1.500.000đ",
-  },
-];
 
 export function DispatchDetailModal({
   open,
   onClose,
-  orderId,
+  order,
+  onConfirmReceived,
+  confirmingId,
 }: DispatchDetailModalProps) {
+  const status = order
+    ? (STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending)
+    : STATUS_CONFIG.pending;
+
   return (
     <Modal
       open={open}
@@ -48,22 +50,22 @@ export function DispatchDetailModal({
       title="Chi tiết đơn xuất kho"
       maxWidth="max-w-4xl"
     >
-      {/* Sub-header: ID + date + status */}
+      {/* Sub-header: code + date + status */}
       <div className="px-10 py-4 bg-surface-container-low/50 border-t border-outline-variant/10 flex items-center justify-between">
         <div className="flex items-center gap-6 text-sm text-on-surface-variant">
           <span className="flex items-center gap-1.5">
             <span className="material-symbols-outlined text-base">
               confirmation_number
             </span>
-            ID: {orderId}
+            {order?.code ?? "—"}
           </span>
           <span className="w-1.5 h-1.5 rounded-full bg-outline-variant" />
           <span className="flex items-center gap-1.5">
             <span className="material-symbols-outlined text-base">event</span>
-            24/05/2024 14:30
+            {formatTs(order?.createdAt)}
           </span>
         </div>
-        <Badge variant="info">Đang vận chuyển</Badge>
+        <Badge variant={status.variant}>{status.label}</Badge>
       </div>
 
       {/* Body */}
@@ -75,10 +77,10 @@ export function DispatchDetailModal({
               Chi nhánh nhận
             </p>
             <p className="font-bold text-on-surface">
-              Bệnh viện Đa khoa Sài Gòn
+              {order?.toLocationName ?? "—"}
             </p>
             <p className="text-sm text-on-surface-variant">
-              125 Lê Lợi, Phường Bến Thành, Quận 1
+              Người tạo: {order?.createdByName ?? "—"}
             </p>
           </div>
           <div className="space-y-1">
@@ -86,7 +88,7 @@ export function DispatchDetailModal({
               Ghi chú vận chuyển
             </p>
             <p className="text-sm text-on-surface-variant italic">
-              "Yêu cầu bảo quản lạnh dưới 5°C. Liên hệ dược tá trước khi giao."
+              {order?.notes || "Không có ghi chú."}
             </p>
           </div>
         </div>
@@ -114,26 +116,24 @@ export function DispatchDetailModal({
                 </tr>
               </thead>
               <tbody className="divide-y divide-surface-container-high">
-                {mockItems.map((item) => (
-                  <tr key={item.name} className="bg-surface-container-lowest">
+                {(order?.items ?? []).map((item, i) => (
+                  <tr key={i} className="bg-surface-container-lowest">
                     <td className="px-5 py-4">
                       <p className="font-bold text-on-surface text-sm">
-                        {item.name}
+                        {item.medicineName}
                       </p>
-                      {item.note && (
-                        <p className="text-[10px] text-primary uppercase font-bold tracking-tight">
-                          {item.note}
-                        </p>
-                      )}
+                      <p className="text-[10px] text-on-surface-variant font-medium">
+                        SKU: {item.medicineSku} | Lô: {item.lot}
+                      </p>
                     </td>
                     <td className="px-5 py-4 text-sm text-on-surface-variant">
-                      {item.unit}
+                      {item.unitName}
                     </td>
                     <td className="px-5 py-4 font-bold text-on-surface text-sm">
-                      {item.qty.toLocaleString()}
+                      {item.quantity.toLocaleString()}
                     </td>
                     <td className="px-5 py-4 font-bold text-primary text-sm">
-                      {item.total}
+                      {item.total.toLocaleString("vi-VN")}đ
                     </td>
                   </tr>
                 ))}
@@ -145,7 +145,7 @@ export function DispatchDetailModal({
                     Tổng giá trị đơn hàng
                   </td>
                   <td className="px-5 py-4 font-headline font-black text-lg text-primary">
-                    34.500.000đ
+                    {(order?.total ?? 0).toLocaleString("vi-VN")}đ
                   </td>
                 </tr>
               </tbody>
@@ -170,18 +170,35 @@ export function DispatchDetailModal({
                     Xác nhận xuất kho
                   </p>
                   <p className="text-[10px] text-on-surface-variant">
-                    24/05/2024 - 14:30 | Bởi Nguyễn Minh Châu
+                    {formatTs(order?.createdAt)} | Bởi{" "}
+                    {order?.createdByName ?? "—"}
                   </p>
                 </div>
               </div>
               <div className="flex gap-4">
-                <div className="w-2 h-2 rounded-full bg-outline-variant mt-0.5 flex-shrink-0" />
+                <div
+                  className={[
+                    "w-2 h-2 rounded-full mt-0.5 flex-shrink-0",
+                    order?.shippedAt
+                      ? "bg-primary-container shadow-[0_0_0_4px_rgba(0,102,255,0.1)]"
+                      : "bg-outline-variant",
+                  ].join(" ")}
+                />
                 <div>
-                  <p className="text-xs font-bold text-on-surface-variant">
+                  <p
+                    className={[
+                      "text-xs font-bold",
+                      order?.shippedAt
+                        ? "text-on-surface"
+                        : "text-on-surface-variant",
+                    ].join(" ")}
+                  >
                     Đang trên đường giao hàng
                   </p>
                   <p className="text-[10px] text-on-surface-variant">
-                    Đang cập nhật...
+                    {order?.shippedAt
+                      ? formatTs(order.shippedAt)
+                      : "Đang cập nhật..."}
                   </p>
                 </div>
               </div>
@@ -192,7 +209,7 @@ export function DispatchDetailModal({
               Tổng kiện hàng
             </p>
             <p className="text-3xl font-headline font-black text-primary">
-              1,250
+              {(order?.totalQty ?? 0).toLocaleString()}
             </p>
           </div>
         </div>
@@ -207,7 +224,20 @@ export function DispatchDetailModal({
           <Button variant="ghost" onClick={onClose}>
             Đóng
           </Button>
-          <Button>Xác nhận hoàn tất</Button>
+          {onConfirmReceived &&
+            order &&
+            order.status !== "received" &&
+            order.status !== "cancelled" && (
+              <Button
+                onClick={() => onConfirmReceived(order.id)}
+                disabled={confirmingId === order.id}
+                icon="check_circle"
+              >
+                {confirmingId === order.id
+                  ? "Đang xử lý…"
+                  : "Xác nhận nhập kho"}
+              </Button>
+            )}
         </div>
       </div>
     </Modal>

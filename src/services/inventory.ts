@@ -34,6 +34,9 @@ import type {
   ImportRequestDoc,
   ImportRequestItem,
   RequestPriority,
+  UserDoc,
+  DispatchOrderDoc,
+  DispatchOrderItem,
 } from "@/types/firestore";
 
 // ── Medicine Image ─────────────────────────────────────────────────────────
@@ -239,6 +242,22 @@ export interface CreateImportOrderInput {
   notes: string;
 }
 
+export async function getActiveBatches(
+  locationId: string,
+): Promise<BatchDoc[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, "batches"),
+      where("locationId", "==", locationId),
+      where("status", "==", "active"),
+    ),
+  );
+  return snap.docs
+    .map((d) => ({ ...d.data(), id: d.id }) as BatchDoc)
+    .filter((b) => b.quantity > 0)
+    .sort((a, b) => a.medicineName.localeCompare(b.medicineName, "vi"));
+}
+
 export async function getBatchesByMedicine(
   medicineId: string,
 ): Promise<BatchDoc[]> {
@@ -414,16 +433,21 @@ export interface CreateImportRequestInput {
 export async function getImportRequests(
   branchId?: string,
 ): Promise<ImportRequestDoc[]> {
-  const snap = await getDocs(collection(db, "import_requests"));
+  const q = branchId
+    ? query(
+        collection(db, "import_requests"),
+        where("branchId", "==", branchId),
+        limit(50),
+      )
+    : query(collection(db, "import_requests"), limit(50));
+  const snap = await getDocs(q);
   return snap.docs
     .map((d) => ({ ...d.data(), id: d.id }) as ImportRequestDoc)
-    .filter((r) => !branchId || r.branchId === branchId)
     .sort((a, b) => {
       const ta = (a.createdAt as unknown as { seconds: number })?.seconds ?? 0;
       const tb = (b.createdAt as unknown as { seconds: number })?.seconds ?? 0;
       return tb - ta;
-    })
-    .slice(0, 50);
+    });
 }
 
 export async function createImportRequest(
@@ -470,4 +494,271 @@ export async function createImportRequest(
   });
 
   return ref.id;
+}
+
+// ── Branches ───────────────────────────────────────────────────────────────
+
+export async function getBranches(): Promise<UserDoc[]> {
+  const q = query(collection(db, "users"), where("role", "==", "branch"));
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ ...d.data(), uid: d.id }) as UserDoc)
+    .sort((a, b) =>
+      (a.branchName ?? a.displayName).localeCompare(
+        b.branchName ?? b.displayName,
+        "vi",
+      ),
+    );
+}
+
+// ── Dispatch Orders ────────────────────────────────────────────────────────
+
+export async function getDispatchOrders(
+  toLocationId?: string,
+): Promise<DispatchOrderDoc[]> {
+  // When filtering by toLocationId, skip orderBy to avoid composite index requirement.
+  // Sorting is done client-side instead.
+  const q = toLocationId
+    ? query(
+        collection(db, "dispatch_orders"),
+        where("toLocationId", "==", toLocationId),
+        limit(50),
+      )
+    : query(
+        collection(db, "dispatch_orders"),
+        orderBy("createdAt", "desc"),
+        limit(50),
+      );
+  const snap = await getDocs(q);
+  const results = snap.docs.map(
+    (d) => ({ ...d.data(), id: d.id }) as DispatchOrderDoc,
+  );
+  if (toLocationId) {
+    results.sort((a, b) => {
+      const ta = (a.createdAt as unknown as { seconds: number })?.seconds ?? 0;
+      const tb = (b.createdAt as unknown as { seconds: number })?.seconds ?? 0;
+      return tb - ta;
+    });
+  }
+  return results;
+}
+
+export interface CreateDispatchInput {
+  fromLocationId: string;
+  fromLocationType: "warehouse" | "branch";
+  toLocationId: string;
+  toLocationType: "branch";
+  toLocationName: string;
+  createdBy: string;
+  createdByName: string;
+  items: Array<{
+    medicineId: string;
+    medicineName: string;
+    medicineSku: string;
+    lot: string;
+    batchId: string;
+    quantity: number;
+    unitId: string;
+    unitName: string;
+    unitPrice: number;
+  }>;
+  notes: string;
+}
+
+export async function createDispatchOrder(
+  input: CreateDispatchInput,
+): Promise<string> {
+  const ref = doc(collection(db, "dispatch_orders"));
+  const dateTag = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const code = `DIS-${dateTag}-${ref.id.slice(-4).toUpperCase()}`;
+
+  const items: DispatchOrderItem[] = input.items.map((i) => ({
+    medicineId: i.medicineId,
+    medicineName: i.medicineName,
+    medicineSku: i.medicineSku,
+    lot: i.lot,
+    batchId: i.batchId,
+    quantity: i.quantity,
+    unitId: i.unitId,
+    unitName: i.unitName,
+    unitPrice: i.unitPrice,
+    total: i.quantity * i.unitPrice,
+  }));
+
+  const subtotal = items.reduce((s, i) => s + i.total, 0);
+  const totalQty = items.reduce((s, i) => s + i.quantity, 0);
+
+  await setDoc(ref, {
+    id: ref.id,
+    code,
+    fromLocationId: input.fromLocationId,
+    fromLocationType: input.fromLocationType,
+    toLocationId: input.toLocationId,
+    toLocationType: input.toLocationType,
+    toLocationName: input.toLocationName,
+    createdBy: input.createdBy,
+    createdByName: input.createdByName,
+    status: "pending",
+    items,
+    totalQty,
+    subtotal,
+    total: subtotal,
+    notes: input.notes,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    shippedAt: null,
+    receivedAt: null,
+  });
+
+  return ref.id;
+}
+
+export async function updateDispatchStatus(
+  orderId: string,
+  status: "pending" | "shipping" | "received" | "cancelled",
+): Promise<void> {
+  await updateDoc(doc(db, "dispatch_orders", orderId), {
+    status,
+    updatedAt: serverTimestamp(),
+    ...(status === "shipping" ? { shippedAt: serverTimestamp() } : {}),
+    ...(status === "received" ? { receivedAt: serverTimestamp() } : {}),
+  });
+}
+
+export async function approveImportRequest(
+  requestId: string,
+  approvedBy: string,
+  approvedByName: string,
+): Promise<void> {
+  await updateDoc(doc(db, "import_requests", requestId), {
+    status: "approved",
+    approvedBy,
+    approvedByName,
+    approvedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/**
+ * Branch confirms receipt of a dispatch order.
+ * Updates dispatch status to "received" and increments branch inventory for each item.
+ */
+export async function confirmDispatchReceived(
+  orderId: string,
+  _confirmedBy: string,
+): Promise<void> {
+  const orderSnap = await getDoc(doc(db, "dispatch_orders", orderId));
+  if (!orderSnap.exists()) throw new Error("Dispatch order not found");
+  const order = { ...orderSnap.data(), id: orderSnap.id } as DispatchOrderDoc;
+
+  const wb = writeBatch(db);
+
+  // Mark dispatch as received
+  wb.update(doc(db, "dispatch_orders", orderId), {
+    status: "received",
+    receivedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  // Increase inventory at target branch for each item
+  for (const item of order.items) {
+    const invId = `${order.toLocationId}_${item.medicineId}`;
+    const invRef = doc(db, "inventory", invId);
+    const invSnap = await getDoc(invRef);
+    if (invSnap.exists()) {
+      wb.update(invRef, {
+        quantity: increment(item.quantity),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      wb.set(invRef, {
+        id: invId,
+        medicineId: item.medicineId,
+        medicineName: item.medicineName,
+        medicineSku: item.medicineSku,
+        locationId: order.toLocationId,
+        locationType: "branch",
+        quantity: item.quantity,
+        minStockLevel: 10,
+        updatedAt: serverTimestamp(),
+      });
+    }
+  }
+
+  await wb.commit();
+}
+
+/**
+ * Branch fulfills an approved import request.
+ * Marks request as "fulfilled" and increments branch inventory for each item.
+ */
+export async function confirmImportRequestFulfilled(
+  requestId: string,
+  branchId: string,
+): Promise<void> {
+  const reqSnap = await getDoc(doc(db, "import_requests", requestId));
+  if (!reqSnap.exists()) throw new Error("Import request not found");
+  const req = { ...reqSnap.data(), id: reqSnap.id } as ImportRequestDoc;
+
+  const wb = writeBatch(db);
+
+  wb.update(doc(db, "import_requests", requestId), {
+    status: "fulfilled",
+    updatedAt: serverTimestamp(),
+  });
+
+  for (const item of req.items) {
+    const invId = `${branchId}_${item.medicineId}`;
+    const invRef = doc(db, "inventory", invId);
+    const invSnap = await getDoc(invRef);
+    if (invSnap.exists()) {
+      wb.update(invRef, {
+        quantity: increment(item.quantity),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      wb.set(invRef, {
+        id: invId,
+        medicineId: item.medicineId,
+        medicineName: item.medicineName,
+        medicineSku: item.medicineSku,
+        locationId: branchId,
+        locationType: "branch",
+        quantity: item.quantity,
+        minStockLevel: 10,
+        updatedAt: serverTimestamp(),
+      });
+    }
+  }
+
+  await wb.commit();
+}
+
+/**
+ * Manager confirms a dispatch order is shipped out of warehouse.
+ * Marks status as "shipping" and decrements warehouse inventory for each item.
+ */
+export async function confirmDispatchShipped(orderId: string): Promise<void> {
+  const orderSnap = await getDoc(doc(db, "dispatch_orders", orderId));
+  if (!orderSnap.exists()) throw new Error("Dispatch order not found");
+  const order = { ...orderSnap.data(), id: orderSnap.id } as DispatchOrderDoc;
+
+  const wb = writeBatch(db);
+
+  wb.update(doc(db, "dispatch_orders", orderId), {
+    status: "shipping",
+    shippedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  for (const item of order.items) {
+    const invId = `${order.fromLocationId}_${item.medicineId}`;
+    const invRef = doc(db, "inventory", invId);
+    wb.update(invRef, {
+      quantity: increment(-item.quantity),
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  await wb.commit();
 }

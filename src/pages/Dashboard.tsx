@@ -17,7 +17,9 @@ export function Dashboard() {
   useEffect(() => {
     // Wait until userDoc is resolved — avoids fetching with wrong locationId
     if (userDoc === null) return;
-    const locationId = userDoc.branchId ?? "WAREHOUSE";
+    const locationId = userDoc.branchId || "WAREHOUSE";
+    console.log("check locationId:", locationId);
+
     setLoading(true);
     getDashboardData(locationId)
       .then(setData)

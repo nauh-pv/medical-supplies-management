@@ -45,7 +45,9 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
   function updateQty(id: number, delta: number) {
     setRows((prev) =>
       prev.map((r) =>
-        r.id === id ? { ...r, qty: Math.max(1, r.qty + delta) } : r,
+        r.id === id
+          ? { ...r, qty: Math.min(r.stock, Math.max(1, r.qty + delta)) }
+          : r,
       ),
     );
   }
@@ -89,7 +91,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
       return;
     }
     if (rows.length === 0) {
-      setErrorMsg("Vui lòng thêm ít nháº¥t má»™t sáº£n pháº©m.");
+      setErrorMsg("Vui lòng thêm ít nhất một sản phẩm.");
       return;
     }
     for (const r of rows) {
@@ -150,7 +152,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
             <div className="flex items-center gap-2 text-on-surface-variant">
               <span className="material-symbols-outlined text-sm">info</span>
               <span className="text-xs font-label font-bold uppercase tracking-widest">
-                Mã sá»‘ tá»± Ä‘á»™ng
+                Mã số tự động
               </span>
             </div>
           </div>
@@ -159,7 +161,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
             {/* Branch select */}
             <div className="space-y-3">
               <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant block ml-1">
-                Chi nhánh nháº­n thuá»‘c
+                Chi nh?nh nh?n thu?c
               </label>
               <div className="relative group">
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 group-focus-within:text-primary transition-colors pointer-events-none">
@@ -174,7 +176,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                   <option value="">
                     {loadingBranches
                       ? "Đang tải..."
-                      : "Chá»n chi nhánh bá»‡nh viá»‡n / nhà thuá»‘c..."}
+                      : "Chọn chi nhánh bệnh viện / nhà thuốc..."}
                   </option>
                   {branches.map((b) => (
                     <option key={b.uid} value={b.uid}>
@@ -191,7 +193,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
             {/* Product section */}
             <div className="space-y-4">
               <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant block ml-1">
-                Danh má»¥c thuá»‘c &amp; Vật tư
+                Danh mục thuốc & Vật tư
               </label>
 
               {/* Medicine dropdown + Add button */}
@@ -209,7 +211,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                     <option value="">
                       {loadingBatches
                         ? "Đang tải..."
-                        : "Chá»n thuá»‘c tá»« danh má»¥c tá»“n kho..."}
+                        : "Chọn thuốc từ danh mục tồn kho..."}
                     </option>
                     {batches.map((b) => (
                       <option key={b.id} value={b.id}>
@@ -239,9 +241,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                   <div className="grid grid-cols-12 px-6 py-2 bg-surface-container-low rounded-t-xl text-[10px] font-label font-black uppercase tracking-widest text-on-surface-variant">
                     <div className="col-span-6">Tên sản phẩm / SKU</div>
                     <div className="col-span-2 text-center">Tồn kho</div>
-                    <div className="col-span-3 text-center">
-                      Sá»‘ lưá»£ng xuáº¥t
-                    </div>
+                    <div className="col-span-3 text-center">Số lượng xuất</div>
                     <div className="col-span-1" />
                   </div>
 
@@ -254,7 +254,12 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                       onQtyInput={(id, val) =>
                         setRows((prev) =>
                           prev.map((r) =>
-                            r.id === id ? { ...r, qty: val } : r,
+                            r.id === id
+                              ? {
+                                  ...r,
+                                  qty: Math.min(r.stock, Math.max(1, val)),
+                                }
+                              : r,
                           ),
                         )
                       }
@@ -287,8 +292,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
             {/* Footer */}
             <div className="pt-8 border-t border-surface-container flex items-center justify-between">
               <p className="text-sm text-on-surface-variant italic">
-                * Lá»‡nh xuáº¥t kho sáº½ Ä‘ưá»£c gá»­i Ä‘áº¿n bá»™ pháº­n kiá»ƒm
-                kê Ä‘á»ƒ xác nháº­n.
+                * Lệnh xuất kho sẽ được gửi đến bộ phận kiểm kê để xác nhận.
               </p>
               <div className="flex gap-4">
                 <button
@@ -303,7 +307,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                   disabled={submitting}
                   className="px-10 py-3 bg-primary text-on-primary rounded-full font-bold shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:scale-100"
                 >
-                  {submitting ? "Đang táº¡o..." : "Tạo lệnh xuất kho"}
+                  {submitting ? "Đang tạo..." : "Tạo lệnh xuất kho"}
                 </button>
               </div>
             </div>
@@ -320,17 +324,13 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
           </h4>
           <div className="space-y-4">
             <div className="flex justify-between items-center border-b border-white/10 pb-3">
-              <span className="text-sm opacity-90">
-                Tá»•ng sá»‘ loáº¡i thuá»‘c:
-              </span>
+              <span className="text-sm opacity-90">Tổng số loại thuốc:</span>
               <span className="text-xl font-bold">
                 {String(totalTypes).padStart(2, "0")}
               </span>
             </div>
             <div className="flex justify-between items-center border-b border-white/10 pb-3">
-              <span className="text-sm opacity-90">
-                Tá»•ng sá»‘ lưá»£ng (Ä‘v):
-              </span>
+              <span className="text-sm opacity-90">T?ng s? l??ng (?v):</span>
               <span className="text-xl font-bold">
                 {totalQty.toLocaleString()}
               </span>

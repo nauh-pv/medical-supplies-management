@@ -70,7 +70,12 @@ export function DispatchProductRow({
           </button>
           <input
             type="number"
-            className="w-16 bg-transparent border-none text-center font-bold text-sm focus:ring-0 outline-none"
+            min={1}
+            max={row.stock}
+            className={[
+              "w-16 bg-transparent border-none text-center font-bold text-sm focus:ring-0 outline-none",
+              row.qty >= row.stock ? "text-error" : "",
+            ].join(" ")}
             value={row.qty}
             onChange={(e) =>
               onQtyInput(row.id, Math.max(1, parseInt(e.target.value) || 1))
@@ -79,7 +84,8 @@ export function DispatchProductRow({
           <button
             onClick={() => onQtyChange(row.id, 1)}
             type="button"
-            className="w-8 h-8 flex items-center justify-center text-primary hover:bg-surface-container-lowest rounded-full transition-all"
+            disabled={row.qty >= row.stock}
+            className="w-8 h-8 flex items-center justify-center text-primary hover:bg-surface-container-lowest rounded-full transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           >
             +
           </button>

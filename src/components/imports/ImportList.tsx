@@ -177,15 +177,19 @@ export function ImportList() {
                 {s.icon}
               </span>
             </div>
-            <p className="text-3xl font-headline font-bold text-on-surface mb-1">
-              {s.value}
-            </p>
-            <p className="text-xs font-label text-on-surface-variant mb-1">
-              {s.label}
-            </p>
-            <p className="text-xs font-label text-on-surface-variant">
-              {s.sub}
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="text-3xl font-headline font-bold text-on-surface mb-1">
+                {s.value}
+              </p>
+              <div>
+                <p className="text-xs font-label text-on-surface-variant mb-1">
+                  {s.label}
+                </p>
+                <p className="text-xs font-label text-on-surface-variant">
+                  {s.sub}
+                </p>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -241,10 +245,10 @@ export function ImportList() {
                     r.status === "pending"
                       ? "warning"
                       : r.status === "approved"
-                        ? "success"
+                        ? "neutral"
                         : r.status === "rejected"
                           ? "error"
-                          : "neutral";
+                          : "success";
                   const statusLabel =
                     r.status === "pending"
                       ? "Chờ duyệt"
@@ -320,7 +324,7 @@ export function ImportList() {
                         : "warning";
                 const dispStatusLabel =
                   d.status === "received"
-                    ? "Đã nhận"
+                    ? "Hoàn thành"
                     : d.status === "shipping"
                       ? "Đang vận chuyển"
                       : d.status === "cancelled"

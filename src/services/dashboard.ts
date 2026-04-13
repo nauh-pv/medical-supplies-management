@@ -231,10 +231,11 @@ export async function getDashboardData(
     .sort((a, b) => b.totalQty - a.totalQty)
     .slice(0, 5);
 
+  console.log("check inventory:", inventory);
+
   // ── Stock alerts ─────────────────────────────────────────────────────────
   const lowStock: LowStockItem[] = inventory
     .filter((i) => i.quantity <= i.minStockLevel)
-    .slice(0, 5)
     .map((i) => ({
       medicineId: i.medicineId,
       medicineName: i.medicineName,
@@ -255,7 +256,7 @@ export async function getDashboardData(
       const bDate = tsToDate(b.expiryDate)?.getTime() ?? 0;
       return aDate - bDate;
     })
-    .slice(0, 5)
+    .slice(0, 3)
     .map((b) => {
       const expiry = tsToDate(b.expiryDate) ?? now;
       const daysLeft = Math.ceil(
@@ -276,7 +277,7 @@ export async function getDashboardData(
     });
 
   // ── Recent activity ───────────────────────────────────────────────────────
-  const recentActivity: RecentActivity[] = txDocs.slice(0, 6).map((tx) => {
+  const recentActivity: RecentActivity[] = txDocs.slice(0, 4).map((tx) => {
     const created = tsToDate(tx.createdAt) ?? new Date();
     const totalQty = tx.items.reduce((s, i) => s + i.quantity, 0);
     const firstName = tx.items[0]?.medicineName ?? "—";

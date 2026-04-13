@@ -758,6 +758,14 @@ export async function confirmDispatchShipped(orderId: string): Promise<void> {
       quantity: increment(-item.quantity),
       updatedAt: serverTimestamp(),
     });
+
+    // Also deduct from the specific batch lot
+    if (item.batchId) {
+      wb.update(doc(db, "batches", item.batchId), {
+        quantity: increment(-item.quantity),
+        updatedAt: serverTimestamp(),
+      });
+    }
   }
 
   await wb.commit();

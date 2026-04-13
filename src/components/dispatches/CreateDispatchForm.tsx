@@ -143,7 +143,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
   return (
     <div className="grid grid-cols-12 gap-8">
       {/* â”€â”€ Left: Form â”€â”€ */}
-      <div className="col-span-12 lg:col-span-8 space-y-6">
+      <div className="col-span-12 lg:col-span-9 space-y-6">
         <section className="bg-surface-container-lowest rounded-[2rem] p-8 shadow-sm">
           <div className="flex items-center justify-between mb-8 border-b border-surface-container pb-4">
             <h3 className="text-xl font-headline font-bold text-on-surface">
@@ -316,7 +316,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
       </div>
 
       {/* â”€â”€ Right: Summary card â”€â”€ */}
-      <div className="col-span-12 lg:col-span-4 space-y-6">
+      <div className="col-span-12 lg:col-span-3 space-y-6">
         <div className="bg-primary rounded-[2rem] p-8 text-on-primary shadow-xl shadow-primary/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl pointer-events-none" />
           <h4 className="text-xs font-label font-bold uppercase tracking-[0.2em] opacity-80 mb-6">

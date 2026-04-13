@@ -1,8 +1,14 @@
 import { useState, useEffect } from "react";
 import { Input, Badge, Button, Pagination } from "@/components/common";
-import type { MedicineDoc, InventoryDoc } from "@/types/firestore";
-import { getMedicines, getInventory, getUnits } from "@/services/inventory";
+import type { MedicineDoc, InventoryDoc, BatchDoc } from "@/types/firestore";
+import {
+  getMedicines,
+  getInventory,
+  getUnits,
+  getActiveBatches,
+} from "@/services/inventory";
 import { BatchHistoryModal } from "./BatchHistoryModal";
+import { SetPriceModal } from "./SetPriceModal";
 import { AddMedicineModal } from "./AddMedicineModal";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -50,18 +56,25 @@ export function InventoryTable({
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [batchMed, setBatchMed] = useState<MedicineDoc | null>(null);
-  const [editMed, setEditMed] = useState<MedicineDoc | null>(null);
+  const [priceMed, setPriceMed] = useState<MedicineDoc | null>(null);
   const [units, setUnits] = useState<{ id: string; name: string }[]>([]);
+  const [batches, setBatches] = useState<BatchDoc[]>([]);
+  const [editMed, setEditMed] = useState<MedicineDoc | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
-    Promise.all([getMedicines(), getInventory("WAREHOUSE")])
-      .then(([meds, inv]) => {
+    Promise.all([
+      getMedicines(),
+      getInventory("WAREHOUSE"),
+      getActiveBatches("WAREHOUSE"),
+    ])
+      .then(([meds, inv, batchList]) => {
         if (!cancelled) {
           setMedicines(meds);
           setInventory(inv);
+          setBatches(batchList);
           setLoading(false);
         }
       })
@@ -101,6 +114,16 @@ export function InventoryTable({
     const preferred = inventory.find((i) => i.id === `WAREHOUSE_${medicineId}`);
     if (preferred) return preferred.quantity;
     return inventory.find((i) => i.medicineId === medicineId)?.quantity ?? 0;
+  }
+
+  function getAvgImportPrice(medicineId: string): number {
+    const bs = batches.filter(
+      (b) => b.medicineId === medicineId && b.quantity > 0,
+    );
+    if (bs.length === 0) return 0;
+    const totalValue = bs.reduce((s, b) => s + b.importPrice * b.quantity, 0);
+    const totalQty = bs.reduce((s, b) => s + b.quantity, 0);
+    return totalQty > 0 ? Math.round(totalValue / totalQty) : 0;
   }
 
   function getMinLevel(med: MedicineDoc) {
@@ -143,14 +166,14 @@ export function InventoryTable({
           />
         </div>
         <div className="flex items-center gap-3">
-          <Button icon="add" onClick={onAddClick}>
-            Thêm thuốc mới
-          </Button>
-          <Button variant="ghost" icon="filter_list" size="sm">
+          <Button variant="ghost" icon="filter_list" size="md">
             Tất cả danh mục
           </Button>
-          <Button variant="ghost" icon="export_notes" size="sm">
+          {/* <Button variant="ghost" icon="export_notes" size="md">
             Xuất báo cáo
+          </Button> */}
+          <Button icon="add" onClick={onAddClick} size="lg">
+            Thêm thuốc mới
           </Button>
         </div>
       </div>
@@ -184,7 +207,7 @@ export function InventoryTable({
                   { label: "Tên thuốc", cls: "pl-8" },
                   { label: "Danh mục" },
                   { label: "Đơn vị tính", cls: "text-center" },
-                  { label: "Giá nhập", cls: "text-right" },
+                  { label: "Giá nhập TB", cls: "text-right" },
                   { label: "Giá bán", cls: "text-right" },
                   { label: "Tồn kho", cls: "text-center" },
                   { label: "Trạng thái", cls: "text-center" },
@@ -263,9 +286,12 @@ export function InventoryTable({
                       {convertUnitIdToName(med.unitId)}
                     </td>
 
-                    {/* Import price */}
+                    {/* Avg import price from active batches */}
                     <td className="px-6 py-5 text-right text-sm font-mono text-on-surface-variant">
-                      {med.importPrice.toLocaleString("vi-VN")}đ
+                      {(() => {
+                        const p = getAvgImportPrice(med.id);
+                        return p > 0 ? p.toLocaleString("vi-VN") + "đ" : "—";
+                      })()}
                     </td>
 
                     {/* Sell price */}
@@ -307,6 +333,15 @@ export function InventoryTable({
                         >
                           <span className="material-symbols-outlined text-xl">
                             visibility
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => setPriceMed(med)}
+                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                          title="Cập nhật giá bán"
+                        >
+                          <span className="material-symbols-outlined text-xl">
+                            sell
                           </span>
                         </button>
                         <button
@@ -357,6 +392,16 @@ export function InventoryTable({
           sku={batchMed.sku}
         />
       )}
+
+      <SetPriceModal
+        open={!!priceMed}
+        medicine={priceMed}
+        onClose={() => setPriceMed(null)}
+        onSuccess={() => {
+          setPriceMed(null);
+          getMedicines().then(setMedicines);
+        }}
+      />
 
       <AddMedicineModal
         open={!!editMed}

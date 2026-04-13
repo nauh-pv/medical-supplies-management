@@ -21,18 +21,13 @@ function getDisplayStatus(qty: number, min: number) {
 
 interface ProductGridProps {
   refetchTrigger?: number;
-  onAddToCart: (product: {
-    id: string;
-    name: string;
-    price: number;
-    sku: string;
-    unitId: string;
-    unitName: string;
-    stock: number;
-  }) => void;
+  onMedicineClick: (medicine: MedicineDoc, stock: number) => void;
 }
 
-export function ProductGrid({ onAddToCart, refetchTrigger }: ProductGridProps) {
+export function ProductGrid({
+  onMedicineClick,
+  refetchTrigger,
+}: ProductGridProps) {
   const userDoc = useUserContext();
   const [medicines, setMedicines] = useState<MedicineDoc[]>([]);
   const [inventory, setInventory] = useState<InventoryDoc[]>([]);
@@ -143,17 +138,7 @@ export function ProductGrid({ onAddToCart, refetchTrigger }: ProductGridProps) {
               <button
                 key={m.id}
                 disabled={isOutOfStock}
-                onClick={() =>
-                  onAddToCart({
-                    id: m.id,
-                    name: m.name,
-                    price: m.sellPrice,
-                    sku: m.sku,
-                    unitId: m.unitId,
-                    unitName: m.unitName,
-                    stock,
-                  })
-                }
+                onClick={() => onMedicineClick(m, stock)}
                 className={[
                   "bg-surface-container-lowest rounded-[1.25rem] p-5 text-left flex flex-col gap-3 shadow-[0_20px_40px_rgba(0,80,203,0.03)] transition-all",
                   isOutOfStock

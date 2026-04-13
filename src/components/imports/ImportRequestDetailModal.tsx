@@ -111,7 +111,7 @@ export function ImportRequestDetailModal({
         ) : (
           <>
             {/* Summary bento */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { label: "Chi nhánh", value: req.branchName },
                 { label: "Người tạo", value: req.createdByName },
@@ -134,26 +134,6 @@ export function ImportRequestDetailModal({
                   </p>
                 </div>
               ))}
-            </div>
-
-            {/* Status + priority + total */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-4 bg-surface-container-low rounded-2xl flex flex-col gap-2">
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                  Trạng thái
-                </p>
-                <Badge variant={statusConfig[req.status].variant}>
-                  {statusConfig[req.status].label}
-                </Badge>
-              </div>
-              <div className="p-4 bg-surface-container-low rounded-2xl flex flex-col gap-2">
-                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                  Mức ưu tiên
-                </p>
-                <Badge variant={priorityConfig[req.priority].variant}>
-                  {priorityConfig[req.priority].label}
-                </Badge>
-              </div>
               <div className="p-4 bg-primary-container rounded-2xl relative overflow-hidden">
                 <div className="absolute right-[-10%] top-[-20%] w-20 h-20 bg-white/10 rounded-full blur-2xl pointer-events-none" />
                 <p className="text-[10px] font-bold text-on-primary-container/70 uppercase tracking-widest mb-1">
@@ -174,15 +154,23 @@ export function ImportRequestDetailModal({
                   </span>
                   Danh mục yêu cầu
                 </h3>
-                <div className="flex">
-                  <p className="text-xs">Trạng thái:</p>
-                  <Badge variant={statusConfig[req.status].variant}>
-                    {statusConfig[req.status].label}
-                  </Badge>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-4">
+                    <p className="text-xs">Trạng thái:</p>
+                    <Badge variant={statusConfig[req.status].variant}>
+                      {statusConfig[req.status].label}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <p className="text-xs">Mức ưu tiên:</p>
+                    <Badge variant={priorityConfig[req.priority].variant}>
+                      {priorityConfig[req.priority].label}
+                    </Badge>
+                  </div>
+                  <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider">
+                    {req.items.length} mặt hàng
+                  </span>
                 </div>
-                <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider">
-                  {req.items.length} mặt hàng
-                </span>
               </div>
 
               <div className="overflow-hidden rounded-xl border border-outline-variant/10">

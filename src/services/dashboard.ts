@@ -20,6 +20,7 @@ import { getMedicines } from "./inventory";
 
 export interface DashboardStats {
   totalRevenueThisMonth: number;
+  totalProfitThisMonth: number;
   activeBranches: number;
   totalSkus: number;
 }
@@ -170,12 +171,25 @@ export async function getDashboardData(
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const totalRevenueThisMonth = txDocs
-    .filter((t) => {
-      const d = tsToDate(t.createdAt);
-      return d !== null && d >= startOfMonth;
-    })
-    .reduce((s, t) => s + t.total, 0);
+  const txThisMonth = txDocs.filter((t) => {
+    const d = tsToDate(t.createdAt);
+    return d !== null && d >= startOfMonth;
+  });
+
+  const totalRevenueThisMonth = txThisMonth.reduce((s, t) => s + t.total, 0);
+
+  // Profit = Σ (unitPrice - importPrice) × quantity for each item sold this month.
+  // importPrice is snapshotted onto each PosTransactionItem at the time of sale.
+  const totalProfitThisMonth = txThisMonth.reduce(
+    (s, t) =>
+      s +
+      t.items.reduce(
+        (si, item) =>
+          si + (item.unitPrice - (item.importPrice ?? 0)) * item.quantity,
+        0,
+      ),
+    0,
+  );
 
   const activeBranches = branchSnap.docs.filter(
     (d) => (d.data() as UserDoc).status === "active",
@@ -183,6 +197,7 @@ export async function getDashboardData(
 
   const stats: DashboardStats = {
     totalRevenueThisMonth,
+    totalProfitThisMonth,
     activeBranches,
     totalSkus: meds.length,
   };

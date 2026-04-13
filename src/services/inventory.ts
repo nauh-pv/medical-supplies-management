@@ -68,6 +68,8 @@ export interface AddMedicineInput {
   unitId: string;
   unitName: string;
   imageUrl?: string | null;
+  importPrice?: number;
+  sellPrice?: number;
 }
 
 function generateSku(): string {
@@ -91,8 +93,8 @@ export async function addMedicine(data: AddMedicineInput): Promise<string> {
     category: data.category,
     unitId: data.unitId,
     unitName: data.unitName,
-    importPrice: 0,
-    sellPrice: 0,
+    importPrice: data.importPrice ?? 0,
+    sellPrice: data.sellPrice ?? 0,
     minStockLevel: 10,
     imageUrl: data.imageUrl ?? null,
     isActive: true,

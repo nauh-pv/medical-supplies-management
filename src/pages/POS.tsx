@@ -1,18 +1,24 @@
 import { useState, useEffect } from "react";
 import { ProductGrid } from "@/components/pos/ProductGrid";
 import { OrderSummary } from "@/components/pos/OrderSummary";
+import { BatchSelectModal } from "@/components/pos/BatchSelectModal";
 import { createPosTransaction } from "@/services/pos";
 import { useUserContext } from "@/contexts/UserContext";
+import type { MedicineDoc, BatchDoc } from "@/types/firestore";
 
 export interface CartItem {
-  id: string;
+  id: string; // batchId — unique key per batch in cart
+  medicineId: string;
   name: string;
   price: number;
   qty: number;
   sku: string;
+  lot: string;
+  batchId: string;
   unitId: string;
   unitName: string;
-  stock: number;
+  stock: number; // available qty in this batch
+  importPrice: number;
 }
 
 export function POS() {
@@ -22,6 +28,14 @@ export function POS() {
   const [refetchTrigger, setRefetchTrigger] = useState(0);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Batch select modal state
+  const [pendingMedicine, setPendingMedicine] = useState<{
+    medicine: MedicineDoc;
+    stock: number;
+  } | null>(null);
+
+  const locationId = userDoc?.branchId || "WAREHOUSE";
 
   // Auto-dismiss notifications
   useEffect(() => {
@@ -36,26 +50,39 @@ export function POS() {
     return () => clearTimeout(t);
   }, [errorMsg]);
 
-  function handleAddToCart(product: {
-    id: string;
-    name: string;
-    price: number;
-    sku: string;
-    unitId: string;
-    unitName: string;
-    stock: number;
-  }) {
+  function handleMedicineClick(medicine: MedicineDoc, stock: number) {
+    setPendingMedicine({ medicine, stock });
+  }
+
+  function handleBatchSelect(batch: BatchDoc) {
+    if (!pendingMedicine) return;
+    const { medicine } = pendingMedicine;
     setCart((prev) => {
-      const existing = prev.find((i) => i.id === product.id);
+      // If the same batch already in cart, just increment qty
+      const existing = prev.find((i) => i.id === batch.id);
       if (existing) {
-        // Don't exceed available stock
-        if (existing.qty >= product.stock) return prev;
+        if (existing.qty >= batch.quantity) return prev;
         return prev.map((i) =>
-          i.id === product.id ? { ...i, qty: i.qty + 1 } : i,
+          i.id === batch.id ? { ...i, qty: i.qty + 1 } : i,
         );
       }
-      // Always include stock property
-      return [...prev, { ...product, qty: 1, stock: product.stock }];
+      return [
+        ...prev,
+        {
+          id: batch.id,
+          medicineId: medicine.id,
+          name: medicine.name,
+          price: medicine.sellPrice,
+          qty: 1,
+          sku: medicine.sku,
+          lot: batch.lot,
+          batchId: batch.id,
+          unitId: medicine.unitId,
+          unitName: medicine.unitName,
+          stock: batch.quantity,
+          importPrice: batch.importPrice,
+        },
+      ];
     });
   }
 
@@ -65,7 +92,7 @@ export function POS() {
       if (!item) return prev;
       const newQty = item.qty + delta;
       if (newQty <= 0) return prev.filter((i) => i.id !== id);
-      if (newQty > item.stock) return prev; // cap at stock
+      if (newQty > item.stock) return prev; // cap at batch stock
       return prev.map((i) => (i.id === id ? { ...i, qty: newQty } : i));
     });
   }
@@ -90,12 +117,15 @@ export function POS() {
         createdBy: userDoc.uid,
         createdByName: userDoc.displayName,
         items: cartSnapshot.map((i) => ({
-          medicineId: i.id,
+          medicineId: i.medicineId,
           medicineName: i.name,
           medicineSku: i.sku,
+          batchId: i.batchId,
+          lot: i.lot,
           unitId: i.unitId,
           unitName: i.unitName,
           unitPrice: i.price,
+          importPrice: i.importPrice,
           quantity: i.qty,
         })),
         discount,
@@ -140,7 +170,7 @@ export function POS() {
       )}
 
       <ProductGrid
-        onAddToCart={handleAddToCart}
+        onMedicineClick={handleMedicineClick}
         refetchTrigger={refetchTrigger}
       />
       <OrderSummary
@@ -149,6 +179,13 @@ export function POS() {
         onRemove={handleRemove}
         onCheckout={handleCheckout}
         checkingOut={checkingOut}
+      />
+      <BatchSelectModal
+        open={!!pendingMedicine}
+        onClose={() => setPendingMedicine(null)}
+        medicine={pendingMedicine?.medicine ?? null}
+        locationId={locationId}
+        onSelect={handleBatchSelect}
       />
     </div>
   );

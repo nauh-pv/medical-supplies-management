@@ -15,14 +15,21 @@ interface StatSummaryRowProps {
 }
 
 /** The 4 KPI stat cards at the top of the Dashboard. */
-export function StatSummaryRow({ stats, loading, role = "warehouse_manager" }: StatSummaryRowProps) {
+export function StatSummaryRow({
+  stats,
+  loading,
+  role = "warehouse_manager",
+}: StatSummaryRowProps) {
   const isBranch = role === "branch";
   const revenue = stats?.totalRevenueThisMonth ?? 0;
+  const profit = stats?.totalProfitThisMonth ?? 0;
   const branches = stats?.activeBranches ?? 0;
   const skus = stats?.totalSkus ?? 0;
 
   return (
-    <section className={`grid grid-cols-1 gap-6 ${isBranch ? "md:grid-cols-3" : "md:grid-cols-4"}`}>
+    <section
+      className={`grid grid-cols-1 gap-6 ${isBranch ? "md:grid-cols-3" : "md:grid-cols-4"}`}
+    >
       <StatCard
         label="Doanh thu tháng này"
         value={loading ? "—" : fmt(revenue)}
@@ -31,9 +38,11 @@ export function StatSummaryRow({ stats, loading, role = "warehouse_manager" }: S
       />
 
       <StatCard
-        label="Lợi nhuận ước tính"
-        value={loading ? "—" : fmt(revenue * 0.3)}
-        progress={40}
+        label="Lợi nhuận tháng này"
+        value={loading ? "—" : fmt(profit)}
+        progress={
+          revenue > 0 ? Math.min(100, Math.round((profit / revenue) * 100)) : 0
+        }
         progressVariant="secondary"
       />
 

@@ -28,9 +28,9 @@ const REQUEST_STATUS: Record<
   { label: string; variant: "warning" | "success" | "error" | "neutral" }
 > = {
   pending: { label: "Chờ duyệt", variant: "warning" },
-  approved: { label: "Đã duyệt", variant: "success" },
+  approved: { label: "Đã duyệt", variant: "neutral" },
   rejected: { label: "Từ chối", variant: "error" },
-  fulfilled: { label: "Đã hoàn thành", variant: "neutral" },
+  fulfilled: { label: "Hoàn thành", variant: "success" },
 };
 
 type CombinedRow =

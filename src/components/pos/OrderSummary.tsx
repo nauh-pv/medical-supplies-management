@@ -6,6 +6,8 @@ interface CartItem {
   name: string;
   price: number;
   qty: number;
+  lot: string;
+  stock: number;
 }
 
 interface OrderSummaryProps {
@@ -75,6 +77,9 @@ export function OrderSummary({
                 <p className="text-sm font-label font-semibold text-on-surface truncate">
                   {item.name}
                 </p>
+                <p className="text-xs text-on-surface-variant/70 mt-0.5">
+                  Lô: {item.lot}
+                </p>
                 <p className="text-xs text-primary font-mono mt-0.5">
                   {item.price.toLocaleString("vi-VN")}₫
                 </p>
@@ -93,7 +98,8 @@ export function OrderSummary({
                 </span>
                 <button
                   onClick={() => onQtyChange(item.id, 1)}
-                  className="w-6 h-6 rounded-lg bg-primary text-on-primary flex items-center justify-center hover:bg-primary/80 transition-colors"
+                  disabled={item.qty >= item.stock}
+                  className="w-6 h-6 rounded-lg bg-primary text-on-primary flex items-center justify-center hover:bg-primary/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <span className="material-symbols-outlined text-sm">add</span>
                 </button>

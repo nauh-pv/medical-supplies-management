@@ -35,7 +35,7 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
             Xu hướng Doanh thu
           </h4>
           <p className="text-sm text-on-surface-variant">
-            Hiệu suất 7 ngày qua: Bán lẻ POS
+            Hiệu suất 7 ngày qua: Bán lẻ
           </p>
         </div>
 
@@ -60,7 +60,7 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
         {/* Legend */}
         <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-lg text-xs font-bold text-primary">
           <div className="w-2 h-2 rounded-full bg-secondary" />
-          Bán lẻ POS
+          Bán lẻ
         </div>
       </div>
 

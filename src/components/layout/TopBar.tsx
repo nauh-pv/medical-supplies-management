@@ -1,4 +1,3 @@
-import { Input } from "@/components/common";
 import type { UserDoc } from "@/types/firestore";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -22,12 +21,12 @@ export function TopBar({ userDoc }: TopBarProps) {
   return (
     <header className="fixed top-0 right-0 left-0 flex items-center justify-between px-8 z-30 ml-72 w-[calc(100%-18rem)] h-16 bg-white/80 backdrop-blur-xl shadow-sm">
       <div className="flex items-center flex-1 w-full">
-        <Input
+        {/* <Input
           leadingIcon="search"
           placeholder="Tìm kiếm kho dược, SKU, hoặc đơn hàng..."
           aria-label="Tìm kiếm"
           className="rounded-full"
-        />
+        /> */}
       </div>
 
       <div className="flex items-center gap-6">

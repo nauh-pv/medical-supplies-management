@@ -26,9 +26,12 @@ export interface CreatePosTransactionInput {
     medicineId: string;
     medicineName: string;
     medicineSku: string;
+    batchId: string;
+    lot: string;
     unitId: string;
     unitName: string;
     unitPrice: number;
+    importPrice: number;
     quantity: number;
   }>;
   discount: number;
@@ -49,13 +52,13 @@ export async function createPosTransaction(
     medicineId: i.medicineId,
     medicineName: i.medicineName,
     medicineSku: i.medicineSku,
-    lot: "",
-    batchId: "",
+    lot: i.lot,
+    batchId: i.batchId,
     quantity: i.quantity,
     unitId: i.unitId,
     unitName: i.unitName,
     unitPrice: i.unitPrice,
-    importPrice: 0,
+    importPrice: i.importPrice,
     total: i.quantity * i.unitPrice,
   }));
 
@@ -69,7 +72,11 @@ export async function createPosTransaction(
       const invId = `${branchId}_${item.medicineId}`;
       return doc(db, "inventory", invId);
     });
+    const batchRefs = input.items
+      .filter((item) => !!item.batchId)
+      .map((item) => doc(db, "batches", item.batchId));
     const invSnaps = await Promise.all(invRefs.map((r) => tx.get(r)));
+    await Promise.all(batchRefs.map((r) => tx.get(r))); // pre-read batches for SDK compliance
 
     let statsSnap: Awaited<ReturnType<typeof tx.get>> | null = null;
     const isRealBranch = branchId !== "WAREHOUSE";
@@ -82,7 +89,7 @@ export async function createPosTransaction(
     }
 
     // ── ALL WRITES after reads ────────────────────────────────────────────
-    // Decrease inventory
+    // Decrease inventory (aggregate per location)
     invSnaps.forEach((invSnap, idx) => {
       if (invSnap.exists()) {
         const current = invSnap.data().quantity as number;
@@ -92,6 +99,16 @@ export async function createPosTransaction(
         });
       }
     });
+
+    // Decrease batch-level stock for FIFO traceability
+    for (const item of input.items) {
+      if (item.batchId) {
+        tx.update(doc(db, "batches", item.batchId), {
+          quantity: increment(-item.quantity),
+          updatedAt: serverTimestamp(),
+        });
+      }
+    }
 
     // Save transaction
     tx.set(ref, {

@@ -65,6 +65,8 @@ export function AddMedicineModal({
     description: "",
     category: "" as "" | "prescribed" | "otc",
     unitId: "",
+    importPrice: "",
+    sellPrice: "",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -80,10 +82,19 @@ export function AddMedicineModal({
           description: medicine.description,
           category: medicine.category,
           unitId: medicine.unitId,
+          importPrice: "",
+          sellPrice: "",
         });
         setImagePreview(medicine.imageUrl ?? null);
       } else {
-        setForm({ name: "", description: "", category: "", unitId: "" });
+        setForm({
+          name: "",
+          description: "",
+          category: "",
+          unitId: "",
+          importPrice: "",
+          sellPrice: "",
+        });
         setImagePreview(null);
       }
       setImageFile(null);
@@ -147,6 +158,12 @@ export function AddMedicineModal({
           unitId: selectedUnit.id,
           unitName: selectedUnit.name,
           imageUrl: null,
+          importPrice: form.importPrice
+            ? Math.round(parseFloat(form.importPrice.replace(/[^\d.]/g, "")))
+            : 0,
+          sellPrice: form.sellPrice
+            ? Math.round(parseFloat(form.sellPrice.replace(/[^\d.]/g, "")))
+            : 0,
         });
         if (imageFile) {
           const compressed = await compressImage(imageFile);
@@ -261,6 +278,52 @@ export function AddMedicineModal({
             }
           />
         </div>
+
+        {/* Prices — create mode only */}
+        {!isEdit && (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-label font-bold uppercase tracking-[0.05em] text-on-surface-variant">
+                Giá nhập (đ/đơn vị)
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-sm select-none">
+                  ₫
+                </span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0"
+                  className="w-full bg-surface-container-high border-none rounded-xl py-3 pl-9 pr-4 text-sm text-on-surface font-mono outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                  value={form.importPrice}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, importPrice: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-label font-bold uppercase tracking-[0.05em] text-on-surface-variant">
+                Giá bán (đ/đơn vị)
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-bold text-sm select-none">
+                  ₫
+                </span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0"
+                  className="w-full bg-surface-container-high border-none rounded-xl py-3 pl-9 pr-4 text-sm text-on-surface font-mono outline-none focus:ring-2 focus:ring-primary/30 transition-all"
+                  value={form.sellPrice}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, sellPrice: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Image upload */}
         <div className="flex flex-col gap-1.5">

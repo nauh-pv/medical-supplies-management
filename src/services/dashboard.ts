@@ -20,6 +20,7 @@ import { getMedicines } from "./inventory";
 
 export interface DashboardStats {
   totalRevenueThisMonth: number;
+  totalProfitThisMonth: number;
   activeBranches: number;
   totalSkus: number;
 }
@@ -170,12 +171,25 @@ export async function getDashboardData(
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const totalRevenueThisMonth = txDocs
-    .filter((t) => {
-      const d = tsToDate(t.createdAt);
-      return d !== null && d >= startOfMonth;
-    })
-    .reduce((s, t) => s + t.total, 0);
+  const txThisMonth = txDocs.filter((t) => {
+    const d = tsToDate(t.createdAt);
+    return d !== null && d >= startOfMonth;
+  });
+
+  const totalRevenueThisMonth = txThisMonth.reduce((s, t) => s + t.total, 0);
+
+  // Profit = Σ (unitPrice - importPrice) × quantity for each item sold this month.
+  // importPrice is snapshotted onto each PosTransactionItem at the time of sale.
+  const totalProfitThisMonth = txThisMonth.reduce(
+    (s, t) =>
+      s +
+      t.items.reduce(
+        (si, item) =>
+          si + (item.unitPrice - (item.importPrice ?? 0)) * item.quantity,
+        0,
+      ),
+    0,
+  );
 
   const activeBranches = branchSnap.docs.filter(
     (d) => (d.data() as UserDoc).status === "active",
@@ -183,6 +197,7 @@ export async function getDashboardData(
 
   const stats: DashboardStats = {
     totalRevenueThisMonth,
+    totalProfitThisMonth,
     activeBranches,
     totalSkus: meds.length,
   };
@@ -231,10 +246,11 @@ export async function getDashboardData(
     .sort((a, b) => b.totalQty - a.totalQty)
     .slice(0, 5);
 
+  console.log("check inventory:", inventory);
+
   // ── Stock alerts ─────────────────────────────────────────────────────────
   const lowStock: LowStockItem[] = inventory
     .filter((i) => i.quantity <= i.minStockLevel)
-    .slice(0, 5)
     .map((i) => ({
       medicineId: i.medicineId,
       medicineName: i.medicineName,
@@ -255,7 +271,7 @@ export async function getDashboardData(
       const bDate = tsToDate(b.expiryDate)?.getTime() ?? 0;
       return aDate - bDate;
     })
-    .slice(0, 5)
+    .slice(0, 3)
     .map((b) => {
       const expiry = tsToDate(b.expiryDate) ?? now;
       const daysLeft = Math.ceil(
@@ -276,7 +292,7 @@ export async function getDashboardData(
     });
 
   // ── Recent activity ───────────────────────────────────────────────────────
-  const recentActivity: RecentActivity[] = txDocs.slice(0, 6).map((tx) => {
+  const recentActivity: RecentActivity[] = txDocs.slice(0, 4).map((tx) => {
     const created = tsToDate(tx.createdAt) ?? new Date();
     const totalQty = tx.items.reduce((s, i) => s + i.quantity, 0);
     const firstName = tx.items[0]?.medicineName ?? "—";

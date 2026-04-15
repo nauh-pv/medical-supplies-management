@@ -1,11 +1,18 @@
 import { useState, useEffect } from "react";
-import { Input, Badge, Button, Pagination } from "@/components/common";
-import type { MedicineDoc, InventoryDoc, BatchDoc } from "@/types/firestore";
+import { Input, Badge, Button, Pagination, Modal } from "@/components/common";
+import type {
+  MedicineDoc,
+  InventoryDoc,
+  BatchDoc,
+  UserDoc,
+} from "@/types/firestore";
 import {
   getMedicines,
   getInventory,
   getUnits,
   getActiveBatches,
+  deleteMedicine,
+  getBranches,
 } from "@/services/inventory";
 import { BatchHistoryModal } from "./BatchHistoryModal";
 import { SetPriceModal } from "./SetPriceModal";
@@ -43,6 +50,7 @@ const ITEMS_PER_PAGE = 10;
 interface InventoryTableProps {
   onAddClick?: () => void;
   refetchTrigger?: number;
+  locationId?: string;
 }
 
 export function InventoryTable({
@@ -53,6 +61,8 @@ export function InventoryTable({
   const [inventory, setInventory] = useState<InventoryDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleteMed, setDeleteMed] = useState<MedicineDoc | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [batchMed, setBatchMed] = useState<MedicineDoc | null>(null);
@@ -60,6 +70,8 @@ export function InventoryTable({
   const [units, setUnits] = useState<{ id: string; name: string }[]>([]);
   const [batches, setBatches] = useState<BatchDoc[]>([]);
   const [editMed, setEditMed] = useState<MedicineDoc | null>(null);
+  const [locationId, setLocationId] = useState("WAREHOUSE");
+  const [branches, setBranches] = useState<UserDoc[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,8 +79,8 @@ export function InventoryTable({
     setError("");
     Promise.all([
       getMedicines(),
-      getInventory("WAREHOUSE"),
-      getActiveBatches("WAREHOUSE"),
+      getInventory(locationId),
+      getActiveBatches(locationId),
     ])
       .then(([meds, inv, batchList]) => {
         if (!cancelled) {
@@ -90,10 +102,14 @@ export function InventoryTable({
     return () => {
       cancelled = true;
     };
-  }, [refetchTrigger]);
+  }, [refetchTrigger, locationId]);
 
   useEffect(() => {
     loadUnits();
+  }, []);
+
+  useEffect(() => {
+    getBranches().then(setBranches);
   }, []);
 
   const filtered = medicines.filter(
@@ -109,11 +125,27 @@ export function InventoryTable({
   );
 
   function getStock(medicineId: string) {
-    // Prefer the deterministic WAREHOUSE_ doc (created by createImportOrder);
+    // Prefer the deterministic <location>_<medicineId> doc;
     // fall back to any matching record for backward compat with older data.
-    const preferred = inventory.find((i) => i.id === `WAREHOUSE_${medicineId}`);
+    const preferred = inventory.find(
+      (i) => i.id === `${locationId}_${medicineId}`,
+    );
     if (preferred) return preferred.quantity;
     return inventory.find((i) => i.medicineId === medicineId)?.quantity ?? 0;
+  }
+
+  async function handleDelete() {
+    if (!deleteMed) return;
+    setDeleting(true);
+    try {
+      await deleteMedicine(deleteMed.id);
+      setMedicines((prev) => prev.filter((m) => m.id !== deleteMed.id));
+      setDeleteMed(null);
+    } catch (err) {
+      console.error("Delete medicine error:", err);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function getAvgImportPrice(medicineId: string): number {
@@ -166,9 +198,29 @@ export function InventoryTable({
           />
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" icon="filter_list" size="md">
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none text-lg">
+              warehouse
+            </span>
+            <select
+              className="pl-10 pr-8 py-2.5 bg-surface-container-lowest border border-outline-variant/20 rounded-full text-sm font-medium text-on-surface appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+            >
+              <option value="WAREHOUSE">Kho Tổng</option>
+              {branches.map((b) => (
+                <option key={b.uid} value={b.uid}>
+                  {b.branchName ?? b.displayName}
+                </option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm">
+              expand_more
+            </span>
+          </div>
+          {/* <Button variant="ghost" icon="filter_list" size="md">
             Tất cả danh mục
-          </Button>
+          </Button> */}
           {/* <Button variant="ghost" icon="export_notes" size="md">
             Xuất báo cáo
           </Button> */}
@@ -353,6 +405,15 @@ export function InventoryTable({
                             edit
                           </span>
                         </button>
+                        <button
+                          onClick={() => setDeleteMed(med)}
+                          className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-colors"
+                          title="Xóa thuốc"
+                        >
+                          <span className="material-symbols-outlined text-xl">
+                            delete
+                          </span>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -409,7 +470,7 @@ export function InventoryTable({
         onClose={() => setEditMed(null)}
         onSuccess={() => {
           setEditMed(null);
-          Promise.all([getMedicines(), getInventory("WAREHOUSE")]).then(
+          Promise.all([getMedicines(), getInventory(locationId)]).then(
             ([meds, inv]) => {
               setMedicines(meds);
               setInventory(inv);
@@ -417,6 +478,40 @@ export function InventoryTable({
           );
         }}
       />
+
+      {/* ── Delete confirmation ── */}
+      <Modal
+        open={!!deleteMed}
+        onClose={() => setDeleteMed(null)}
+        title="Xác nhận xóa thuốc"
+        maxWidth="max-w-md"
+      >
+        <div className="px-10 py-8 space-y-6">
+          <p className="text-sm text-on-surface-variant">
+            Bạn có chắc chắn muốn xóa thuốc{" "}
+            <span className="font-bold text-on-surface">{deleteMed?.name}</span>{" "}
+            ({deleteMed?.sku}) khỏi hệ thống? Thao tác này sẽ vô hiệu hóa sản
+            phẩm.
+          </p>
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteMed(null)}
+              className="flex-1 justify-center"
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              variant="danger"
+              icon="delete"
+              onClick={handleDelete}
+              className="flex-1 justify-center"
+            >
+              {deleting ? "Đang xóa..." : "Xóa thuốc"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

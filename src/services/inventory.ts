@@ -129,6 +129,13 @@ export async function updateMedicine(
   });
 }
 
+export async function deleteMedicine(id: string): Promise<void> {
+  await updateDoc(doc(db, "medicines", id), {
+    isActive: false,
+    updatedAt: serverTimestamp(),
+  });
+}
+
 // ── Inventory ──────────────────────────────────────────────────────────────
 
 export async function getInventory(

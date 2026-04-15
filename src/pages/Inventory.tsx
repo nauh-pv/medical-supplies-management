@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader, TabBar } from "@/components/common";
 import { InventoryStats } from "@/components/inventory/InventoryStats";
 import { InventoryTable } from "@/components/inventory/InventoryTable";

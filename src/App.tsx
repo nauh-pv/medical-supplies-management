@@ -34,10 +34,7 @@ function LoginPage() {
   const navigate = useNavigate();
   return (
     <>
-      <Login
-        onNavigateToRegister={() => navigate("/register")}
-        onLogin={() => navigate("/")}
-      />
+      <Login onLogin={() => navigate("/")} />
       <PWAPrompt />
     </>
   );

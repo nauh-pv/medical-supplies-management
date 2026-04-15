@@ -7,7 +7,7 @@ interface LoginProps {
   onLogin?: () => void;
 }
 
-export function Login({ onNavigateToRegister, onLogin }: LoginProps) {
+export function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

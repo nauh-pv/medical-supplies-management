@@ -5,12 +5,14 @@ import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { InventoryImportTab } from "@/components/inventory/InventoryImportTab";
 import { AddMedicineModal } from "@/components/inventory/AddMedicineModal";
 import { UnitTable } from "@/components/units/UnitTable";
+import { SupplierTable } from "@/components/suppliers/SupplierTable";
 
-type InventoryTab = "medicines" | "imports" | "units";
+type InventoryTab = "medicines" | "imports" | "suppliers" | "units";
 
 const INVENTORY_TABS = [
   { id: "medicines" as InventoryTab, label: "Kho thuốc" },
   { id: "imports" as InventoryTab, label: "Quản lý nhập kho" },
+  { id: "suppliers" as InventoryTab, label: "Quản lý nhà cung cấp" },
   { id: "units" as InventoryTab, label: "Quản lý đơn vị tính" },
 ] as const;
 
@@ -45,6 +47,7 @@ export function Inventory() {
         />
       )}
       {tab === "imports" && <InventoryImportTab />}
+      {tab === "suppliers" && <SupplierTable />}
       {tab === "units" && <UnitTable />}
 
       <AddMedicineModal

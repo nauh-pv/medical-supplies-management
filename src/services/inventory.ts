@@ -228,6 +228,50 @@ export async function getSuppliers(): Promise<SupplierDoc[]> {
     .sort((a, b) => a.name.localeCompare(b.name, "vi"));
 }
 
+export interface AddSupplierInput {
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+}
+
+function generateSupplierCode(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let suffix = "";
+  for (let i = 0; i < 4; i++) {
+    suffix += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `NCC-${suffix}`;
+}
+
+export async function addSupplier(input: AddSupplierInput): Promise<string> {
+  const ref = doc(collection(db, "suppliers"));
+  await setDoc(ref, {
+    id: ref.id,
+    code: generateSupplierCode(),
+    name: input.name,
+    phone: input.phone,
+    email: input.email,
+    address: input.address,
+    isActive: true,
+    createdAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+
+export async function updateSupplier(
+  id: string,
+  input: Partial<AddSupplierInput>,
+): Promise<void> {
+  await updateDoc(doc(db, "suppliers", id), {
+    ...input,
+  });
+}
+
+export async function deleteSupplier(id: string): Promise<void> {
+  await updateDoc(doc(db, "suppliers", id), { isActive: false });
+}
+
 // ── Import Orders ──────────────────────────────────────────────────────────
 
 export interface CreateImportOrderInput {

@@ -16,12 +16,7 @@ import {
   increment,
   type DocumentSnapshot,
 } from "firebase/firestore";
-import {
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
-import { db, storage } from "./firebase";
+import { db } from "./firebase";
 import type {
   MedicineDoc,
   InventoryDoc,
@@ -42,12 +37,15 @@ import type {
 // ── Medicine Image ─────────────────────────────────────────────────────────
 
 export async function uploadMedicineImage(
-  medicineId: string,
+  _medicineId: string,
   blob: Blob,
 ): Promise<string> {
-  const fileRef = storageRef(storage, `medicine-images/${medicineId}.jpg`);
-  await uploadBytes(fileRef, blob, { contentType: "image/jpeg" });
-  return getDownloadURL(fileRef);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 // ── Medicines ──────────────────────────────────────────────────────────────

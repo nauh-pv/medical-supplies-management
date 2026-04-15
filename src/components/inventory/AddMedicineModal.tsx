@@ -15,38 +15,69 @@ interface AddMedicineModalProps {
   medicine?: MedicineDoc | null;
 }
 
+const MAX_BLOB_SIZE = 750_000; // ~750KB blob → ~1MB base64, safe for Firestore 1MB doc limit
+
 async function compressImage(
   file: File,
   maxPx = 800,
   quality = 0.8,
 ): Promise<Blob> {
+  const img = await loadImage(file);
+  let { width, height } = img;
+  if (width > maxPx || height > maxPx) {
+    if (width > height) {
+      height = Math.round((height * maxPx) / width);
+      width = maxPx;
+    } else {
+      width = Math.round((width * maxPx) / height);
+      height = maxPx;
+    }
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+
+  // Iteratively reduce quality until blob is under limit
+  let blob = await canvasToBlob(canvas, quality);
+  while (blob.size > MAX_BLOB_SIZE && quality > 0.1) {
+    quality -= 0.1;
+    blob = await canvasToBlob(canvas, quality);
+  }
+  // If still too large, reduce resolution further
+  if (blob.size > MAX_BLOB_SIZE) {
+    const scale = Math.sqrt(MAX_BLOB_SIZE / blob.size);
+    canvas.width = Math.round(width * scale);
+    canvas.height = Math.round(height * scale);
+    canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    blob = await canvasToBlob(canvas, 0.6);
+  }
+  return blob;
+}
+
+function loadImage(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
-      let { width, height } = img;
-      if (width > maxPx || height > maxPx) {
-        if (width > height) {
-          height = Math.round((height * maxPx) / width);
-          width = maxPx;
-        } else {
-          width = Math.round((width * maxPx) / height);
-          height = maxPx;
-        }
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
-      canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error("compress failed"))),
-        "image/jpeg",
-        quality,
-      );
+      resolve(img);
     };
     img.onerror = reject;
     img.src = url;
+  });
+}
+
+function canvasToBlob(
+  canvas: HTMLCanvasElement,
+  quality: number,
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("compress failed"))),
+      "image/jpeg",
+      quality,
+    );
   });
 }
 

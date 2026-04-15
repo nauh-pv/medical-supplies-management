@@ -28,7 +28,6 @@ export function Inventory() {
           </span>
         }
         title="Quản lý Kho Tổng"
-        titleSize="text-4xl"
       />
 
       <InventoryStats />

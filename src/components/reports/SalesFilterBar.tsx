@@ -1,13 +1,19 @@
 import { Input } from "@/components/common";
 
-export type SalesPeriod = "week" | "month" | "quarter" | "year";
-
-const PERIOD_LABELS: Record<SalesPeriod, string> = {
-  week: "Tuần",
-  month: "Tháng",
-  quarter: "Quý",
-  year: "Năm",
-};
+const MONTH_LABELS = [
+  "Tháng 1",
+  "Tháng 2",
+  "Tháng 3",
+  "Tháng 4",
+  "Tháng 5",
+  "Tháng 6",
+  "Tháng 7",
+  "Tháng 8",
+  "Tháng 9",
+  "Tháng 10",
+  "Tháng 11",
+  "Tháng 12",
+];
 
 interface BranchOption {
   id: string;
@@ -20,8 +26,8 @@ interface SalesFilterBarProps {
   branches: BranchOption[];
   selectedBranch: string;
   onBranchChange: (v: string) => void;
-  period: SalesPeriod;
-  onPeriodChange: (v: SalesPeriod) => void;
+  selectedMonth: number; // 0-11
+  onMonthChange: (m: number) => void;
 }
 
 export function SalesFilterBar({
@@ -30,8 +36,8 @@ export function SalesFilterBar({
   branches,
   selectedBranch,
   onBranchChange,
-  period,
-  onPeriodChange,
+  selectedMonth,
+  onMonthChange,
 }: SalesFilterBarProps) {
   return (
     <section className="p-1.5 bg-surface-container-lowest rounded-2xl flex flex-wrap items-center gap-2 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
@@ -62,19 +68,19 @@ export function SalesFilterBar({
         </span>
       </div>
 
-      <div className="flex bg-surface-container-low p-1 rounded-xl">
-        {(["week", "month", "quarter", "year"] as SalesPeriod[]).map((p) => (
+      <div className="flex bg-surface-container-low p-1 rounded-xl gap-0.5 flex-wrap">
+        {MONTH_LABELS.map((label, i) => (
           <button
-            key={p}
-            onClick={() => onPeriodChange(p)}
+            key={i}
+            onClick={() => onMonthChange(i)}
             className={[
-              "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all",
-              period === p
+              "px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all",
+              selectedMonth === i
                 ? "bg-primary text-on-primary shadow-sm"
                 : "text-on-surface-variant hover:text-primary",
             ].join(" ")}
           >
-            {PERIOD_LABELS[p]}
+            {label}
           </button>
         ))}
       </div>

@@ -28,7 +28,7 @@ export function StatSummaryRow({
 
   return (
     <section
-      className={`grid grid-cols-1 gap-6 ${isBranch ? "md:grid-cols-3" : "md:grid-cols-4"}`}
+      className={`grid grid-cols-1 gap-6 ${isBranch ? "md:grid-cols-2" : "md:grid-cols-4"}`}
     >
       <StatCard
         label="Doanh thu tháng này"
@@ -64,12 +64,14 @@ export function StatSummaryRow({
         </StatCard>
       )}
 
-      <StatCard
-        label="Tổng mã hàng (SKU)"
-        value={loading ? "—" : skus.toLocaleString("vi-VN")}
-        progress={Math.min(100, Math.round((skus / 500) * 100))}
-        progressVariant="error"
-      />
+      {!isBranch && (
+        <StatCard
+          label="Tổng mã hàng (SKU)"
+          value={loading ? "—" : skus.toLocaleString("vi-VN")}
+          progress={Math.min(100, Math.round((skus / 500) * 100))}
+          progressVariant="error"
+        />
+      )}
     </section>
   );
 }

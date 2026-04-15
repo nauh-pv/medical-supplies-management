@@ -15,7 +15,7 @@ export type NavId =
 const NAV_PATH: Record<NavId, string> = {
   dashboard: "/",
   inventory: "/inventory",
-  reports: "/reports",
+  reports: "/sales-transactions",
   alerts: "/alerts",
   pos: "/pos",
   medication: "/dispatches",
@@ -26,23 +26,17 @@ const NAV_PATH: Record<NavId, string> = {
 
 const navItems: { icon: string; label: string; id: NavId }[] = [
   { icon: "dashboard", label: "Tổng quan", id: "dashboard" },
-  { icon: "inventory_2", label: "Kho hàng", id: "inventory" },
-  // { icon: "analytics", label: "Báo cáo", id: "reports" },
-  // { icon: "warning", label: "Cảnh báo hàng hóa", id: "alerts" },
   { icon: "point_of_sale", label: "Bán hàng", id: "pos" },
+  { icon: "inventory_2", label: "Kho hàng", id: "inventory" },
+  { icon: "analytics", label: "Báo cáo", id: "reports" },
+  // { icon: "warning", label: "Cảnh báo hàng hóa", id: "alerts" },
   { icon: "medication", label: "Quản lý xuất kho", id: "medication" },
   { icon: "account_tree", label: "Chi nhánh", id: "branches" },
   { icon: "input", label: "Yêu cầu nhập thuốc", id: "imports" },
   { icon: "settings", label: "Cài đặt", id: "settings" },
 ];
 
-const BRANCH_NAV_IDS: NavId[] = [
-  "dashboard",
-  "pos",
-  "imports",
-  "alerts",
-  "settings",
-];
+const BRANCH_NAV_IDS: NavId[] = ["dashboard", "pos"];
 
 // Nav items that are ONLY for branch users (hidden from warehouse_manager)
 const BRANCH_ONLY_IDS: NavId[] = ["imports"];

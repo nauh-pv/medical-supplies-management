@@ -22,7 +22,6 @@ export function Dispatches() {
           </span>
         }
         title="Quản lý xuất kho"
-        titleSize="text-4xl"
         actions={
           <TabBar
             tabs={DISPATCH_TABS}

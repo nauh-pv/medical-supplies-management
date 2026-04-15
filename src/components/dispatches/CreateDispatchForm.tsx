@@ -161,7 +161,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
             {/* Branch select */}
             <div className="space-y-3">
               <label className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant block ml-1">
-                Chi nh?nh nh?n thu?c
+                Chi nhánh nhận thuốc
               </label>
               <div className="relative group">
                 <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 group-focus-within:text-primary transition-colors pointer-events-none">
@@ -330,7 +330,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
               </span>
             </div>
             <div className="flex justify-between items-center border-b border-white/10 pb-3">
-              <span className="text-sm opacity-90">T?ng s? l??ng (?v):</span>
+              <span className="text-sm opacity-90">Tổng số lượng (đv):</span>
               <span className="text-xl font-bold">
                 {totalQty.toLocaleString()}
               </span>

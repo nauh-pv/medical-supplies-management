@@ -27,10 +27,12 @@ export function Dashboard() {
       .finally(() => setLoading(false));
   }, [userDoc]);
 
+  const isBranch = userDoc?.role === "branch";
+
   return (
     <main className="ml-72 pt-24 px-8 pb-12 space-y-8 min-h-screen bg-background">
       <PageHeader
-        title="Tổng quan Kho hàng"
+        title={isBranch ? "Tổng quan Chi nhánh" : "Tổng quan Kho hàng"}
         subtitle={
           <>
             Trạng thái hệ thống:{" "}
@@ -45,19 +47,30 @@ export function Dashboard() {
         role={userDoc?.role ?? "warehouse_manager"}
       />
 
-      <AlertsSection alerts={data?.stockAlerts ?? null} loading={loading} />
+      {!isBranch && (
+        <AlertsSection alerts={data?.stockAlerts ?? null} loading={loading} />
+      )}
 
-      <RevenueChart data={data?.revenueByDay ?? []} loading={loading} />
+      <RevenueChart
+        data={data?.revenueByDay ?? []}
+        loading={loading}
+        weekOnly={isBranch}
+      />
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <TopSellingTable data={data?.topMedicines ?? []} loading={loading} />
-        </div>
-        <StockDynamicsPanel
-          activities={data?.recentActivity ?? []}
-          loading={loading}
-        />
-      </section>
+      {!isBranch && (
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2">
+            <TopSellingTable
+              data={data?.topMedicines ?? []}
+              loading={loading}
+            />
+          </div>
+          <StockDynamicsPanel
+            activities={data?.recentActivity ?? []}
+            loading={loading}
+          />
+        </section>
+      )}
     </main>
   );
 }

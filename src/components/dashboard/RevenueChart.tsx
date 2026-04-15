@@ -13,10 +13,11 @@ const periodLabels: Record<ChartPeriod, string> = {
 interface RevenueChartProps {
   data: DailyRevenue[];
   loading: boolean;
+  weekOnly?: boolean;
 }
 
 /** Revenue trend bar chart — real 7-day POS data. */
-export function RevenueChart({ data, loading }: RevenueChartProps) {
+export function RevenueChart({ data, loading, weekOnly }: RevenueChartProps) {
   const [period, setPeriod] = useState<ChartPeriod>("week");
 
   const maxRevenue = Math.max(...data.map((d) => d.revenue), 1);
@@ -40,22 +41,26 @@ export function RevenueChart({ data, loading }: RevenueChartProps) {
         </div>
 
         {/* Period toggle */}
-        <div className="flex bg-surface-container-low p-1 rounded-xl mr-4">
-          {(["week", "month", "quarter", "year"] as ChartPeriod[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={[
-                "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all",
-                period === p
-                  ? "bg-primary text-on-primary shadow-sm"
-                  : "text-on-surface-variant hover:text-primary",
-              ].join(" ")}
-            >
-              {periodLabels[p]}
-            </button>
-          ))}
-        </div>
+        {!weekOnly && (
+          <div className="flex bg-surface-container-low p-1 rounded-xl mr-4">
+            {(["week", "month", "quarter", "year"] as ChartPeriod[]).map(
+              (p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={[
+                    "px-4 py-1.5 text-xs font-semibold rounded-lg transition-all",
+                    period === p
+                      ? "bg-primary text-on-primary shadow-sm"
+                      : "text-on-surface-variant hover:text-primary",
+                  ].join(" ")}
+                >
+                  {periodLabels[p]}
+                </button>
+              ),
+            )}
+          </div>
+        )}
 
         {/* Legend */}
         <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 border border-primary/10 rounded-lg text-xs font-bold text-primary">

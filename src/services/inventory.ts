@@ -653,6 +653,17 @@ export async function confirmDispatchReceived(
   if (!orderSnap.exists()) throw new Error("Dispatch order not found");
   const order = { ...orderSnap.data(), id: orderSnap.id } as DispatchOrderDoc;
 
+  // Pre-read original warehouse batches so we can clone metadata to branch batches
+  const batchSnaps = await Promise.all(
+    order.items
+      .filter((item) => !!item.batchId)
+      .map((item) => getDoc(doc(db, "batches", item.batchId))),
+  );
+  const batchMap = new Map<string, Record<string, unknown>>();
+  for (const snap of batchSnaps) {
+    if (snap.exists()) batchMap.set(snap.id, snap.data());
+  }
+
   const wb = writeBatch(db);
 
   // Mark dispatch as received
@@ -683,6 +694,32 @@ export async function confirmDispatchReceived(
         quantity: item.quantity,
         minStockLevel: 10,
         updatedAt: serverTimestamp(),
+      });
+    }
+
+    // Create a batch document at the branch location for POS batch selection
+    if (item.batchId) {
+      const original = batchMap.get(item.batchId);
+      const branchBatchRef = doc(collection(db, "batches"));
+      wb.set(branchBatchRef, {
+        id: branchBatchRef.id,
+        medicineId: item.medicineId,
+        medicineName: item.medicineName,
+        medicineSku: item.medicineSku,
+        lot: item.lot,
+        supplierId: original?.supplierId ?? "",
+        supplierName: original?.supplierName ?? "",
+        locationId: order.toLocationId,
+        locationType: "branch",
+        quantity: item.quantity,
+        initialQuantity: item.quantity,
+        importPrice: original?.importPrice ?? item.unitPrice,
+        importDate: original?.importDate ?? serverTimestamp(),
+        expiryDate: original?.expiryDate ?? serverTimestamp(),
+        status: "active",
+        importOrderId: original?.importOrderId ?? "",
+        parentBatchId: item.batchId,
+        createdAt: serverTimestamp(),
       });
     }
   }
@@ -737,35 +774,106 @@ export async function confirmImportRequestFulfilled(
 }
 
 /**
- * Manager confirms a dispatch order is shipped out of warehouse.
- * Marks status as "shipping" and decrements warehouse inventory for each item.
+ * Manager confirms a dispatch order — deducts warehouse stock and
+ * immediately adds inventory + batch records at the target branch.
+ * Status goes straight to "received" (no intermediate shipping step).
  */
 export async function confirmDispatchShipped(orderId: string): Promise<void> {
   const orderSnap = await getDoc(doc(db, "dispatch_orders", orderId));
   if (!orderSnap.exists()) throw new Error("Dispatch order not found");
   const order = { ...orderSnap.data(), id: orderSnap.id } as DispatchOrderDoc;
 
+  // Pre-read warehouse batches to clone metadata for branch batches
+  const batchSnaps = await Promise.all(
+    order.items
+      .filter((item) => !!item.batchId)
+      .map((item) => getDoc(doc(db, "batches", item.batchId))),
+  );
+  const batchMap = new Map<string, Record<string, unknown>>();
+  for (const snap of batchSnaps) {
+    if (snap.exists()) batchMap.set(snap.id, snap.data());
+  }
+
+  // Pre-read branch inventory docs (reads must come before writes in writeBatch)
+  const branchInvSnaps = await Promise.all(
+    order.items.map((item) => {
+      const invId = `${order.toLocationId}_${item.medicineId}`;
+      return getDoc(doc(db, "inventory", invId));
+    }),
+  );
+
   const wb = writeBatch(db);
 
+  // Mark dispatch as received directly
   wb.update(doc(db, "dispatch_orders", orderId), {
-    status: "shipping",
+    status: "received",
     shippedAt: serverTimestamp(),
+    receivedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 
-  for (const item of order.items) {
-    const invId = `${order.fromLocationId}_${item.medicineId}`;
-    const invRef = doc(db, "inventory", invId);
-    wb.update(invRef, {
+  for (let i = 0; i < order.items.length; i++) {
+    const item = order.items[i];
+
+    // ── Deduct from warehouse ──
+    const whInvId = `${order.fromLocationId}_${item.medicineId}`;
+    wb.update(doc(db, "inventory", whInvId), {
       quantity: increment(-item.quantity),
       updatedAt: serverTimestamp(),
     });
 
-    // Also deduct from the specific batch lot
     if (item.batchId) {
       wb.update(doc(db, "batches", item.batchId), {
         quantity: increment(-item.quantity),
         updatedAt: serverTimestamp(),
+      });
+    }
+
+    // ── Add to branch inventory ──
+    const brInvId = `${order.toLocationId}_${item.medicineId}`;
+    const brInvRef = doc(db, "inventory", brInvId);
+    if (branchInvSnaps[i].exists()) {
+      wb.update(brInvRef, {
+        quantity: increment(item.quantity),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      wb.set(brInvRef, {
+        id: brInvId,
+        medicineId: item.medicineId,
+        medicineName: item.medicineName,
+        medicineSku: item.medicineSku,
+        locationId: order.toLocationId,
+        locationType: "branch",
+        quantity: item.quantity,
+        minStockLevel: 10,
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    // ── Create branch batch for POS ──
+    if (item.batchId) {
+      const original = batchMap.get(item.batchId);
+      const branchBatchRef = doc(collection(db, "batches"));
+      wb.set(branchBatchRef, {
+        id: branchBatchRef.id,
+        medicineId: item.medicineId,
+        medicineName: item.medicineName,
+        medicineSku: item.medicineSku,
+        lot: item.lot,
+        supplierId: original?.supplierId ?? "",
+        supplierName: original?.supplierName ?? "",
+        locationId: order.toLocationId,
+        locationType: "branch",
+        quantity: item.quantity,
+        initialQuantity: item.quantity,
+        importPrice: original?.importPrice ?? item.unitPrice,
+        importDate: original?.importDate ?? serverTimestamp(),
+        expiryDate: original?.expiryDate ?? serverTimestamp(),
+        status: "active",
+        importOrderId: original?.importOrderId ?? "",
+        parentBatchId: item.batchId,
+        createdAt: serverTimestamp(),
       });
     }
   }

@@ -5,11 +5,11 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Dashboard } from "@/pages/Dashboard";
 import { Inventory } from "@/pages/Inventory";
 import { Reports } from "@/pages/Reports";
+import { SalesTransactions } from "@/pages/SalesTransactions";
 import { POS } from "@/pages/POS";
 import { Alerts } from "@/pages/Alerts";
 import { Imports } from "@/pages/Imports";
 import { Login } from "@/pages/Login";
-import { Register } from "@/pages/Register";
 import { Dispatches } from "@/pages/Dispatches";
 import { Branches } from "@/pages/Branches";
 import { PWAPrompt } from "@/components/PWAPrompt";
@@ -34,23 +34,7 @@ function LoginPage() {
   const navigate = useNavigate();
   return (
     <>
-      <Login
-        onNavigateToRegister={() => navigate("/register")}
-        onLogin={() => navigate("/")}
-      />
-      <PWAPrompt />
-    </>
-  );
-}
-
-function RegisterPage() {
-  const navigate = useNavigate();
-  return (
-    <>
-      <Register
-        onNavigateToLogin={() => navigate("/login")}
-        onRegister={() => navigate("/login")}
-      />
+      <Login onLogin={() => navigate("/")} />
       <PWAPrompt />
     </>
   );
@@ -92,10 +76,6 @@ function App() {
           path="/login"
           element={user ? <Navigate to="/" replace /> : <LoginPage />}
         />
-        <Route
-          path="/register"
-          element={user ? <Navigate to="/" replace /> : <RegisterPage />}
-        />
 
         {/* Protected routes */}
         <Route
@@ -115,6 +95,7 @@ function App() {
           <Route path="/imports" element={<Imports />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/reports" element={<Reports />} />
+          <Route path="/sales-transactions" element={<SalesTransactions />} />
           <Route
             path="*"
             element={

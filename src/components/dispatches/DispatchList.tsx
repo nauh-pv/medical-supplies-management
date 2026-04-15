@@ -110,7 +110,7 @@ export function DispatchList() {
       await confirmDispatchShipped(orderId);
       setDispatches((prev) =>
         prev.map((d) =>
-          d.id === orderId ? { ...d, status: "shipping" as const } : d,
+          d.id === orderId ? { ...d, status: "received" as const } : d,
         ),
       );
     } catch (e) {

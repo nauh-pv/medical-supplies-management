@@ -17,10 +17,18 @@ const EMPTY_FORM = {
   password: "",
   phone: "",
   branchName: "",
-  branchCode: "",
   branchAddress: "",
   status: "active" as "active" | "paused",
 };
+
+function generateBranchCode(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let suffix = "";
+  for (let i = 0; i < 4; i++) {
+    suffix += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `CN-${suffix}`;
+}
 
 export function BranchFormModal({
   open,
@@ -42,7 +50,6 @@ export function BranchFormModal({
           password: "",
           phone: editBranch.phone ?? "",
           branchName: editBranch.branchName ?? "",
-          branchCode: editBranch.branchCode ?? "",
           branchAddress: editBranch.branchAddress ?? "",
           status: editBranch.status,
         });
@@ -77,7 +84,6 @@ export function BranchFormModal({
           displayName: form.displayName.trim(),
           phone: form.phone.trim(),
           branchName: form.branchName.trim(),
-          branchCode: form.branchCode.trim(),
           branchAddress: form.branchAddress.trim(),
           status: form.status,
         });
@@ -86,7 +92,6 @@ export function BranchFormModal({
           displayName: form.displayName.trim(),
           phone: form.phone.trim(),
           branchName: form.branchName.trim(),
-          branchCode: form.branchCode.trim(),
           branchAddress: form.branchAddress.trim(),
           status: form.status,
         });
@@ -97,7 +102,7 @@ export function BranchFormModal({
           form.displayName.trim(),
           form.phone.trim(),
           form.branchName.trim(),
-          form.branchCode.trim(),
+          generateBranchCode(),
           form.branchAddress.trim(),
         );
         onSuccess();
@@ -142,12 +147,6 @@ export function BranchFormModal({
                 placeholder="VD: Chi nhánh Quận 1"
                 value={form.branchName}
                 onChange={(e) => set("branchName", e.target.value)}
-              />
-              <Input
-                label="Mã chi nhánh"
-                placeholder="VD: CN001"
-                value={form.branchCode}
-                onChange={(e) => set("branchCode", e.target.value)}
               />
               <div className="md:col-span-2">
                 <Input

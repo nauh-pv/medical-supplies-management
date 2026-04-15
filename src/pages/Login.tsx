@@ -88,12 +88,6 @@ export function Login({ onNavigateToRegister, onLogin }: LoginProps) {
                   <label className="block text-xs font-semibold uppercase tracking-widest text-on-surface-variant font-label">
                     Mật khẩu
                   </label>
-                  <button
-                    type="button"
-                    className="text-xs font-semibold text-primary hover:text-primary/70 transition-colors"
-                  >
-                    Quên mật khẩu?
-                  </button>
                 </div>
                 <Input
                   leadingIcon="lock"
@@ -145,17 +139,6 @@ export function Login({ onNavigateToRegister, onLogin }: LoginProps) {
               </span>
               <span className="h-px bg-surface-container-high flex-grow" />
             </div>
-
-            <p className="text-center text-sm text-on-surface-variant mt-6">
-              Chưa có tài khoản?{" "}
-              <button
-                type="button"
-                onClick={onNavigateToRegister}
-                className="text-primary font-bold hover:underline"
-              >
-                Đăng ký ngay
-              </button>
-            </p>
           </div>
 
           {/* Right: Visual panel */}
@@ -181,11 +164,10 @@ export function Login({ onNavigateToRegister, onLogin }: LoginProps) {
                   chuẩn hóa ISO.
                 </p>
               </div>
-              <div className="flex gap-8 items-center text-on-primary/60">
+              <div className="flex gap-8 items-center justify-center text-on-primary/60">
                 {[
                   { value: "99.9%", label: "Độ chính xác" },
                   { value: "24/7", label: "Giám sát kho" },
-                  { value: "500+", label: "Bệnh viện tin dùng" },
                 ].map((stat, i) => (
                   <span key={stat.label} className="flex items-center gap-8">
                     <div className="flex flex-col">
@@ -196,7 +178,7 @@ export function Login({ onNavigateToRegister, onLogin }: LoginProps) {
                         {stat.label}
                       </span>
                     </div>
-                    {i < 2 && <span className="w-px h-8 bg-white/20" />}
+                    {i < 1 && <span className="w-px h-8 bg-white/20" />}
                   </span>
                 ))}
               </div>

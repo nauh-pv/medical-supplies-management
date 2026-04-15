@@ -10,7 +10,6 @@ import { POS } from "@/pages/POS";
 import { Alerts } from "@/pages/Alerts";
 import { Imports } from "@/pages/Imports";
 import { Login } from "@/pages/Login";
-import { Register } from "@/pages/Register";
 import { Dispatches } from "@/pages/Dispatches";
 import { Branches } from "@/pages/Branches";
 import { PWAPrompt } from "@/components/PWAPrompt";
@@ -38,19 +37,6 @@ function LoginPage() {
       <Login
         onNavigateToRegister={() => navigate("/register")}
         onLogin={() => navigate("/")}
-      />
-      <PWAPrompt />
-    </>
-  );
-}
-
-function RegisterPage() {
-  const navigate = useNavigate();
-  return (
-    <>
-      <Register
-        onNavigateToLogin={() => navigate("/login")}
-        onRegister={() => navigate("/login")}
       />
       <PWAPrompt />
     </>
@@ -92,10 +78,6 @@ function App() {
         <Route
           path="/login"
           element={user ? <Navigate to="/" replace /> : <LoginPage />}
-        />
-        <Route
-          path="/register"
-          element={user ? <Navigate to="/" replace /> : <RegisterPage />}
         />
 
         {/* Protected routes */}

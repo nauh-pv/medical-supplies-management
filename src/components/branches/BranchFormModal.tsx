@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { Modal, Button, Input } from "@/components/common";
-import { adminCreateBranchUser } from "@/services/auth";
+import {
+  adminCreateBranchUser,
+  sendBranchPasswordReset,
+} from "@/services/auth";
 import { updateBranchUser } from "@/services/user";
 import type { UserDoc } from "@/types/firestore";
 
@@ -40,6 +43,8 @@ export function BranchFormModal({
   const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -57,6 +62,7 @@ export function BranchFormModal({
         setForm(EMPTY_FORM);
       }
       setError(null);
+      setResetSent(false);
     }
   }, [open, isEdit, editBranch]);
 
@@ -193,6 +199,39 @@ export function BranchFormModal({
                   value={form.password}
                   onChange={(e) => set("password", e.target.value)}
                 />
+              )}
+              {isEdit && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-label uppercase tracking-[0.05em] text-on-surface-variant">
+                    Mật khẩu
+                  </label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    icon={resetSent ? "check_circle" : "lock_reset"}
+                    disabled={resetting || resetSent}
+                    onClick={async () => {
+                      if (!editBranch?.email) return;
+                      setResetting(true);
+                      try {
+                        await sendBranchPasswordReset(editBranch.email);
+                        setResetSent(true);
+                      } catch (err: unknown) {
+                        setError(
+                          err instanceof Error ? err.message : String(err),
+                        );
+                      } finally {
+                        setResetting(false);
+                      }
+                    }}
+                  >
+                    {resetting
+                      ? "Đang gửi…"
+                      : resetSent
+                        ? "Đã gửi email đặt lại mật khẩu"
+                        : "Gửi email đặt lại mật khẩu"}
+                  </Button>
+                </div>
               )}
               {isEdit && (
                 <div className="flex flex-col gap-1">

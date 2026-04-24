@@ -2,6 +2,26 @@
 applyTo: "src/**/*.{tsx,ts}"
 ---
 
+## ⛔ RULE 0 — NEVER INTERRUPT. EVERY RESPONSE ENDS WITH `ask_user`.
+
+**This rule applies to ALL responses — no exceptions.**
+
+- ❌ Never end a response with plain text conclusions ("Done!", "Let me know if there's an issue")
+- ❌ Never leave the human without a prompt — always close the loop
+- ✅ Every response that completes a unit of work MUST end with `ask_user` to check if the problem is resolved or if anything is unclear
+- ✅ If mid-task clarification is needed, use `ask_user` — do NOT just say "I need more info" in text
+
+```
+// After a task is fully done — ALWAYS end with this:
+ask_user(
+  question: "Is there anything else you'd like me to work on?",
+  choices: ["Yes, give me a new task", "No, that's all for now"],
+  allow_freeform: true
+)
+```
+
+---
+
 # UI Common Components — Medical Supplies Management
 
 > **RULES (enforce every time):**

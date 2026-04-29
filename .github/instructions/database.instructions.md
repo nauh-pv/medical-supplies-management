@@ -33,7 +33,6 @@ NCC giao hàng → Kho Tổng nhận, nhân viên nhập liệu thủ công → 
 Kho Tổng      → [dispatch_orders] → Chi nhánh
 Chi nhánh     → [import_requests] → Kho Tổng  (yêu cầu hàng)
 Chi nhánh     → [pos_transactions]→ Khách hàng
-Mọi biến động → [stock_movements] (audit trail)
 ```
 
 > ⚠️ **Lưu ý luồng nhập kho:** Kho tổng **không** tạo đơn đặt hàng trước. Khi hàng từ NCC về, nhân viên kho mở web và nhập phiếu nhập kho ngay lúc đó. Document `import_orders` chỉ được tạo **một lần duy nhất** khi hàng đã có mặt tại kho.
@@ -77,42 +76,7 @@ interface UserDoc {
 
 ---
 
-### 2. `branches`
-
-**Path:** `/branches/{branchId}`  
-**Mục đích:** Danh sách các chi nhánh trong hệ thống. Quản lý kho tạo và quản lý, chi nhánh chỉ đọc.
-
-| Field         | Kiểu      | Giải thích                                                     |
-| ------------- | --------- | -------------------------------------------------------------- |
-| `id`          | string    | Document ID, dùng làm `branchId` ở khắp nơi                    |
-| `code`        | string    | Mã chi nhánh ngắn gọn, ví dụ `CN001`, `CN002`                  |
-| `name`        | string    | Tên đầy đủ chi nhánh, ví dụ "Chi nhánh Quận 1"                 |
-| `address`     | string    | Địa chỉ chi nhánh                                              |
-| `phone`       | string    | Số điện thoại chi nhánh                                        |
-| `managerId`   | string    | `uid` của người phụ trách chi nhánh (ref → `users`)            |
-| `managerName` | string    | Tên người phụ trách (copy sẵn để tránh join)                   |
-| `status`      | string    | Trạng thái: `active` (đang hoạt động) hoặc `paused` (tạm dừng) |
-| `createdAt`   | Timestamp | Ngày tạo chi nhánh                                             |
-| `updatedAt`   | Timestamp | Lần cập nhật cuối                                              |
-
-```ts
-interface BranchDoc {
-  id: string;
-  code: string; // "CN001"
-  name: string; // "Chi nhánh Quận 1"
-  address: string;
-  phone: string;
-  managerId: string; // uid của user phụ trách
-  managerName: string; // denormalized từ users
-  status: "active" | "paused";
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
-```
-
----
-
-### 3. `medicines`
+### 2. `medicines`
 
 **Path:** `/medicines/{medicineId}`  
 **Quản lý bởi:** `warehouse_manager` only  
@@ -804,100 +768,11 @@ await runTransaction(db, async (tx) => {
 
 ---
 
-### 12. `stock_movements`
-
-**Path:** `/stock_movements/{movementId}`  
-**Mục đích:** Audit trail — ghi lại **mọi** thay đổi tồn kho, tự động tạo khi: nhập hàng, xuất hàng, bán POS, điều chỉnh thủ công. Không bao giờ xoá document này — chỉ thêm mới.
-
-| Field            | Kiểu          | Giải thích                                                        |
-| ---------------- | ------------- | ----------------------------------------------------------------- |
-| `id`             | string        | Document ID                                                       |
-| `type`           | MovementType  | Loại biến động (xem bảng bên dưới)                                |
-| `medicineId`     | string        | ID sản phẩm bị ảnh hưởng                                          |
-| `medicineName`   | string        | Tên sản phẩm (copy sẵn)                                           |
-| `medicineSku`    | string        | Mã SKU (copy sẵn)                                                 |
-| `lot`            | string        | Số lô liên quan                                                   |
-| `batchId`        | string        | ID lô liên quan (ref → `batches`)                                 |
-| `locationId`     | string        | Địa điểm xảy ra biến động                                         |
-| `locationType`   | string        | `warehouse` hoặc `branch`                                         |
-| `quantityChange` | number        | Thay đổi số lượng: **dương (+)** = nhập vào, **âm (-)** = xuất ra |
-| `quantityBefore` | number        | Tồn kho trước biến động                                           |
-| `quantityAfter`  | number        | Tồn kho sau biến động                                             |
-| `referenceType`  | ReferenceType | Loại document gây ra biến động (xem bảng bên dưới)                |
-| `referenceId`    | string        | ID document gây ra biến động                                      |
-| `createdBy`      | string        | `uid` người thực hiện thao tác                                    |
-| `createdByName`  | string        | Tên người thực hiện (copy sẵn)                                    |
-| `notes`          | string        | Ghi chú thêm                                                      |
-| `createdAt`      | Timestamp     | Thời điểm biến động                                               |
-
-**Các giá trị `MovementType`:**
-
-| Giá trị        | Ý nghĩa                                 |
-| -------------- | --------------------------------------- |
-| `import`       | Nhập hàng từ NCC vào kho                |
-| `dispatch_out` | Xuất hàng từ kho/chi nhánh đi           |
-| `dispatch_in`  | Nhận hàng điều phối đến                 |
-| `sale`         | Bán lẻ qua POS                          |
-| `adjustment`   | Điều chỉnh thủ công (kiểm kê, sai lệch) |
-| `return`       | Trả hàng về kho                         |
-
-**Các giá trị `ReferenceType`:**
-
-| Giá trị           | Document liên quan                      |
-| ----------------- | --------------------------------------- |
-| `import_order`    | `import_orders`                         |
-| `dispatch_order`  | `dispatch_orders`                       |
-| `pos_transaction` | `pos_transactions`                      |
-| `import_request`  | `import_requests`                       |
-| `manual`          | Không có document — điều chỉnh thủ công |
-
-```ts
-type MovementType =
-  | "import"
-  | "dispatch_out"
-  | "dispatch_in"
-  | "sale"
-  | "adjustment"
-  | "return";
-type ReferenceType =
-  | "import_order"
-  | "dispatch_order"
-  | "pos_transaction"
-  | "import_request"
-  | "manual";
-
-interface StockMovementDoc {
-  id: string;
-  type: MovementType;
-  medicineId: string;
-  medicineName: string; // denormalized
-  medicineSku: string; // denormalized
-  lot: string;
-  batchId: string;
-  locationId: string; // nơi xảy ra biến động
-  locationType: "warehouse" | "branch";
-  quantityChange: number; // dương = tăng, âm = giảm
-  quantityBefore: number;
-  quantityAfter: number;
-  referenceType: ReferenceType;
-  referenceId: string; // ID của document gây ra biến động
-  createdBy: string; // uid
-  createdByName: string; // denormalized
-  notes: string;
-  createdAt: Timestamp;
-}
-```
-
-> **Branch query:** `where("locationId", "==", branchId).orderBy("createdAt", "desc")`
-
----
-
 ## Phân quyền theo Role
 
 | Collection                    | `warehouse_manager` | `branch`                                                                |
 | ----------------------------- | ------------------- | ----------------------------------------------------------------------- |
 | `users`                       | Read/Write tất cả   | Read/Write của chính mình                                               |
-| `branches`                    | Read/Write tất cả   | Read của chi nhánh mình                                                 |
 | `medicines`                   | Read/Write          | Read only                                                               |
 | `inventory`                   | Read/Write tất cả   | Read: `locationId == branchId`                                          |
 | `batches`                     | Read/Write tất cả   | Read: `locationId == branchId`                                          |
@@ -907,7 +782,6 @@ interface StockMovementDoc {
 | `dispatch_orders`             | Read/Write tất cả   | Read: `toLocationId == branchId`; Write: update `status` → `"received"` |
 | `import_requests`             | Read/Write tất cả   | Read/Write: `branchId == mình`                                          |
 | `pos_transactions`            | Read tất cả         | Read/Write: `branchId == mình`                                          |
-| `stock_movements`             | Read tất cả         | Read: `locationId == branchId`                                          |
 | `branches/{id}/daily_stats`   | Read/Write tất cả   | Read/Write của chi nhánh mình                                           |
 | `branches/{id}/monthly_stats` | Read/Write tất cả   | Read/Write của chi nhánh mình                                           |
 
@@ -915,19 +789,17 @@ interface StockMovementDoc {
 
 ## Indexing gợi ý (Firestore Composite Indexes)
 
-| Collection                    | Fields                                               |
-| ----------------------------- | ---------------------------------------------------- |
-| `inventory`                   | `locationId ASC`, `medicineId ASC`                   |
-| `inventory`                   | `locationId ASC`, `quantity ASC`                     |
-| `batches`                     | `locationId ASC`, `expiryDate ASC`                   |
-| `batches`                     | `medicineId ASC`, `locationId ASC`                   |
-| `dispatch_orders`             | `toLocationId ASC`, `createdAt DESC`                 |
-| `dispatch_orders`             | `status ASC`, `createdAt DESC`                       |
-| `import_requests`             | `branchId ASC`, `status ASC`, `createdAt DESC`       |
-| `pos_transactions`            | `branchId ASC`, `createdAt DESC`                     |
-| `stock_movements`             | `locationId ASC`, `createdAt DESC`                   |
-| `stock_movements`             | `medicineId ASC`, `locationId ASC`, `createdAt DESC` |
-| `branches/{id}/daily_stats`   | `year ASC`, `month ASC`                              |
-| `branches/{id}/daily_stats`   | `year ASC`, `week ASC`                               |
-| `branches/{id}/monthly_stats` | `year ASC`, `month ASC`                              |
-| `branches/{id}/monthly_stats` | `year ASC`, `quarter ASC`                            |
+| Collection                    | Fields                                         |
+| ----------------------------- | ---------------------------------------------- |
+| `inventory`                   | `locationId ASC`, `medicineId ASC`             |
+| `inventory`                   | `locationId ASC`, `quantity ASC`               |
+| `batches`                     | `locationId ASC`, `expiryDate ASC`             |
+| `batches`                     | `medicineId ASC`, `locationId ASC`             |
+| `dispatch_orders`             | `toLocationId ASC`, `createdAt DESC`           |
+| `dispatch_orders`             | `status ASC`, `createdAt DESC`                 |
+| `import_requests`             | `branchId ASC`, `status ASC`, `createdAt DESC` |
+| `pos_transactions`            | `branchId ASC`, `createdAt DESC`               |
+| `branches/{id}/daily_stats`   | `year ASC`, `month ASC`                        |
+| `branches/{id}/daily_stats`   | `year ASC`, `week ASC`                         |
+| `branches/{id}/monthly_stats` | `year ASC`, `month ASC`                        |
+| `branches/{id}/monthly_stats` | `year ASC`, `quarter ASC`                      |

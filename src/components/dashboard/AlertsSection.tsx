@@ -1,5 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import { Badge, Button } from "@/components/common";
 import type { StockAlert } from "@/services/dashboard";
+
+const MAX_DASHBOARD_ITEMS = 5;
 
 interface AlertsSectionProps {
   alerts: StockAlert | null;
@@ -21,6 +24,7 @@ function AlertCard({
   badgeVariant: "error" | "warning";
   children: React.ReactNode;
 }) {
+  const navigate = useNavigate();
   return (
     <div className="bg-surface-container-lowest rounded-[1.5rem] p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)] flex flex-col">
       <div className="flex items-center justify-between mb-6">
@@ -36,12 +40,12 @@ function AlertCard({
       </div>
       <div className="space-y-4 flex-1">{children}</div>
       <div className="mt-6 text-center">
-        <a
-          href="#"
+        <button
+          onClick={() => navigate("/alerts")}
           className="text-sm font-semibold text-primary hover:underline"
         >
           Xem thêm
-        </a>
+        </button>
       </div>
     </div>
   );
@@ -51,8 +55,8 @@ const LOADING_ROWS = Array.from({ length: 2 }, (_, i) => i);
 
 /** Expiring soon + low stock alert panels — real Firestore data. */
 export function AlertsSection({ alerts, loading }: AlertsSectionProps) {
-  const expiringSoon = alerts?.expiringSoon ?? [];
-  const lowStock = alerts?.lowStock ?? [];
+  const expiringSoon = (alerts?.expiringSoon ?? []).slice(0, MAX_DASHBOARD_ITEMS);
+  const lowStock = (alerts?.lowStock ?? []).slice(0, MAX_DASHBOARD_ITEMS);
 
   return (
     <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">

@@ -112,12 +112,15 @@ export function InventoryTable({
     getBranches().then(setBranches);
   }, []);
 
-  const filtered = medicines.filter(
-    (m) =>
-      m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.sku.toLowerCase().includes(search.toLowerCase()) ||
-      m.unitName.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = medicines
+    .filter(
+      (m) =>
+        m.name.toLowerCase().includes(search.toLowerCase()) ||
+        m.sku.toLowerCase().includes(search.toLowerCase()) ||
+        m.unitName.toLowerCase().includes(search.toLowerCase()),
+    )
+    .sort((a, b) => getStock(b.id) - getStock(a.id));
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paged = filtered.slice(
     (page - 1) * ITEMS_PER_PAGE,
@@ -451,6 +454,7 @@ export function InventoryTable({
           medicineName={batchMed.name}
           unitName={batchMed.unitName}
           sku={batchMed.sku}
+          locationId={locationId}
         />
       )}
 

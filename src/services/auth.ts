@@ -4,6 +4,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   updateProfile,
+  sendPasswordResetEmail,
   getAuth,
   type User,
 } from "firebase/auth";
@@ -106,4 +107,8 @@ export async function adminCreateBranchUser(
 
 export function onAuthChanged(callback: (user: User | null) => void) {
   return onAuthStateChanged(auth, callback);
+}
+
+export async function sendBranchPasswordReset(email: string): Promise<void> {
+  await sendPasswordResetEmail(auth, email);
 }

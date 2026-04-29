@@ -19,7 +19,9 @@ src/
     inventory/       ← Sub-components for the Inventory page (InventoryStats, InventoryTable, AddMedicineModal, ImportDetailModal, InventoryImportTab)
     units/           ← Sub-components for the Units tab (UnitTable)
     imports/         ← Sub-components for the Imports page (ImportList, CreateRequestForm, ImportUploadZone, CreateImportModal)
-    dispatches/      ← Sub-components for the Dispatches/Shipping page (CreateDispatchForm)
+    dispatches/      ← Sub-components for the Dispatches page (CreateDispatchForm)
+    branches/        ← Sub-components for the Branches page (BranchFormModal, BranchStatCards, BranchTable)
+    suppliers/       ← Sub-components for the Suppliers section (SupplierTable, SupplierFormModal)
     reports/         ← Sub-components for the Reports page (RevenueChartPanel, ReportStatCards, BestSellersPanel, BranchDistribution)
     pos/             ← Sub-components for the POS page (ProductGrid, OrderSummary)
     alerts/          ← Sub-components for the Alerts page (LowStockGrid, ExpiryTable)
@@ -106,19 +108,55 @@ export function Inventory() {
 
 ## Navigation / Page Routing
 
-- Navigation state lives in `App.tsx` as `activePage: NavId`.
-- `Sidebar` receives `active` + `onNavigate` props — it does NOT own navigation state.
-- Adding a new page: (1) add `NavId` to Sidebar's type export, (2) add entry to `pages` map in `App.tsx`.
-- `NavId` is exported from `Sidebar.tsx`. Current values: `"dashboard" | "inventory" | "shipping" | "suppliers" | "reports" | "settings" | "pos" | "alerts"`.
-- Note: `pos` and `alerts` are registered NavIds but do NOT have sidebar nav links (sidebar is frozen). They are only reachable programmatically.
+- App uses **React Router v6** (`<Routes>`, `<Route>`). Routes are defined in `App.tsx`.
+- `Sidebar` uses `useLocation()` to detect active route — it does NOT own navigation state.
+- Adding a new page: (1) add `NavId` and its path to `NAV_PATH` in `Sidebar.tsx`, (2) add `<Route>` in `App.tsx`.
+- `NavId` is exported from `Sidebar.tsx`. Current values:
+
+```ts
+export type NavId =
+  | "dashboard" // path: "/"
+  | "inventory" // path: "/inventory"
+  | "reports" // path: "/sales-transactions" (SalesTransactions page)
+  | "alerts" // path: "/alerts" — nav item is commented out in sidebar
+  | "pos" // path: "/pos"
+  | "medication" // path: "/dispatches" (Dispatches page)
+  | "branches" // path: "/branches"
+  | "imports" // path: "/imports" — BRANCH users only
+  | "settings"; // path: "/settings"
+```
+
+**Role-based nav visibility:**
+
+- `BRANCH_NAV_IDS = ["dashboard", "pos"]` — visible to ALL roles (both warehouse_manager and branch)
+- `BRANCH_ONLY_IDS = ["imports"]` — visible to `branch` role only; hidden from `warehouse_manager`
+- All other navItems are warehouse_manager only
+
+**Current routes registered in App.tsx:**
+
+| Path                  | Component               | Note                                                |
+| --------------------- | ----------------------- | --------------------------------------------------- |
+| `/`                   | `<Dashboard />`         |                                                     |
+| `/inventory`          | `<Inventory />`         |                                                     |
+| `/pos`                | `<POS />`               |                                                     |
+| `/dispatches`         | `<Dispatches />`        | NavId: `medication`                                 |
+| `/branches`           | `<Branches />`          |                                                     |
+| `/imports`            | `<Imports />`           | Branch-only                                         |
+| `/alerts`             | `<Alerts />`            | Sidebar link commented out                          |
+| `/reports`            | `<Reports />`           | No sidebar link — use `/sales-transactions` instead |
+| `/sales-transactions` | `<SalesTransactions />` | NavId: `reports`                                    |
+| `/login`              | `<Login />`             | Public                                              |
 
 ```tsx
-// App.tsx pattern
-const pages: Partial<Record<NavId, React.ReactNode>> = {
-  dashboard: <Dashboard />,
-  inventory: <Inventory />,
-  // Add new pages here ↓
-};
+// App.tsx pattern — React Router v6
+<Routes>
+  <Route path="/login" element={<Login />} />
+  <Route element={<AppLayout />}>
+    <Route index element={<Dashboard />} />
+    <Route path="/inventory" element={<Inventory />} />
+    {/* Add new routes here ↓ */}
+  </Route>
+</Routes>
 ```
 
 ---
@@ -143,14 +181,19 @@ const pages: Partial<Record<NavId, React.ReactNode>> = {
 
 ## Instruction Maintenance Rules
 
-These instruction files are living documents. Keep them in sync with the code.
+These instruction files are living documents. **Update them automatically** whenever relevant code changes.
 
-| Event                                         | Files to update                                                                              |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| New common component added                    | `copilot-instructions.md` — add section; `common/index.ts` — export                          |
-| Existing common modified (new prop / variant) | `copilot-instructions.md` — update that component's section                                  |
-| New page created                              | `architecture.instructions.md` — add page to folder structure if it introduces a new pattern |
-| New design token used                         | `design-tokens.instructions.md` — add to relevant table                                      |
-| New nav item added                            | `architecture.instructions.md` — update `NavId` table if needed                              |
+| Event                                         | Files to update                                                                 |
+| --------------------------------------------- | ------------------------------------------------------------------------------- |
+| New common component added                    | `copilot-instructions.md` — add section; `common/index.ts` — export             |
+| Existing common modified (new prop / variant) | `copilot-instructions.md` — update that component's section                     |
+| New page created                              | `architecture.instructions.md` — update NavId table + routes table              |
+| New nav item added to Sidebar                 | `architecture.instructions.md` — update `NavId` type block + `NAV_PATH` mapping |
+| New route added to App.tsx                    | `architecture.instructions.md` — update routes table                            |
+| New design token used                         | `design-tokens.instructions.md` — add to relevant table                         |
+| New Firestore collection queried/written      | `database.instructions.md` — add collection schema section                      |
+| Existing collection schema changed            | `database.instructions.md` — update relevant section                            |
+| Collection removed / deprecated               | `database.instructions.md` — remove section; `firestore.ts` — remove dead types |
+| `pos.ts` stats write logic changed            | `analytics.instructions.md` — update TRẠNG THÁI HIỆN TẠI note and schema        |
 
-> **Rule:** If you change a common component's props or variants and do NOT update `copilot-instructions.md`, future code will be generated from stale documentation and will diverge from the real API.
+> **RULE (bắt buộc):** Sau khi thay đổi bất kỳ file nào ở trên, **ngay lập tức** update instruction file tương ứng trong cùng 1 turn. Không để instruction drift khỏi code thực tế.

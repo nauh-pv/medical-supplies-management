@@ -217,9 +217,10 @@ export function DispatchDetailModal({
 
       {/* Footer */}
       <div className="px-10 py-6 border-t border-outline-variant/10 bg-surface-container-low/30 flex items-center justify-between">
-        <Button variant="ghost" icon="print">
+        {/* <Button variant="ghost" icon="print">
           In phiếu xuất
-        </Button>
+        </Button> */}
+        <div></div>
         <div className="flex gap-3">
           <Button variant="ghost" onClick={onClose}>
             Đóng

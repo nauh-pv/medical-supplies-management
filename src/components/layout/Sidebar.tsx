@@ -29,11 +29,11 @@ const navItems: { icon: string; label: string; id: NavId }[] = [
   { icon: "point_of_sale", label: "Bán hàng", id: "pos" },
   { icon: "inventory_2", label: "Kho hàng", id: "inventory" },
   { icon: "analytics", label: "Báo cáo", id: "reports" },
-  // { icon: "warning", label: "Cảnh báo hàng hóa", id: "alerts" },
+  { icon: "warning", label: "Cảnh báo hàng hóa", id: "alerts" },
   { icon: "medication", label: "Quản lý xuất kho", id: "medication" },
   { icon: "account_tree", label: "Chi nhánh", id: "branches" },
   { icon: "input", label: "Yêu cầu nhập thuốc", id: "imports" },
-  { icon: "settings", label: "Cài đặt", id: "settings" },
+  // { icon: "settings", label: "Cài đặt", id: "settings" },
 ];
 
 const BRANCH_NAV_IDS: NavId[] = ["dashboard", "pos"];
@@ -100,13 +100,13 @@ export function Sidebar({ role, onLogout }: SidebarProps) {
       </nav>
 
       <div className="px-4 mt-auto border-t border-outline-variant/20 pt-4 pb-6 space-y-1">
-        <a
+        {/* <a
           href="#"
           className="flex items-center gap-3 text-on-surface-variant pl-5 py-3 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl"
         >
           <span className="material-symbols-outlined">support_agent</span>
           <span className="text-sm font-medium">Hỗ trợ kỹ thuật</span>
-        </a>
+        </a> */}
         <a
           href="#"
           onClick={(e) => {

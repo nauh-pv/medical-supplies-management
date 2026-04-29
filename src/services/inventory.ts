@@ -147,6 +147,37 @@ export async function getInventory(
   return snap.docs.map((d) => ({ ...d.data(), id: d.id }) as InventoryDoc);
 }
 
+// ── Alert Queries ─────────────────────────────────────────────────────────
+
+export async function getLowStockAlerts(
+  locationId: string,
+): Promise<InventoryDoc[]> {
+  const inv = await getInventory(locationId);
+  return inv
+    .filter((i) => i.quantity <= i.minStockLevel)
+    .sort((a, b) => {
+      const ratioA = a.minStockLevel > 0 ? a.quantity / a.minStockLevel : 0;
+      const ratioB = b.minStockLevel > 0 ? b.quantity / b.minStockLevel : 0;
+      return ratioA - ratioB;
+    });
+}
+
+export async function getNearExpiryBatches(
+  locationId: string,
+  daysAhead = 90,
+): Promise<BatchDoc[]> {
+  const batches = await getActiveBatches(locationId);
+  const now = Date.now();
+  const threshold = now + daysAhead * 24 * 60 * 60 * 1000;
+  const getMs = (ts: unknown): number => {
+    const t = ts as { toMillis?: () => number; seconds?: number };
+    return t?.toMillis?.() ?? (t?.seconds ?? 0) * 1000;
+  };
+  return batches
+    .filter((b) => getMs(b.expiryDate) <= threshold)
+    .sort((a, b) => getMs(a.expiryDate) - getMs(b.expiryDate));
+}
+
 // ── Units ──────────────────────────────────────────────────────────────────
 
 export async function getUnits(): Promise<UnitDoc[]> {
@@ -311,9 +342,14 @@ export async function getActiveBatches(
 
 export async function getBatchesByMedicine(
   medicineId: string,
+  locationId: string,
 ): Promise<BatchDoc[]> {
   const snap = await getDocs(
-    query(collection(db, "batches"), where("medicineId", "==", medicineId)),
+    query(
+      collection(db, "batches"),
+      where("medicineId", "==", medicineId),
+      where("locationId", "==", locationId),
+    ),
   );
   return snap.docs
     .map((d) => ({ ...d.data(), id: d.id }) as BatchDoc)

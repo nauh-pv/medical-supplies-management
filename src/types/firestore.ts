@@ -15,19 +15,6 @@ export type ImportRequestStatus =
   | "fulfilled";
 export type PaymentMethod = "cash" | "card" | "transfer";
 export type RequestPriority = "urgent" | "normal" | "low";
-export type MovementType =
-  | "import"
-  | "dispatch_out"
-  | "dispatch_in"
-  | "sale"
-  | "adjustment"
-  | "return";
-export type ReferenceType =
-  | "import_order"
-  | "dispatch_order"
-  | "pos_transaction"
-  | "import_request"
-  | "manual";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. users
@@ -50,24 +37,7 @@ export interface UserDoc {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. branches
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface BranchDoc {
-  id: string;
-  code: string;
-  name: string;
-  address: string;
-  phone: string;
-  managerId: string;
-  managerName: string;
-  status: "active" | "paused";
-  createdAt: Timestamp;
-  updatedAt: Timestamp;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 3. medicines
+// 2. medicines
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type MedicineCategory = "prescribed" | "otc";
@@ -296,69 +266,6 @@ export interface PosTransactionDoc {
   discount: number;
   total: number;
   paymentMethod: PaymentMethod;
-  notes: string;
-  createdAt: Timestamp;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Stats subcollections (branches/{branchId}/daily_stats, monthly_stats)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface DailyStatsDoc {
-  date: string; // "YYYY-MM-DD" — document ID
-  year: number;
-  month: number; // 1–12
-  week: number; // ISO week 1–53
-  branchId: string;
-  totalRevenue: number;
-  totalCost: number;
-  totalProfit: number;
-  totalOrders: number;
-  totalItems: number;
-  cashRevenue: number;
-  cardRevenue: number;
-  transferRevenue: number;
-  updatedAt: Timestamp;
-}
-
-export interface MonthlyStatsDoc {
-  yearMonth: string; // "YYYY-MM" — document ID
-  year: number;
-  month: number; // 1–12
-  quarter: number; // 1–4
-  branchId: string;
-  totalRevenue: number;
-  totalCost: number;
-  totalProfit: number;
-  totalOrders: number;
-  totalItems: number;
-  cashRevenue: number;
-  cardRevenue: number;
-  transferRevenue: number;
-  updatedAt: Timestamp;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 12. stock_movements
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface StockMovementDoc {
-  id: string;
-  type: MovementType;
-  medicineId: string;
-  medicineName: string;
-  medicineSku: string;
-  lot: string;
-  batchId: string;
-  locationId: string;
-  locationType: LocationType;
-  quantityChange: number;
-  quantityBefore: number;
-  quantityAfter: number;
-  referenceType: ReferenceType;
-  referenceId: string;
-  createdBy: string;
-  createdByName: string;
   notes: string;
   createdAt: Timestamp;
 }

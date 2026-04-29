@@ -4,13 +4,13 @@ applyTo: "src/**/*.{tsx,ts}"
 
 # Analytics & Chart Data Pattern — Medical Supplies Management
 
+> **TRẠNG THÁI HIỆN TẠI:** `daily_stats` đang được ghi với schema **đơn giản hóa**. Schema đầy đủ (totalCost, totalProfit, year, month…) **chưa được implement** — xem ghi chú bên dưới.
+
 > **RULES (enforce every time):**
 >
 > 1. **Không bao giờ query `pos_transactions` để vẽ biểu đồ.** Luôn đọc `daily_stats` hoặc `monthly_stats`.
-> 2. Khi tạo POS transaction, **bắt buộc** cập nhật cả `daily_stats` và `monthly_stats` trong cùng 1 `runTransaction`.
-> 3. Tính `totalCost` = tổng `(batch.importPrice × qty)` của từng item trong transaction tại thời điểm bán.
-> 4. Tính `totalProfit` = `totalRevenue - totalCost` — tính sẵn lúc ghi, không tính lại khi đọc.
-> 5. Document ID của `daily_stats` luôn là `YYYY-MM-DD`. Document ID của `monthly_stats` luôn là `YYYY-MM`.
+> 2. Khi tạo POS transaction, **bắt buộc** cập nhật `daily_stats` trong cùng 1 `runTransaction`.
+> 3. Document ID của `daily_stats` luôn là `YYYY-MM-DD`.
 
 ---
 
@@ -60,9 +60,7 @@ const chartData = days.map((date, i) => ({
 }));
 ```
 
----
-
-### Biểu đồ theo tháng (tháng hiện tại — từng ngày)
+> ⚠️ Các ví dụ query bên dưới dùng field `totalRevenue`, `totalProfit`, `year`, `month` — những field này **chưa có** cho đến khi `pos.ts` được update để ghi schema đầy đủ. (tháng hiện tại — từng ngày)
 
 ```ts
 // Lấy tất cả daily_stats của tháng hiện tại
@@ -199,6 +197,27 @@ const summary = branchIds.map((branchId, i) => ({
 
 ## Cách ghi stats khi tạo POS transaction
 
+> ⚠️ **TRẠNG THÁI HIỆN TẠI (đã implement):** `pos.ts` chỉ ghi schema đơn giản vào `daily_stats`:
+>
+> ```ts
+> // Schema đang được ghi (simplified — src/services/pos.ts)
+> tx.set(statsRef, {
+>   date: today, // "YYYY-MM-DD"
+>   branchId,
+>   revenue: total, // ← tên field khác với spec phía dưới
+>   txCount: 1,
+> });
+> // On update: { revenue: increment(total), txCount: increment(1) }
+> ```
+>
+> `monthly_stats` **chưa được ghi** ở bất kỳ đâu.
+>
+> **Để implement đầy đủ analytics**, cần update `pos.ts` để ghi đúng schema dưới đây.
+
+---
+
+### Schema đầy đủ (cần implement)
+
 ```ts
 import {
   runTransaction,
@@ -231,7 +250,6 @@ async function createPosTransaction(
   const txRef = doc(collection(db, "pos_transactions"));
   const batchRef = doc(db, `batches/${txData.items[0].batchId}`); // lặp cho multi-item
   const inventoryRef = doc(db, `inventory/${inventoryId}`);
-  const movementRef = doc(collection(db, "stock_movements"));
   const dailyRef = doc(db, `branches/${branchId}/daily_stats/${dateStr}`);
   const monthlyRef = doc(db, `branches/${branchId}/monthly_stats/${yearMonth}`);
 
@@ -256,29 +274,9 @@ async function createPosTransaction(
         quantity: increment(-item.quantity),
         updatedAt: serverTimestamp(),
       });
-
-      // 4. Ghi stock_movement cho từng item
-      const movRef = doc(collection(db, "stock_movements"));
-      tx.set(movRef, {
-        type: "sale",
-        medicineId: item.medicineId,
-        medicineName: item.medicineName,
-        medicineSku: item.medicineSku,
-        lot: item.lot,
-        batchId: item.batchId,
-        locationId: branchId,
-        locationType: "branch",
-        quantityChange: -item.quantity,
-        referenceType: "pos_transaction",
-        referenceId: txRef.id,
-        createdBy: txData.createdBy,
-        createdByName: txData.createdByName,
-        notes: "",
-        createdAt: serverTimestamp(),
-      });
     }
 
-    // 5. Cập nhật daily_stats (merge: true → tự tạo nếu chưa có)
+    // 4. Cập nhật daily_stats (merge: true → tự tạo nếu chưa có)
     const dailyPaymentField =
       txData.paymentMethod === "cash"
         ? "cashRevenue"

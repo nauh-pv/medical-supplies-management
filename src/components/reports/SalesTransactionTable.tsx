@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Badge, Pagination, Modal } from "@/components/common";
-import type { PosTransactionDoc } from "@/types/firestore";
+import { Badge, Pagination, Modal, DataTable } from "@/components/common";
+import type { PosTransactionDoc, PosTransactionItem } from "@/types/firestore";
 
 const PAGE_SIZE = 8;
 
@@ -60,118 +60,106 @@ export function SalesTransactionTable({
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low/60">
-                <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant font-label">
-                  Mã hóa đơn
-                </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant font-label">
-                  Ngày bán
-                </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant font-label">
-                  Chi nhánh
-                </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant font-label">
-                  Tổng tiền
-                </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant font-label">
-                  PT Thanh toán
-                </th>
-                <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant font-label">
-                  Trạng thái
-                </th>
-                <th className="px-8 py-4 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant font-label text-right">
-                  Thao tác
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={7} className="py-16 text-center">
-                    <span className="material-symbols-outlined animate-spin text-primary text-3xl">
-                      progress_activity
+        <DataTable<PosTransactionDoc>
+          columns={[
+            {
+              key: "code",
+              header: "Mã hóa đơn",
+              render: (tx) => (
+                <span className="text-sm font-extrabold text-primary font-headline">
+                  {tx.code}
+                </span>
+              ),
+            },
+            {
+              key: "createdAt",
+              header: "Ngày bán",
+              render: (tx) => (
+                <div>
+                  <div className="text-sm font-bold text-on-surface">
+                    {formatDate(tx.createdAt)}
+                  </div>
+                  <div className="text-[10px] text-on-surface-variant">
+                    {formatTime(tx.createdAt)}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: "branchName",
+              header: "Chi nhánh",
+              render: (tx) => (
+                <span className="px-3 py-1 rounded-full bg-surface-container text-[10px] font-bold text-on-surface-variant uppercase">
+                  {tx.branchName}
+                </span>
+              ),
+            },
+            {
+              key: "total",
+              header: "Tổng tiền",
+              render: (tx) => (
+                <span className="text-sm font-extrabold text-on-surface font-headline">
+                  {fmt(tx.total)} đ
+                </span>
+              ),
+            },
+            {
+              key: "paymentMethod",
+              header: "PT Thanh toán",
+              render: (tx) => {
+                const pm = PAYMENT_ICONS[tx.paymentMethod] ?? {
+                  icon: "payments",
+                  label: tx.paymentMethod,
+                };
+                return (
+                  <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+                    <span className="material-symbols-outlined text-sm">
+                      {pm.icon}
                     </span>
-                  </td>
-                </tr>
-              ) : paged.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="py-16 text-center text-on-surface-variant text-sm"
-                  >
-                    Không có giao dịch nào.
-                  </td>
-                </tr>
-              ) : (
-                paged.map((tx, i) => {
-                  const pm = PAYMENT_ICONS[tx.paymentMethod] ?? {
-                    icon: "payments",
-                    label: tx.paymentMethod,
-                  };
-                  return (
-                    <tr
-                      key={tx.id}
-                      className={[
-                        "hover:bg-primary/[0.03] transition-colors",
-                        i % 2 === 1 ? "bg-surface-container-low/30" : "",
-                      ].join(" ")}
-                    >
-                      <td className="px-8 py-5">
-                        <span className="text-sm font-extrabold text-primary font-headline">
-                          {tx.code}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="text-sm font-bold text-on-surface">
-                          {formatDate(tx.createdAt)}
-                        </div>
-                        <div className="text-[10px] text-on-surface-variant">
-                          {formatTime(tx.createdAt)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="px-3 py-1 rounded-full bg-surface-container text-[10px] font-bold text-on-surface-variant uppercase">
-                          {tx.branchName}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="text-sm font-extrabold text-on-surface font-headline">
-                          {fmt(tx.total)} đ
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-                          <span className="material-symbols-outlined text-sm">
-                            {pm.icon}
-                          </span>
-                          {pm.label}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <Badge variant="success" dot>
-                          Hoàn thành
-                        </Badge>
-                      </td>
-                      <td className="px-8 py-5 text-right">
-                        <button
-                          onClick={() => setDetail(tx)}
-                          className="p-2 text-on-surface-variant/30 hover:text-primary transition-colors"
-                        >
-                          <span className="material-symbols-outlined">
-                            visibility
-                          </span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                    {pm.label}
+                  </div>
+                );
+              },
+            },
+            {
+              key: "status",
+              header: "Trạng thái",
+              render: () => (
+                <Badge variant="success" dot>
+                  Hoàn thành
+                </Badge>
+              ),
+            },
+            {
+              key: "actions",
+              header: "Thao tác",
+              headerClassName: "text-right",
+              className: "text-right",
+              render: (tx) => (
+                <button
+                  onClick={() => setDetail(tx)}
+                  className="p-2 text-on-surface-variant/30 hover:text-primary transition-colors"
+                >
+                  <span className="material-symbols-outlined">visibility</span>
+                </button>
+              ),
+            },
+          ]}
+          data={paged}
+          keyField="id"
+          loading={loading}
+          loadingRows={PAGE_SIZE}
+          showIndex
+          indexOffset={(page - 1) * PAGE_SIZE}
+          headerRowClassName="bg-surface-container-low/60"
+          rowClassName={(_, i) =>
+            [
+              "hover:bg-primary/[0.03] transition-colors",
+              i % 2 === 1 ? "bg-surface-container-low/30" : "",
+            ].join(" ")
+          }
+          emptyText="Không có giao dịch nào."
+        />
 
         {/* Pagination */}
         {!loading && data.length > 0 && (
@@ -233,52 +221,50 @@ export function SalesTransactionTable({
             </div>
 
             {/* Items table */}
-            <div className="rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-surface-container-low">
-                    <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                      Sản phẩm
-                    </th>
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                      SL
-                    </th>
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                      Đơn giá
-                    </th>
-                    <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
-                      Thành tiền
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {detail.items.map((item, idx) => (
-                    <tr
-                      key={idx}
-                      className={
-                        idx % 2 === 1 ? "bg-surface-container-low/30" : ""
-                      }
-                    >
-                      <td className="px-4 py-3">
-                        <p className="font-semibold">{item.medicineName}</p>
-                        <p className="text-[10px] text-on-surface-variant">
-                          {item.medicineSku} · Lô: {item.lot}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold">
-                        {item.quantity}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {fmt(item.unitPrice)}đ
-                      </td>
-                      <td className="px-4 py-3 text-right font-bold">
-                        {fmt(item.total)}đ
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable<PosTransactionItem>
+              columns={[
+                {
+                  key: "medicineName",
+                  header: "Sản phẩm",
+                  render: (item) => (
+                    <div>
+                      <p className="font-semibold">{item.medicineName}</p>
+                      <p className="text-[10px] text-on-surface-variant">
+                        {item.medicineSku} · Lô: {item.lot}
+                      </p>
+                    </div>
+                  ),
+                },
+                {
+                  key: "quantity",
+                  header: "SL",
+                  headerClassName: "text-right",
+                  className: "text-right font-semibold",
+                  render: (item) => String(item.quantity),
+                },
+                {
+                  key: "unitPrice",
+                  header: "Đơn giá",
+                  headerClassName: "text-right",
+                  className: "text-right",
+                  render: (item) => `${fmt(item.unitPrice)}đ`,
+                },
+                {
+                  key: "total",
+                  header: "Thành tiền",
+                  headerClassName: "text-right",
+                  className: "text-right font-bold",
+                  render: (item) => `${fmt(item.total)}đ`,
+                },
+              ]}
+              data={detail.items}
+              showIndex
+              className="rounded-xl overflow-hidden"
+              headerRowClassName="bg-surface-container-low"
+              rowClassName={(_, idx) =>
+                idx % 2 === 1 ? "bg-surface-container-low/30" : ""
+              }
+            />
 
             {/* Totals */}
             <div className="space-y-2 pt-2 text-sm">

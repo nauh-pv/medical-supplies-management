@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Badge, Button, TabBar } from "@/components/common";
+import { Badge, Button, TabBar, DataTable } from "@/components/common";
 import {
   getNearExpiryBatches,
   getLowStockAlerts,
@@ -69,9 +69,10 @@ export function ExpiryTable() {
   // Load branch list once on mount
   useEffect(() => {
     getBranches().then((branches: UserDoc[]) => {
+      const listBranchesValid = branches.filter((b) => b.status === "active");
       setLocations([
         { id: "WAREHOUSE", label: "Kho tổng" },
-        ...branches.map((b) => ({
+        ...listBranchesValid.map((b) => ({
           id: b.branchId ?? b.uid,
           label: b.branchName ?? b.displayName,
         })),
@@ -118,167 +119,167 @@ export function ExpiryTable() {
         </div>
       </div>
 
-      {loading ? (
-        <p className="px-8 pb-6 text-sm text-on-surface-variant">Đang tải...</p>
-      ) : activeItems.length === 0 ? (
-        <p className="px-8 pb-6 text-sm text-on-surface-variant">
-          Không có dữ liệu cảnh báo tại vị trí này.
-        </p>
-      ) : tab === "expiry" ? (
-        <table className="w-full">
-          <thead>
-            <tr className="bg-surface-container-low">
-              {["Tên thuốc", "Số lô", "Ngày hết hạn", "Còn lại", "Tồn kho", ""].map(
-                (h) => (
-                  <th
-                    key={h}
-                    className="px-8 py-3 text-left text-[10px] font-label font-bold uppercase tracking-[0.08em] text-on-surface-variant"
-                  >
-                    {h}
-                  </th>
-                ),
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {(activeItems as BatchDoc[]).map((item, idx) => {
-              const ms = getMs(item.expiryDate);
-              const badge = daysLeftBadge(
-                Math.ceil((ms - Date.now()) / (1000 * 60 * 60 * 24)),
-              );
-              const daysLeft = Math.ceil(
-                (ms - Date.now()) / (1000 * 60 * 60 * 24),
-              );
-              return (
-                <tr
-                  key={item.id}
-                  className={[
-                    "group transition-colors hover:bg-surface-bright",
-                    idx % 2 === 0
-                      ? "bg-surface-container-lowest"
-                      : "bg-surface-container-low/30",
-                  ].join(" ")}
-                >
-                  <td className="px-8 py-4">
-                    <p className="text-sm font-label font-semibold text-on-surface">
-                      {item.medicineName}
-                    </p>
-                  </td>
-                  <td className="px-8 py-4">
-                    <span className="text-xs font-mono text-on-surface-variant">
-                      {item.lot}
-                    </span>
-                  </td>
-                  <td className="px-8 py-4">
-                    <span className="text-sm text-on-surface">
-                      {formatDate(ms)}
-                    </span>
-                  </td>
-                  <td className="px-8 py-4">
-                    <div className="flex items-center gap-2">
-                      {badge.pulse && (
-                        <PulsingDot
-                          variant={
-                            badge.variant === "error" ? "error" : "warning"
-                          }
-                        />
-                      )}
-                      <Badge variant={badge.variant}>
-                        {daysLeft < 0 ? "Đã hết hạn" : `${daysLeft} ngày`}
-                      </Badge>
-                    </div>
-                  </td>
-                  <td className="px-8 py-4">
-                    <span className="text-sm text-on-surface">
-                      {item.quantity}
-                    </span>
-                  </td>
-                  <td className="px-8 py-4 text-right">
-                    <Button
-                      variant="ghost"
-                      icon="send"
-                      size="sm"
-                      onClick={() => navigate("/dispatches")}
-                    >
-                      Điều phối
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      ) : (
-        <table className="w-full">
-          <thead>
-            <tr className="bg-surface-container-low">
-              {["Tên thuốc", "SKU", "Tồn kho", "Tối thiểu", "Mức độ", ""].map(
-                (h) => (
-                  <th
-                    key={h}
-                    className="px-8 py-3 text-left text-[10px] font-label font-bold uppercase tracking-[0.08em] text-on-surface-variant"
-                  >
-                    {h}
-                  </th>
-                ),
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {(activeItems as InventoryDoc[]).map((item, idx) => {
-              const ratio =
-                item.minStockLevel > 0
-                  ? item.quantity / item.minStockLevel
-                  : 0;
-              const isUrgent = item.quantity === 0 || ratio < 0.3;
-              return (
-                <tr
-                  key={item.id}
-                  className={[
-                    "group transition-colors hover:bg-surface-bright",
-                    idx % 2 === 0
-                      ? "bg-surface-container-lowest"
-                      : "bg-surface-container-low/30",
-                  ].join(" ")}
-                >
-                  <td className="px-8 py-4">
-                    <p className="text-sm font-label font-semibold text-on-surface">
-                      {item.medicineName}
-                    </p>
-                  </td>
-                  <td className="px-8 py-4">
-                    <span className="text-xs font-mono text-on-surface-variant">
-                      {item.medicineSku}
-                    </span>
-                  </td>
-                  <td className="px-8 py-4">
-                    <span className="font-bold text-error">{item.quantity}</span>
-                  </td>
-                  <td className="px-8 py-4">
-                    <span className="text-sm text-on-surface-variant">
-                      {item.minStockLevel}
-                    </span>
-                  </td>
-                  <td className="px-8 py-4">
-                    <Badge variant={isUrgent ? "error" : "warning"}>
-                      {isUrgent ? "Khẩn cấp" : "Cảnh báo"}
+      {tab === "expiry" ? (
+        <DataTable<BatchDoc>
+          columns={[
+            {
+              key: "medicineName",
+              header: "Tên thuốc",
+              render: (item) => (
+                <p className="text-sm font-label font-semibold text-on-surface">
+                  {item.medicineName}
+                </p>
+              ),
+            },
+            {
+              key: "lot",
+              header: "Số lô",
+              render: (item) => (
+                <span className="text-xs font-mono text-on-surface-variant">
+                  {item.lot}
+                </span>
+              ),
+            },
+            {
+              key: "expiryDate",
+              header: "Ngày hết hạn",
+              render: (item) => (
+                <span className="text-sm text-on-surface">
+                  {formatDate(getMs(item.expiryDate))}
+                </span>
+              ),
+            },
+            {
+              key: "daysLeft",
+              header: "Còn lại",
+              render: (item) => {
+                const ms = getMs(item.expiryDate);
+                const daysLeft = Math.ceil(
+                  (ms - Date.now()) / (1000 * 60 * 60 * 24),
+                );
+                const badge = daysLeftBadge(daysLeft);
+                return (
+                  <div className="flex items-center gap-2">
+                    {badge.pulse && (
+                      <PulsingDot
+                        variant={
+                          badge.variant === "error" ? "error" : "warning"
+                        }
+                      />
+                    )}
+                    <Badge variant={badge.variant}>
+                      {daysLeft < 0 ? "Đã hết hạn" : `${daysLeft} ngày`}
                     </Badge>
-                  </td>
-                  <td className="px-8 py-4 text-right">
-                    <Button
-                      variant="ghost"
-                      icon="add_shopping_cart"
-                      size="sm"
-                      onClick={() => navigate("/inventory")}
-                    >
-                      Nhập thêm
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </div>
+                );
+              },
+            },
+            {
+              key: "quantity",
+              header: "Tồn kho",
+              render: (item) => (
+                <span className="text-sm text-on-surface">{item.quantity}</span>
+              ),
+            },
+            {
+              key: "action",
+              header: "",
+              className: "text-right",
+              render: () => (
+                <Button
+                  variant="ghost"
+                  icon="send"
+                  size="sm"
+                  onClick={() => navigate("/dispatches")}
+                >
+                  Điều phối
+                </Button>
+              ),
+            },
+          ]}
+          data={activeItems as BatchDoc[]}
+          keyField="id"
+          loading={loading}
+          showIndex
+          headerRowClassName="bg-surface-container-low"
+          emptyText="Không có dữ liệu cảnh báo tại vị trí này."
+        />
+      ) : (
+        <DataTable<InventoryDoc>
+          columns={[
+            {
+              key: "medicineName",
+              header: "Tên thuốc",
+              render: (item) => (
+                <p className="text-sm font-label font-semibold text-on-surface">
+                  {item.medicineName}
+                </p>
+              ),
+            },
+            {
+              key: "medicineSku",
+              header: "SKU",
+              render: (item) => (
+                <span className="text-xs font-mono text-on-surface-variant">
+                  {item.medicineSku}
+                </span>
+              ),
+            },
+            {
+              key: "quantity",
+              header: "Tồn kho",
+              render: (item) => (
+                <span className="font-bold text-error">{item.quantity}</span>
+              ),
+            },
+            {
+              key: "minStockLevel",
+              header: "Tối thiểu",
+              render: (item) => (
+                <span className="text-sm text-on-surface-variant">
+                  {item.minStockLevel}
+                </span>
+              ),
+            },
+            {
+              key: "severity",
+              header: "Mức độ",
+              render: (item) => {
+                const ratio =
+                  item.minStockLevel > 0
+                    ? item.quantity / item.minStockLevel
+                    : 0;
+                const isUrgent = item.quantity === 0 || ratio < 0.3;
+                return (
+                  <Badge variant={isUrgent ? "error" : "warning"}>
+                    {isUrgent ? "Khẩn cấp" : "Cảnh báo"}
+                  </Badge>
+                );
+              },
+            },
+            {
+              key: "action",
+              header: "",
+              className: "text-right",
+              render: () => (
+                <Button
+                  variant="ghost"
+                  icon="add_shopping_cart"
+                  size="sm"
+                  onClick={() => navigate("/inventory")}
+                >
+                  Nhập thêm
+                </Button>
+              ),
+            },
+          ]}
+          data={activeItems as InventoryDoc[]}
+          keyField="id"
+          loading={loading}
+          showIndex
+          headerRowClassName="bg-surface-container-low"
+          emptyText="Không có dữ liệu cảnh báo tại vị trí này."
+        />
       )}
     </div>
   );

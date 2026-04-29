@@ -1,5 +1,11 @@
 import { useState, useEffect } from "react";
-import { Modal, Input, Button, Pagination } from "@/components/common";
+import {
+  Modal,
+  Input,
+  Button,
+  Pagination,
+  DataTable,
+} from "@/components/common";
 import {
   getUnits,
   addUnit,
@@ -102,80 +108,63 @@ export function UnitTable() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-16 text-on-surface-variant gap-3">
-              <span className="material-symbols-outlined animate-spin text-primary text-3xl">
-                progress_activity
-              </span>
-              <span className="text-sm">Đang tải...</span>
-            </div>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low border-b border-outline-variant/10">
-                  <th className="px-8 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest w-20">
-                    STT
-                  </th>
-                  <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                    Tên đơn vị tính
-                  </th>
-                  <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                    Mô tả
-                  </th>
-                  <th className="px-8 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest text-center">
-                    Thao tác
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/10">
-                {paged.map((unit, i) => (
-                  <tr
-                    key={unit.id}
-                    className="hover:bg-surface-bright transition-colors group"
+        <DataTable
+          columns={[
+            {
+              key: "name",
+              header: "Tên đơn vị tính",
+              render: (unit) => (
+                <p className="font-bold text-on-surface">{unit.name}</p>
+              ),
+            },
+            {
+              key: "description",
+              header: "Mô tả",
+              render: (unit) => (
+                <p className="text-sm text-on-surface-variant">
+                  {unit.description || "—"}
+                </p>
+              ),
+            },
+            {
+              key: "actions",
+              header: "Thao tác",
+              headerClassName: "text-center",
+              className: "text-center",
+              render: (unit) => (
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => openEdit(unit)}
+                    className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                    title="Chỉnh sửa"
                   >
-                    <td className="px-8 py-5 text-sm text-on-surface-variant font-medium">
-                      {String((page - 1) * ITEMS_PER_PAGE + i + 1).padStart(
-                        2,
-                        "0",
-                      )}
-                    </td>
-                    <td className="px-6 py-5">
-                      <p className="font-bold text-on-surface">{unit.name}</p>
-                    </td>
-                    <td className="px-6 py-5">
-                      <p className="text-sm text-on-surface-variant">
-                        {unit.description || "—"}
-                      </p>
-                    </td>
-                    <td className="px-8 py-5 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => openEdit(unit)}
-                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                          title="Chỉnh sửa"
-                        >
-                          <span className="material-symbols-outlined text-xl">
-                            edit
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(unit.id)}
-                          className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/50 rounded-lg transition-colors"
-                          title="Xóa"
-                        >
-                          <span className="material-symbols-outlined text-xl">
-                            delete
-                          </span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                    <span className="material-symbols-outlined text-xl">
+                      edit
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => handleDelete(unit.id)}
+                    className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/50 rounded-lg transition-colors"
+                    title="Xóa"
+                  >
+                    <span className="material-symbols-outlined text-xl">
+                      delete
+                    </span>
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+          data={paged}
+          keyField="id"
+          loading={loading}
+          loadingRows={ITEMS_PER_PAGE}
+          showIndex
+          indexOffset={(page - 1) * ITEMS_PER_PAGE}
+          headerRowClassName="bg-surface-container-low border-b border-outline-variant/10"
+          rowClassName={() => "hover:bg-surface-bright transition-colors group"}
+          emptyText="Chưa có đơn vị tính nào"
+        />
 
         {/* Pagination footer */}
         <div className="px-8 py-6 flex items-center justify-between border-t border-outline-variant/10 bg-surface-container-low/20">

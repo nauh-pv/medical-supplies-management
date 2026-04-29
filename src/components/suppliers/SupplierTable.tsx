@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
-import { Modal, Input, Button, Pagination, Badge } from "@/components/common";
+import {
+  Modal,
+  Input,
+  Button,
+  Pagination,
+  Badge,
+  DataTable,
+} from "@/components/common";
 import {
   getSuppliers,
   addSupplier,
@@ -186,131 +193,105 @@ export function SupplierTable() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-16 text-on-surface-variant gap-3">
-              <span className="material-symbols-outlined animate-spin text-primary text-3xl">
-                progress_activity
-              </span>
-              <span className="text-sm">Đang tải...</span>
-            </div>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low border-b border-outline-variant/10">
-                  <th className="px-8 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest w-20">
-                    STT
-                  </th>
-                  <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                    Mã NCC
-                  </th>
-                  <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                    Tên nhà cung cấp
-                  </th>
-                  <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                    Liên hệ
-                  </th>
-                  <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                    Địa chỉ
-                  </th>
-                  <th className="px-6 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest">
-                    Trạng thái
-                  </th>
-                  <th className="px-8 py-4 font-label text-xs font-bold text-on-surface-variant uppercase tracking-widest text-center">
-                    Thao tác
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/10">
-                {paged.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={7}
-                      className="px-8 py-16 text-center text-on-surface-variant text-sm"
-                    >
-                      Chưa có nhà cung cấp nào
-                    </td>
-                  </tr>
-                )}
-                {paged.map((supplier, i) => (
-                  <tr
-                    key={supplier.id}
-                    className="hover:bg-surface-bright transition-colors group"
-                  >
-                    <td className="px-8 py-5 text-sm text-on-surface-variant font-medium">
-                      {String((page - 1) * ITEMS_PER_PAGE + i + 1).padStart(
-                        2,
-                        "0",
-                      )}
-                    </td>
-                    <td className="px-6 py-5">
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-bold font-mono">
-                        {supplier.code}
+        <DataTable
+          columns={[
+            {
+              key: "code",
+              header: "Mã NCC",
+              render: (supplier) => (
+                <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-bold font-mono">
+                  {supplier.code}
+                </span>
+              ),
+            },
+            {
+              key: "name",
+              header: "Tên nhà cung cấp",
+              render: (supplier) => (
+                <p className="font-bold text-on-surface">{supplier.name}</p>
+              ),
+            },
+            {
+              key: "phone",
+              header: "Liên hệ",
+              render: (supplier) => (
+                <div className="space-y-1">
+                  {supplier.phone && (
+                    <p className="text-sm text-on-surface-variant flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-base">
+                        phone
                       </span>
-                    </td>
-                    <td className="px-6 py-5">
-                      <p className="font-bold text-on-surface">
-                        {supplier.name}
-                      </p>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="space-y-1">
-                        {supplier.phone && (
-                          <p className="text-sm text-on-surface-variant flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-base">
-                              phone
-                            </span>
-                            {supplier.phone}
-                          </p>
-                        )}
-                        {supplier.email && (
-                          <p className="text-sm text-on-surface-variant flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-base">
-                              mail
-                            </span>
-                            {supplier.email}
-                          </p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <p className="text-sm text-on-surface-variant max-w-[200px] truncate">
-                        {supplier.address || "—"}
-                      </p>
-                    </td>
-                    <td className="px-6 py-5">
-                      <Badge variant="success" dot>
-                        Đang hợp tác
-                      </Badge>
-                    </td>
-                    <td className="px-8 py-5 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => openEdit(supplier)}
-                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                          title="Chỉnh sửa"
-                        >
-                          <span className="material-symbols-outlined text-xl">
-                            edit
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(supplier)}
-                          className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/50 rounded-lg transition-colors"
-                          title="Xóa"
-                        >
-                          <span className="material-symbols-outlined text-xl">
-                            delete
-                          </span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+                      {supplier.phone}
+                    </p>
+                  )}
+                  {supplier.email && (
+                    <p className="text-sm text-on-surface-variant flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-base">
+                        mail
+                      </span>
+                      {supplier.email}
+                    </p>
+                  )}
+                </div>
+              ),
+            },
+            {
+              key: "address",
+              header: "Địa chỉ",
+              render: (supplier) => (
+                <p className="text-sm text-on-surface-variant max-w-[200px] truncate">
+                  {supplier.address || "—"}
+                </p>
+              ),
+            },
+            {
+              key: "isActive",
+              header: "Trạng thái",
+              render: () => (
+                <Badge variant="success" dot>
+                  Đang hợp tác
+                </Badge>
+              ),
+            },
+            {
+              key: "actions",
+              header: "Thao tác",
+              headerClassName: "text-center",
+              className: "text-center",
+              render: (supplier) => (
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => openEdit(supplier)}
+                    className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                    title="Chỉnh sửa"
+                  >
+                    <span className="material-symbols-outlined text-xl">
+                      edit
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(supplier)}
+                    className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container/50 rounded-lg transition-colors"
+                    title="Xóa"
+                  >
+                    <span className="material-symbols-outlined text-xl">
+                      delete
+                    </span>
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+          data={paged}
+          keyField="id"
+          loading={loading}
+          loadingRows={ITEMS_PER_PAGE}
+          showIndex
+          indexOffset={(page - 1) * ITEMS_PER_PAGE}
+          headerRowClassName="bg-surface-container-low border-b border-outline-variant/10"
+          rowClassName={() => "hover:bg-surface-bright transition-colors group"}
+          emptyText="Chưa có nhà cung cấp nào"
+        />
 
         {/* Pagination footer */}
         <div className="px-8 py-6 flex items-center justify-between border-t border-outline-variant/10 bg-surface-container-low/20">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Input, Button, Pagination } from "@/components/common";
+import { Input, Button, Pagination, DataTable } from "@/components/common";
 import { ImportDetailModal } from "./ImportDetailModal";
 import { CreateImportModal } from "../imports/CreateImportModal";
 import { getImportOrders } from "@/services/inventory";
@@ -82,109 +82,96 @@ export function InventoryImportTab() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          {loading ? (
-            <div className="flex items-center justify-center py-16 text-on-surface-variant gap-3">
-              <span className="material-symbols-outlined animate-spin text-primary text-3xl">
-                progress_activity
-              </span>
-              <span className="text-sm">Đang tải dữ liệu...</span>
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-on-surface-variant gap-3">
-              <span className="material-symbols-outlined text-4xl">inbox</span>
-              <span className="text-sm">Chưa có đơn nhập kho nào.</span>
-            </div>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-container-low border-b border-outline-variant/10">
-                  {[
-                    { label: "Mã đơn nhập", cls: "pl-8" },
-                    { label: "Ngày nhập" },
-                    { label: "Nhà cung cấp" },
-                    { label: "Số lượng", cls: "text-right" },
-                    { label: "Tổng giá trị", cls: "text-right" },
-                    { label: "Thao tác", cls: "text-center" },
-                  ].map((h, i) => (
-                    <th
-                      key={i}
-                      className={[
-                        "px-6 py-4 text-xs font-label font-bold text-on-surface-variant uppercase tracking-widest",
-                        h.cls ?? "",
-                      ].join(" ")}
-                    >
-                      {h.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/10">
-                {paged.map((order) => {
-                  const totalQty = order.items.reduce(
-                    (s, i) => s + i.quantity,
-                    0,
-                  );
-                  const { date, time } = formatTimestamp(
-                    order.createdAt as unknown as
-                      | { seconds: number }
-                      | undefined,
-                  );
-                  return (
-                    <tr
-                      key={order.id}
-                      className="hover:bg-surface-container-low/30 transition-colors"
-                    >
-                      <td className="px-8 py-5">
-                        <span className="font-mono text-xs font-bold text-primary">
-                          {order.code}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <p className="text-sm font-medium text-on-surface">
-                          {date}
-                        </p>
-                        <p className="text-[10px] text-on-surface-variant">
-                          {time}
-                        </p>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded bg-surface-container flex items-center justify-center">
-                            <span className="material-symbols-outlined text-sm text-on-surface-variant">
-                              business
-                            </span>
-                          </div>
-                          <span className="text-sm font-semibold text-on-surface">
-                            {order.supplierName}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <span className="text-sm font-medium text-on-surface-variant">
-                          {totalQty.toLocaleString("vi-VN")}
-                        </span>
-                      </td>
-                      <td className="px-6 py-5 text-right font-mono text-sm font-bold text-on-surface">
-                        {order.total.toLocaleString("vi-VN")}đ
-                      </td>
-                      <td className="px-8 py-5 text-center">
-                        <button
-                          onClick={() => setSelectedId(order.id)}
-                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                        >
-                          <span className="material-symbols-outlined">
-                            visibility
-                          </span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
+        <DataTable
+          columns={[
+            {
+              key: "code",
+              header: "Mã đơn nhập",
+              render: (order) => (
+                <span className="font-mono text-xs font-bold text-primary">
+                  {order.code}
+                </span>
+              ),
+            },
+            {
+              key: "createdAt",
+              header: "Ngày nhập",
+              render: (order) => {
+                const { date, time } = formatTimestamp(
+                  order.createdAt as unknown as { seconds: number } | undefined,
+                );
+                return (
+                  <div>
+                    <p className="text-sm font-medium text-on-surface">
+                      {date}
+                    </p>
+                    <p className="text-[10px] text-on-surface-variant">
+                      {time}
+                    </p>
+                  </div>
+                );
+              },
+            },
+            {
+              key: "supplierName",
+              header: "Nhà cung cấp",
+              render: (order) => (
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-surface-container flex items-center justify-center">
+                    <span className="material-symbols-outlined text-sm text-on-surface-variant">
+                      business
+                    </span>
+                  </div>
+                  <span className="text-sm font-semibold text-on-surface">
+                    {order.supplierName}
+                  </span>
+                </div>
+              ),
+            },
+            {
+              key: "totalQty",
+              header: "Số lượng",
+              headerClassName: "text-right",
+              className: "text-right text-on-surface-variant",
+              render: (order) =>
+                order.items
+                  .reduce((s, i) => s + i.quantity, 0)
+                  .toLocaleString("vi-VN"),
+            },
+            {
+              key: "total",
+              header: "Tổng giá trị",
+              headerClassName: "text-right",
+              className: "text-right font-mono font-bold",
+              render: (order) => `${order.total.toLocaleString("vi-VN")}đ`,
+            },
+            {
+              key: "actions",
+              header: "Thao tác",
+              headerClassName: "text-center",
+              className: "text-center",
+              render: (order) => (
+                <button
+                  onClick={() => setSelectedId(order.id)}
+                  className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                >
+                  <span className="material-symbols-outlined">visibility</span>
+                </button>
+              ),
+            },
+          ]}
+          data={paged}
+          keyField="id"
+          loading={loading}
+          loadingRows={ITEMS_PER_PAGE}
+          showIndex
+          indexOffset={(page - 1) * ITEMS_PER_PAGE}
+          headerRowClassName="bg-surface-container-low border-b border-outline-variant/10"
+          rowClassName={() =>
+            "hover:bg-surface-container-low/30 transition-colors"
+          }
+          emptyText="Chưa có đơn nhập kho nào."
+        />
 
         {!loading && filtered.length > 0 && (
           <div className="px-8 py-6 flex items-center justify-between border-t border-outline-variant/10 bg-surface-container-low/20">

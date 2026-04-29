@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Modal, Button } from "@/components/common";
+import { Modal, Button, DataTable } from "@/components/common";
 import { getImportOrder } from "@/services/inventory";
 import type { ImportOrderDoc } from "@/types/firestore";
 
@@ -138,80 +138,80 @@ export function ImportDetailModal({
               </div>
 
               <div className="overflow-hidden rounded-xl border border-outline-variant/10">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-surface-container">
-                      {[
-                        "Tên thuốc",
-                        "Đơn vị",
-                        "Lô",
-                        "Số lượng",
-                        "Đơn giá",
-                        "Thành tiền",
-                      ].map((h, i) => (
-                        <th
-                          key={i}
-                          className={[
-                            "py-4 px-6 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest",
-                            i >= 3
-                              ? "text-right"
-                              : i === 1 || i === 2
-                                ? "text-center"
-                                : "",
-                          ].join(" ")}
-                        >
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="bg-surface-container-lowest">
-                    {order.items.map((item, i) => (
-                      <tr
-                        key={i}
-                        className={[
-                          "hover:bg-primary/5 transition-colors",
-                          i % 2 === 1 ? "bg-surface-container-low/40" : "",
-                        ].join(" ")}
-                      >
-                        <td className="py-5 px-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center text-primary flex-shrink-0">
-                              <span className="material-symbols-outlined text-base">
-                                medication
-                              </span>
-                            </div>
-                            <div>
-                              <p className="font-bold text-on-surface text-sm">
-                                {item.medicineName}
-                              </p>
-                              <p className="text-xs text-on-surface-variant font-mono">
-                                {item.medicineSku}
-                              </p>
-                            </div>
+                <DataTable
+                  columns={[
+                    {
+                      key: "medicineName",
+                      header: "Tên thuốc",
+                      render: (item) => (
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-surface-container flex items-center justify-center text-primary flex-shrink-0">
+                            <span className="material-symbols-outlined text-base">
+                              medication
+                            </span>
                           </div>
-                        </td>
-                        <td className="text-center py-5 px-6 text-sm text-on-surface font-medium">
-                          {item.unitName}
-                        </td>
-                        <td className="text-center py-5 px-6">
-                          <span className="text-xs font-mono bg-surface-container px-2 py-1 rounded">
-                            {item.lot}
-                          </span>
-                        </td>
-                        <td className="text-right py-5 px-6 text-sm font-bold text-on-surface">
-                          {item.quantity.toLocaleString("vi-VN")}
-                        </td>
-                        <td className="text-right py-5 px-6 text-sm text-on-surface-variant font-mono">
-                          {item.unitPrice.toLocaleString("vi-VN")}đ
-                        </td>
-                        <td className="text-right py-5 px-6 text-sm font-bold text-primary font-mono">
-                          {item.total.toLocaleString("vi-VN")}đ
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          <div>
+                            <p className="font-bold text-on-surface text-sm">
+                              {item.medicineName}
+                            </p>
+                            <p className="text-xs text-on-surface-variant font-mono">
+                              {item.medicineSku}
+                            </p>
+                          </div>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "unitName",
+                      header: "Đơn vị",
+                      headerClassName: "text-center",
+                      className: "text-center font-medium",
+                    },
+                    {
+                      key: "lot",
+                      header: "Lô",
+                      headerClassName: "text-center",
+                      className: "text-center",
+                      render: (item) => (
+                        <span className="text-xs font-mono bg-surface-container px-2 py-1 rounded">
+                          {item.lot}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "quantity",
+                      header: "Số lượng",
+                      headerClassName: "text-right",
+                      className: "text-right font-bold",
+                      render: (item) => item.quantity.toLocaleString("vi-VN"),
+                    },
+                    {
+                      key: "unitPrice",
+                      header: "Đơn giá",
+                      headerClassName: "text-right",
+                      className: "text-right text-on-surface-variant font-mono",
+                      render: (item) =>
+                        `${item.unitPrice.toLocaleString("vi-VN")}đ`,
+                    },
+                    {
+                      key: "total",
+                      header: "Thành tiền",
+                      headerClassName: "text-right",
+                      className: "text-right font-bold text-primary font-mono",
+                      render: (item) =>
+                        `${item.total.toLocaleString("vi-VN")}đ`,
+                    },
+                  ]}
+                  data={order.items}
+                  showIndex
+                  headerRowClassName="bg-surface-container"
+                  rowClassName={(_, i) =>
+                    [
+                      "hover:bg-primary/5 transition-colors",
+                      i % 2 === 1 ? "bg-surface-container-low/40" : "",
+                    ].join(" ")
+                  }
+                />
               </div>
             </div>
 

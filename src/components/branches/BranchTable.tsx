@@ -1,18 +1,9 @@
 import { useState } from "react";
-import { Pagination } from "@/components/common";
+import { Pagination, DataTable } from "@/components/common";
 import { BranchFormModal } from "./BranchFormModal";
 import type { UserDoc } from "@/types/firestore";
 
 const PAGE_SIZE = 10;
-
-const TABLE_HEADERS = [
-  "Tên chi nhánh",
-  "Địa chỉ",
-  "Tài khoản",
-  "Số điện thoại",
-  "Trạng thái",
-  "Hành động",
-];
 
 interface BranchTableProps {
   branches: UserDoc[];
@@ -71,123 +62,114 @@ export function BranchTable({
 
         {/* Table card */}
         <div className="bg-surface-container-low rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-dim/30">
-                  {TABLE_HEADERS.map((h, i) => (
-                    <th
-                      key={h}
-                      className={[
-                        "px-6 py-4 text-[11px] font-label uppercase tracking-widest text-on-surface-variant",
-                        i === TABLE_HEADERS.length - 1 ? "text-right" : "",
-                      ].join(" ")}
+          <DataTable
+            columns={[
+              {
+                key: "branchName",
+                header: "Tên chi nhánh",
+                render: (branch) => (
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600">
+                      <span className="material-symbols-outlined">
+                        {branch.status === "active"
+                          ? "local_hospital"
+                          : "domain_disabled"}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-on-surface">
+                        {branch.branchName ?? branch.displayName}
+                      </p>
+                      <p className="text-[10px] text-on-surface-variant">
+                        Mã: {branch.branchCode ?? "—"}
+                      </p>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "branchAddress",
+                header: "Địa chỉ",
+                render: (branch) => (
+                  <span className="text-sm text-on-surface-variant">
+                    {branch.branchAddress ?? "—"}
+                  </span>
+                ),
+              },
+              {
+                key: "displayName",
+                header: "Tài khoản",
+                render: (branch) => (
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-surface-container-high" />
+                    <div>
+                      <p className="text-sm text-on-surface">
+                        {branch.displayName}
+                      </p>
+                      <p className="text-[10px] text-on-surface-variant">
+                        {branch.email}
+                      </p>
+                    </div>
+                  </div>
+                ),
+              },
+              {
+                key: "phone",
+                header: "Số điện thoại",
+                render: (branch) => (
+                  <span className="text-sm text-on-surface-variant">
+                    {branch.phone}
+                  </span>
+                ),
+              },
+              {
+                key: "status",
+                header: "Trạng thái",
+                render: (branch) =>
+                  branch.status === "active" ? (
+                    <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                      Đang hoạt động
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-surface-container-high text-on-surface-variant">
+                      Tạm dừng
+                    </span>
+                  ),
+              },
+              {
+                key: "actions",
+                header: "Hành động",
+                headerClassName: "text-right",
+                className: "text-right",
+                render: (branch) => (
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => openEdit(branch)}
+                      className="p-2 hover:bg-blue-50 rounded-lg text-primary transition-colors"
                     >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-transparent">
-                {loading ? (
-                  Array.from({ length: 4 }).map((_, i) => (
-                    <tr key={i}>
-                      <td colSpan={6} className="px-6 py-5">
-                        <div className="h-8 bg-surface-container-low rounded-xl animate-pulse" />
-                      </td>
-                    </tr>
-                  ))
-                ) : paginated.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-10 text-center text-sm text-on-surface-variant"
-                    >
-                      Chưa có chi nhánh nào
-                    </td>
-                  </tr>
-                ) : (
-                  paginated.map((branch, i) => (
-                    <tr
-                      key={branch.uid}
-                      className={[
-                        "hover:bg-surface-container-lowest transition-colors",
-                        i % 2 !== 0 ? "bg-surface-container-lowest/40" : "",
-                      ].join(" ")}
-                    >
-                      {/* Name */}
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600">
-                            <span className="material-symbols-outlined">
-                              {branch.status === "active"
-                                ? "local_hospital"
-                                : "domain_disabled"}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-sm font-bold text-on-surface">
-                              {branch.branchName ?? branch.displayName}
-                            </p>
-                            <p className="text-[10px] text-on-surface-variant">
-                              Mã: {branch.branchCode ?? "—"}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      {/* Address */}
-                      <td className="px-6 py-5 text-sm text-on-surface-variant">
-                        {branch.branchAddress ?? "—"}
-                      </td>
-                      {/* Account */}
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-surface-container-high" />
-                          <div>
-                            <p className="text-sm text-on-surface">
-                              {branch.displayName}
-                            </p>
-                            <p className="text-[10px] text-on-surface-variant">
-                              {branch.email}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      {/* Phone */}
-                      <td className="px-6 py-5 text-sm text-on-surface-variant">
-                        {branch.phone}
-                      </td>
-                      {/* Status */}
-                      <td className="px-6 py-5">
-                        {branch.status === "active" ? (
-                          <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
-                            Đang hoạt động
-                          </span>
-                        ) : (
-                          <span className="px-3 py-1 rounded-full text-[10px] font-bold bg-surface-container-high text-on-surface-variant">
-                            Tạm dừng
-                          </span>
-                        )}
-                      </td>
-                      {/* Actions */}
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => openEdit(branch)}
-                            className="p-2 hover:bg-blue-50 rounded-lg text-primary transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-lg">
-                              edit
-                            </span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      <span className="material-symbols-outlined text-lg">
+                        edit
+                      </span>
+                    </button>
+                  </div>
+                ),
+              },
+            ]}
+            data={paginated}
+            keyField="uid"
+            loading={loading}
+            loadingRows={4}
+            showIndex
+            indexOffset={(page - 1) * PAGE_SIZE}
+            headerRowClassName="bg-surface-dim/30"
+            rowClassName={(_, i) =>
+              [
+                "hover:bg-surface-container-lowest transition-colors",
+                i % 2 !== 0 ? "bg-surface-container-lowest/40" : "",
+              ].join(" ")
+            }
+            emptyText="Chưa có chi nhánh nào"
+          />
 
           {/* Pagination footer */}
           <div className="px-6 py-4 bg-surface-dim/10 flex justify-between items-center text-xs text-on-surface-variant font-medium">

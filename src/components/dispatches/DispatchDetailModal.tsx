@@ -1,4 +1,4 @@
-﻿import { Modal, Button, Badge } from "@/components/common";
+﻿import { Modal, Button, Badge, DataTable } from "@/components/common";
 import type { DispatchOrderDoc } from "@/types/firestore";
 
 const STATUS_CONFIG: Record<
@@ -100,56 +100,58 @@ export function DispatchDetailModal({
             Danh mục vật tư xuất kho
           </h4>
           <div className="bg-surface-container-low rounded-[1.5rem] overflow-hidden">
-            <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="bg-surface-dim/20">
-                  {["Tên thuốc/Vật tư", "Đơn vị", "Số lượng", "Thành tiền"].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        className="px-5 py-3 text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant"
-                      >
-                        {h}
-                      </th>
-                    ),
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-surface-container-high">
-                {(order?.items ?? []).map((item, i) => (
-                  <tr key={i} className="bg-surface-container-lowest">
-                    <td className="px-5 py-4">
+            <DataTable
+              columns={[
+                {
+                  key: "medicineName",
+                  header: "Tên thuốc/Vật tư",
+                  render: (item) => (
+                    <div>
                       <p className="font-bold text-on-surface text-sm">
                         {item.medicineName}
                       </p>
                       <p className="text-[10px] text-on-surface-variant font-medium">
                         SKU: {item.medicineSku} | Lô: {item.lot}
                       </p>
-                    </td>
-                    <td className="px-5 py-4 text-sm text-on-surface-variant">
-                      {item.unitName}
-                    </td>
-                    <td className="px-5 py-4 font-bold text-on-surface text-sm">
-                      {item.quantity.toLocaleString()}
-                    </td>
-                    <td className="px-5 py-4 font-bold text-primary text-sm">
-                      {item.total.toLocaleString("vi-VN")}đ
-                    </td>
-                  </tr>
-                ))}
+                    </div>
+                  ),
+                },
+                {
+                  key: "unitName",
+                  header: "Đơn vị",
+                  className: "text-on-surface-variant",
+                },
+                {
+                  key: "quantity",
+                  header: "Số lượng",
+                  className: "font-bold",
+                  render: (item) => item.quantity.toLocaleString(),
+                },
+                {
+                  key: "total",
+                  header: "Thành tiền",
+                  className: "font-bold text-primary",
+                  render: (item) => `${item.total.toLocaleString("vi-VN")}đ`,
+                },
+              ]}
+              data={order?.items ?? []}
+              showIndex
+              headerRowClassName="bg-surface-dim/20"
+              rowClassName={() => "bg-surface-container-lowest"}
+              footer={
                 <tr className="bg-surface-dim/10">
                   <td
-                    colSpan={3}
-                    className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant"
+                    colSpan={4}
+                    className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant"
                   >
                     Tổng giá trị đơn hàng
                   </td>
-                  <td className="px-5 py-4 font-headline font-black text-lg text-primary">
+                  <td className="px-6 py-4 font-headline font-black text-lg text-primary">
                     {(order?.total ?? 0).toLocaleString("vi-VN")}đ
                   </td>
                 </tr>
-              </tbody>
-            </table>
+              }
+            />
           </div>
         </div>
 

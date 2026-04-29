@@ -454,6 +454,7 @@ export function InventoryTable({
           medicineName={batchMed.name}
           unitName={batchMed.unitName}
           sku={batchMed.sku}
+          locationId={locationId}
         />
       )}
 

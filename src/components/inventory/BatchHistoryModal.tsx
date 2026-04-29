@@ -26,6 +26,7 @@ interface BatchHistoryModalProps {
   medicineName: string;
   unitName: string;
   sku: string;
+  locationId: string;
 }
 
 export function BatchHistoryModal({
@@ -35,17 +36,18 @@ export function BatchHistoryModal({
   medicineName,
   unitName,
   sku,
+  locationId,
 }: BatchHistoryModalProps) {
   const [batches, setBatches] = useState<BatchDoc[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!open || !medicineId) return;
+    if (!open || !medicineId || !locationId) return;
     let cancelled = false;
     setLoading(true);
     setError("");
-    getBatchesByMedicine(medicineId)
+    getBatchesByMedicine(medicineId, locationId)
       .then((data) => {
         if (!cancelled) {
           setBatches(data);

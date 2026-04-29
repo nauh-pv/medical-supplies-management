@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Badge, Button } from "@/components/common";
+import { Badge } from "@/components/common";
 import type { StockAlert } from "@/services/dashboard";
 
 const MAX_DASHBOARD_ITEMS = 5;

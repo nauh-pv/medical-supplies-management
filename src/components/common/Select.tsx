@@ -3,7 +3,7 @@ import { type SelectHTMLAttributes, type ReactNode } from "react";
 type SelectVariant = "default" | "pill";
 type SelectSize = "md" | "lg";
 
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "size"> {
   label?: string;
   leadingIcon?: string;
   error?: string;

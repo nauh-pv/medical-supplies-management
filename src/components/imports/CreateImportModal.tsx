@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Modal, Button } from "@/components/common";
+import { Modal, Button, Select } from "@/components/common";
 import {
   getMedicines,
   getSuppliers,
@@ -197,23 +197,17 @@ export function CreateImportModal({
               <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
                 Nhà cung cấp <span className="text-error">*</span>
               </label>
-              <div className="relative">
-                <select
-                  className="w-full h-11 bg-surface-container-low border border-outline-variant/30 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary appearance-none pl-4 pr-10 text-on-surface outline-none"
-                  value={supplierId}
-                  onChange={(e) => setSupplierId(e.target.value)}
-                >
-                  <option value="">Chọn nhà cung cấp...</option>
-                  {suppliers.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-lg">
-                  expand_more
-                </span>
-              </div>
+              <Select
+                value={supplierId}
+                onChange={(e) => setSupplierId(e.target.value)}
+              >
+                <option value="">Chọn nhà cung cấp...</option>
+                {suppliers.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </Select>
             </div>
             <div className="space-y-1.5">
               <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">
@@ -374,7 +368,9 @@ export function CreateImportModal({
               onClick={addRow}
               className="w-full flex items-center justify-center gap-1.5 py-3 text-xs font-bold text-primary hover:bg-primary/5 active:bg-primary/10 transition-colors border-t border-dashed border-primary/20"
             >
-              <span className="material-symbols-outlined text-base">add_circle</span>
+              <span className="material-symbols-outlined text-base">
+                add_circle
+              </span>
               Thêm dòng
             </button>
           </div>
@@ -400,7 +396,9 @@ export function CreateImportModal({
         <div className="flex items-center justify-between bg-primary/5 px-4 py-3 rounded-xl border border-primary/10">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary flex-shrink-0">
-              <span className="material-symbols-outlined text-base">payments</span>
+              <span className="material-symbols-outlined text-base">
+                payments
+              </span>
             </div>
             <div>
               <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.15em]">
@@ -408,7 +406,9 @@ export function CreateImportModal({
               </p>
               <p className="text-xs text-on-surface-variant">
                 {rows.length} sản phẩm ·{" "}
-                <span className="font-semibold">{subtotal.toLocaleString("vi-VN")}đ</span>
+                <span className="font-semibold">
+                  {subtotal.toLocaleString("vi-VN")}đ
+                </span>
               </p>
             </div>
           </div>

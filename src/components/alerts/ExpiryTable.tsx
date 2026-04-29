@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Badge, Button, TabBar, DataTable } from "@/components/common";
+import { Badge, Button, TabBar, DataTable, Select } from "@/components/common";
 import {
   getNearExpiryBatches,
   getLowStockAlerts,
@@ -105,17 +105,18 @@ export function ExpiryTable() {
             onTabChange={(id) => setTab(id as TabId)}
             variant="pill"
           />
-          <select
-            className="bg-surface-container-low rounded-xl px-4 py-2 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary/30 cursor-pointer"
-            value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
-          >
-            {locations.map((loc) => (
-              <option key={loc.id} value={loc.id}>
-                {loc.label}
-              </option>
-            ))}
-          </select>
+          <div className="w-48">
+            <Select
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+            >
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.label}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
       </div>
 

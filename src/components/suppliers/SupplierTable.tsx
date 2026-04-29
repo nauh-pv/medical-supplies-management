@@ -325,23 +325,24 @@ export function SupplierTable() {
         <form className="px-10 py-8 space-y-6" onSubmit={handleAdd}>
           {formFields}
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => {
                 setAddOpen(false);
                 setForm(EMPTY_FORM);
               }}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-surface-variant bg-surface-container-low hover:bg-surface-container transition-colors"
+              className="flex-1 justify-center"
             >
               Hủy bỏ
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={saving}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-primary bg-primary hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="flex-1 justify-center"
             >
               {saving ? "Đang lưu..." : "Lưu nhà cung cấp"}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -360,23 +361,24 @@ export function SupplierTable() {
         <form className="px-10 py-8 space-y-6" onSubmit={handleEdit}>
           {formFields}
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => {
                 setEditSupplier(null);
                 setForm(EMPTY_FORM);
               }}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-surface-variant bg-surface-container-low hover:bg-surface-container transition-colors"
+              className="flex-1 justify-center"
             >
               Hủy bỏ
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={saving}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-primary bg-primary hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="flex-1 justify-center"
             >
               {saving ? "Đang lưu..." : "Lưu thay đổi"}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -404,21 +406,23 @@ export function SupplierTable() {
             </p>
           </div>
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => setDeleteTarget(null)}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-surface-variant bg-surface-container-low hover:bg-surface-container transition-colors"
+              className="flex-1 justify-center"
             >
               Hủy bỏ
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="danger"
               type="button"
               onClick={confirmDelete}
               disabled={deleting}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-primary bg-error hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="flex-1 justify-center"
             >
               {deleting ? "Đang xóa..." : "Xóa nhà cung cấp"}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

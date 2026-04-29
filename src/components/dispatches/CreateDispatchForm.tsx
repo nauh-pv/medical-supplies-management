@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect } from "react";
+import { Button } from "@/components/common";
 import { DispatchProductRow } from "./DispatchProductRow";
 import type { ProductRow } from "./DispatchProductRow";
 import {
@@ -167,7 +168,7 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                 Chi nhánh nhận thuốc
               </label>
               <div className="relative group">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 group-focus-within:text-primary transition-colors pointer-events-none">
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/60 group-focus-within:text-primary transition-colors pointer-events-none z-10">
                   local_hospital
                 </span>
                 <select
@@ -227,14 +228,13 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                     expand_more
                   </span>
                 </div>
-                <button
+                <Button
                   type="button"
                   onClick={addSelectedBatch}
                   disabled={!selectedBatchId}
-                  className="px-6 py-4 bg-primary text-on-primary rounded-full font-bold text-sm disabled:opacity-40 hover:scale-[1.02] active:scale-95 transition-all shadow-md shadow-primary/20"
                 >
                   Thêm
-                </button>
+                </Button>
               </div>
 
               {/* Rows table */}
@@ -298,20 +298,20 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                 * Lệnh xuất kho sẽ được gửi đến bộ phận kiểm kê để xác nhận.
               </p>
               <div className="flex gap-4">
-                <button
+                <Button
+                  variant="ghost"
                   type="button"
                   onClick={onCancel}
-                  className="px-8 py-3 rounded-full text-on-surface-variant font-bold hover:bg-surface-container transition-all"
                 >
                   Hủy bỏ
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  size="lg"
                   disabled={submitting}
-                  className="px-10 py-3 bg-primary text-on-primary rounded-full font-bold shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:scale-100"
                 >
                   {submitting ? "Đang tạo..." : "Tạo lệnh xuất kho"}
-                </button>
+                </Button>
               </div>
             </div>
           </form>

@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
-import { Input, Badge, Button, Pagination, Modal, DataTable } from "@/components/common";
+import {
+  Input,
+  Badge,
+  Button,
+  Pagination,
+  Modal,
+  DataTable,
+  Select,
+} from "@/components/common";
 import type {
   MedicineDoc,
   InventoryDoc,
@@ -204,12 +212,10 @@ export function InventoryTable({
           />
         </div>
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 pointer-events-none text-lg">
-              warehouse
-            </span>
-            <select
-              className="pl-10 pr-8 py-2.5 bg-surface-container-lowest border border-outline-variant/20 rounded-full text-sm font-medium text-on-surface appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
+          <div className="w-48">
+            <Select
+              variant="pill"
+              leadingIcon="warehouse"
               value={locationId}
               onChange={(e) => setLocationId(e.target.value)}
             >
@@ -219,10 +225,7 @@ export function InventoryTable({
                   {b.branchName ?? b.displayName}
                 </option>
               ))}
-            </select>
-            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-sm">
-              expand_more
-            </span>
+            </Select>
           </div>
           {/* <Button variant="ghost" icon="filter_list" size="md">
             Tất cả danh mục

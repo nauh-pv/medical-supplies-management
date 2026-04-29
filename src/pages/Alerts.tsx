@@ -1,5 +1,4 @@
 import { PageHeader, Button } from "@/components/common";
-import { LowStockGrid } from "@/components/alerts/LowStockGrid";
 import { ExpiryTable } from "@/components/alerts/ExpiryTable";
 import { AlertSectionHeader } from "@/components/alerts/AlertSectionHeader";
 
@@ -24,19 +23,6 @@ export function Alerts() {
         }
       />
 
-      {/* Low stock warning cards */}
-      <div>
-        <AlertSectionHeader
-          icon="warning"
-          iconColor="text-error"
-          title="Tồn kho nguy hiểm"
-          badgeLabel="4 mặt hàng"
-          badgeVariant="error"
-        />
-        <LowStockGrid />
-      </div>
-
-      {/* Expiry / low stock table */}
       <div>
         <AlertSectionHeader
           icon="schedule"
@@ -48,3 +34,5 @@ export function Alerts() {
     </main>
   );
 }
+
+

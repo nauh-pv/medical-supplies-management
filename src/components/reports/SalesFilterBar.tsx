@@ -1,4 +1,4 @@
-import { Input } from "@/components/common";
+import { Input, Select } from "@/components/common";
 
 const MONTH_LABELS = [
   "Tháng 1",
@@ -50,11 +50,10 @@ export function SalesFilterBar({
         />
       </div>
 
-      <div className="relative">
-        <select
+      <div className="w-52">
+        <Select
           value={selectedBranch}
           onChange={(e) => onBranchChange(e.target.value)}
-          className="appearance-none bg-surface-container-lowest px-6 py-2.5 pr-10 rounded-xl text-sm font-semibold text-on-surface-variant focus:ring-2 focus:ring-primary/20 cursor-pointer border-none"
         >
           <option value="">Tất cả chi nhánh</option>
           {branches.map((b) => (
@@ -62,10 +61,7 @@ export function SalesFilterBar({
               {b.name}
             </option>
           ))}
-        </select>
-        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/50 pointer-events-none text-lg">
-          expand_more
-        </span>
+        </Select>
       </div>
 
       <div className="flex bg-surface-container-low p-1 rounded-xl gap-0.5 flex-wrap">

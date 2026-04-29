@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Badge, Button } from "@/components/common";
+import { Badge } from "@/components/common";
 import type { StockAlert } from "@/services/dashboard";
 
 const MAX_DASHBOARD_ITEMS = 5;
@@ -55,7 +55,10 @@ const LOADING_ROWS = Array.from({ length: 2 }, (_, i) => i);
 
 /** Expiring soon + low stock alert panels — real Firestore data. */
 export function AlertsSection({ alerts, loading }: AlertsSectionProps) {
-  const expiringSoon = (alerts?.expiringSoon ?? []).slice(0, MAX_DASHBOARD_ITEMS);
+  const expiringSoon = (alerts?.expiringSoon ?? []).slice(
+    0,
+    MAX_DASHBOARD_ITEMS,
+  );
   const lowStock = (alerts?.lowStock ?? []).slice(0, MAX_DASHBOARD_ITEMS);
 
   return (
@@ -153,9 +156,9 @@ export function AlertsSection({ alerts, loading }: AlertsSectionProps) {
                   </p>
                 </div>
               </div>
-              <Button size="sm" icon="add_shopping_cart">
+              {/* <Button size="sm" icon="add_shopping_cart">
                 Nhập thêm
-              </Button>
+              </Button> */}
             </div>
           ))
         )}

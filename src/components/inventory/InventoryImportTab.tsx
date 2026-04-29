@@ -60,6 +60,7 @@ export function InventoryImportTab() {
           <div className="relative flex-1 min-w-[300px]">
             <Input
               leadingIcon="search"
+              size="lg"
               placeholder="Tìm kiếm mã đơn, nhà cung cấp..."
               value={search}
               onChange={(e) => {
@@ -69,10 +70,11 @@ export function InventoryImportTab() {
             />
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="ghost" icon="calendar_month" size="sm">
+            {/* <Button variant="ghost" icon="calendar_month" size="sm">
               Chọn ngày
-            </Button>
+            </Button> */}
             <Button
+              size="lg"
               icon="add_shopping_cart"
               onClick={() => setIsOpenCreateImportModal(true)}
             >

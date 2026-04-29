@@ -1,12 +1,15 @@
 import { type InputHTMLAttributes, forwardRef } from "react";
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+type InputSize = "md" | "lg";
+
+interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "size"> {
   label?: string;
   leadingIcon?: string;
   trailingIcon?: string;
   onTrailingIconClick?: () => void;
   error?: string;
   hint?: string;
+  size?: InputSize;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
@@ -17,6 +20,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     onTrailingIconClick,
     error,
     hint,
+    size = "md",
     className = "",
     id,
     ...props
@@ -24,6 +28,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   ref,
 ) {
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
+  const sizeClass = size === "lg" ? "py-3 text-base" : "py-2.5 text-sm";
 
   return (
     <div className="flex flex-col gap-1 w-full">
@@ -47,7 +52,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           ref={ref}
           id={inputId}
           className={[
-            "w-full bg-surface-container-low rounded-xl py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50",
+            "w-full bg-surface-container-low rounded-xl text-on-surface placeholder:text-on-surface-variant/50",
+            sizeClass,
             "outline-none ring-1 ring-transparent",
             "focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest",
             "transition-all",

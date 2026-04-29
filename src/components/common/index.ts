@@ -4,6 +4,7 @@ export { Badge } from "./Badge";
 export { TabBar } from "./TabBar";
 export { StatCard } from "./StatCard";
 export { Input } from "./Input";
+export { Select } from "./Select";
 export { SectionLabel } from "./SectionLabel";
 export { PageHeader } from "./PageHeader";
 export { DataTable } from "./DataTable";

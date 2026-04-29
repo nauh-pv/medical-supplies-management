@@ -129,6 +129,36 @@ import { Input } from "@/components/common";
 
 ---
 
+### `<Select>`
+
+**File:** `src/components/common/Select.tsx`
+
+Variants: `default` (default, `rounded-xl` form style) | `pill` (`rounded-full` filter bar style)  
+Props: `label?`, `leadingIcon?` (Material Symbol name), `error?`, `hint?`, `variant?` + all native `<select>` attributes
+
+> **Rule:** Never hand-roll a `<select>` with manual icon wrappers and chevron. Always use `<Select>`.  
+> For constrained-width contexts (filter bars), wrap with a fixed-width div: `<div className="w-44"><Select .../></div>`
+
+```tsx
+import { Select } from "@/components/common";
+
+// Form style (default)
+<Select label="Nhà cung cấp" value={value} onChange={...}>
+  <option value="">Chọn nhà cung cấp...</option>
+  {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+</Select>
+
+// Pill style (filter bar)
+<div className="w-48">
+  <Select variant="pill" leadingIcon="warehouse" value={locationId} onChange={...}>
+    <option value="WAREHOUSE">Kho Tổng</option>
+    {branches.map((b) => <option key={b.uid} value={b.uid}>{b.branchName}</option>)}
+  </Select>
+</div>
+```
+
+---
+
 ### `<SectionLabel>`
 
 **File:** `src/components/common/SectionLabel.tsx`

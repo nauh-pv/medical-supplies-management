@@ -43,7 +43,7 @@ export function Modal({
     >
       <div
         className={[
-          "bg-surface-container-lowest w-full rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,80,203,0.12)] overflow-hidden",
+          "bg-surface-container-lowest w-full rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,80,203,0.12)] overflow-hidden flex flex-col max-h-[92vh]",
           maxWidth,
         ].join(" ")}
       >

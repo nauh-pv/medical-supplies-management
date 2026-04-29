@@ -93,6 +93,7 @@ export function UnitTable() {
         <div className="px-8 py-6 flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/50">
           <div className="relative flex-1 min-w-[300px]">
             <Input
+              size="lg"
               leadingIcon="search"
               placeholder="Tìm kiếm đơn vị tính..."
               value={search}
@@ -102,7 +103,7 @@ export function UnitTable() {
               }}
             />
           </div>
-          <Button icon="add" onClick={() => setAddOpen(true)}>
+          <Button size="lg" icon="add" onClick={() => setAddOpen(true)}>
             Thêm đơn vị mới
           </Button>
         </div>
@@ -214,20 +215,21 @@ export function UnitTable() {
             />
           </div>
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => setAddOpen(false)}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-surface-variant bg-surface-container-low hover:bg-surface-container transition-colors"
+              className="flex-1 justify-center"
             >
               Hủy bỏ
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={saving}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-primary bg-primary hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="flex-1 justify-center"
             >
               Lưu đơn vị
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -262,20 +264,21 @@ export function UnitTable() {
             />
           </div>
           <div className="flex gap-3 pt-2">
-            <button
+            <Button
+              variant="ghost"
               type="button"
               onClick={() => setEditUnit(null)}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-surface-variant bg-surface-container-low hover:bg-surface-container transition-colors"
+              className="flex-1 justify-center"
             >
               Hủy bỏ
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={saving}
-              className="flex-1 py-3 rounded-xl text-sm font-semibold text-on-primary bg-primary hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="flex-1 justify-center"
             >
               {saving ? "Đang lưu..." : "Lưu thay đổi"}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

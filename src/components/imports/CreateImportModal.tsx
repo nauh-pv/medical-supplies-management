@@ -132,6 +132,12 @@ export function CreateImportModal({
         setError("Vui lòng nhập hạn sử dụng cho tất cả các dòng.");
         return;
       }
+      if (new Date(r.expiryDate) <= new Date()) {
+        setError(
+          `Hạn dùng của "${r.medicineName || "sản phẩm"}" phải lớn hơn ngày hiện tại.`,
+        );
+        return;
+      }
       if (r.qty <= 0 || r.unitPrice <= 0) {
         setError("Số lượng và đơn giá phải lớn hơn 0.");
         return;
@@ -175,10 +181,10 @@ export function CreateImportModal({
       subtitle="Tạo đơn nhập kho mới trực tiếp vào kho tổng"
       maxWidth="max-w-5xl"
     >
-      <div className="px-8 py-6 space-y-8">
-        {/* Section 1: General info */}
-        <section>
-          <div className="flex items-center gap-2 mb-5">
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-primary text-lg">
               info
             </span>
@@ -225,25 +231,13 @@ export function CreateImportModal({
 
         {/* Section 2: Product rows */}
         <section>
-          <div className="flex justify-between items-center mb-5">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-lg">
-                inventory_2
-              </span>
-              <h3 className="font-bold text-on-surface uppercase text-xs tracking-[0.2em] font-headline">
-                Danh sách sản phẩm
-              </h3>
-            </div>
-            <button
-              type="button"
-              onClick={addRow}
-              className="flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary/80 transition-colors bg-primary/10 px-3 py-1.5 rounded-full"
-            >
-              <span className="material-symbols-outlined text-base">
-                add_circle
-              </span>
-              Thêm dòng
-            </button>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="material-symbols-outlined text-primary text-lg">
+              inventory_2
+            </span>
+            <h3 className="font-bold text-on-surface uppercase text-xs tracking-[0.2em] font-headline">
+              Danh sách sản phẩm
+            </h3>
           </div>
 
           <div className="border border-outline-variant/20 rounded-xl overflow-hidden">
@@ -337,10 +331,20 @@ export function CreateImportModal({
                       <input
                         type="date"
                         value={r.expiryDate}
+                        min={
+                          new Date(Date.now() + 86400000)
+                            .toISOString()
+                            .split("T")[0]
+                        }
                         onChange={(e) =>
                           setRow(r.id, { expiryDate: e.target.value })
                         }
-                        className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg text-sm px-2 py-1.5 h-9 focus:ring-2 focus:ring-primary/20 outline-none text-on-surface"
+                        className={[
+                          "w-full bg-surface-container-low border rounded-lg text-sm px-2 py-1.5 h-9 focus:ring-2 focus:ring-primary/20 outline-none text-on-surface",
+                          r.expiryDate && new Date(r.expiryDate) <= new Date()
+                            ? "border-error/60 bg-error/5"
+                            : "border-outline-variant/30",
+                        ].join(" ")}
                       />
                     </td>
                     {/* Row total */}
@@ -365,6 +369,14 @@ export function CreateImportModal({
                 ))}
               </tbody>
             </table>
+            <button
+              type="button"
+              onClick={addRow}
+              className="w-full flex items-center justify-center gap-1.5 py-3 text-xs font-bold text-primary hover:bg-primary/5 active:bg-primary/10 transition-colors border-t border-dashed border-primary/20"
+            >
+              <span className="material-symbols-outlined text-base">add_circle</span>
+              Thêm dòng
+            </button>
           </div>
         </section>
 
@@ -381,34 +393,30 @@ export function CreateImportModal({
             className="w-full bg-surface-container-low border border-outline-variant/30 rounded-xl text-sm px-4 py-3 focus:ring-2 focus:ring-primary/20 outline-none text-on-surface resize-none"
           />
         </section>
+      </div>
 
-        {/* Section 4: Summary */}
-        <section className="bg-primary/5 p-6 rounded-xl border border-primary/10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary">
-                <span className="material-symbols-outlined text-2xl">
-                  payments
-                </span>
-              </div>
-              <div>
-                <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-[0.15em]">
-                  Tổng cộng thanh toán
-                </p>
-                <p className="text-xs text-on-surface-variant mt-0.5">
-                  Tạm tính:{" "}
-                  <span className="font-semibold">
-                    {subtotal.toLocaleString("vi-VN")}đ
-                  </span>
-                </p>
-              </div>
+      {/* Fixed bottom: Summary + error */}
+      <div className="px-8 py-4 border-t border-outline-variant/10 bg-surface-container-lowest flex-shrink-0 space-y-3">
+        <div className="flex items-center justify-between bg-primary/5 px-4 py-3 rounded-xl border border-primary/10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary flex-shrink-0">
+              <span className="material-symbols-outlined text-base">payments</span>
             </div>
-            <p className="text-3xl font-black text-primary font-headline">
-              {total.toLocaleString("vi-VN")}{" "}
-              <span className="text-base font-medium text-primary/70">đ</span>
-            </p>
+            <div>
+              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.15em]">
+                Tổng cộng thanh toán
+              </p>
+              <p className="text-xs text-on-surface-variant">
+                {rows.length} sản phẩm ·{" "}
+                <span className="font-semibold">{subtotal.toLocaleString("vi-VN")}đ</span>
+              </p>
+            </div>
           </div>
-        </section>
+          <p className="text-xl font-black text-primary font-headline">
+            {total.toLocaleString("vi-VN")}{" "}
+            <span className="text-sm font-medium text-primary/70">đ</span>
+          </p>
+        </div>
 
         {error && (
           <p className="text-sm text-error flex items-center gap-2">

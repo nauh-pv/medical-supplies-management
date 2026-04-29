@@ -116,6 +116,60 @@ applyTo: "src/**/*.{tsx,ts}"
 
 ---
 
+## Form Elements
+
+> **Always use `<Input>` and `<Select>` common components** for form controls. Only use raw `<input>`/`<select>`/`<textarea>` for very specific inline contexts (e.g. transparent table-cell inputs with `bg-transparent border-none`).
+
+### Input / Select — State tokens
+
+| State        | Classes to apply                                                                                      |
+| ------------ | ----------------------------------------------------------------------------------------------------- |
+| **Default**  | `bg-surface-container-low rounded-xl py-2.5 pl-4 pr-4 text-sm text-on-surface`                        |
+|              | `outline-none ring-1 ring-transparent transition-all`                                                 |
+|              | `placeholder:text-on-surface-variant/50`                                                              |
+| **Focus**    | `focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest`                                |
+| **Error**    | `ring-1 ring-error/40` (applied as conditional class)                                                 |
+| **Disabled** | `disabled:opacity-50 disabled:cursor-not-allowed`                                                     |
+| **Readonly** | `bg-surface-container-low/50 border border-outline-variant/20 text-on-surface-variant cursor-default` |
+
+### Select — Pill variant (filter bars)
+
+| State       | Classes to apply                                                                             |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| **Default** | `bg-surface-container-lowest border border-outline-variant/20 rounded-full shadow-sm py-2.5` |
+| **Focus**   | `focus:ring-2 focus:ring-primary/20 focus:border-primary/30`                                 |
+
+### Button — Standard token rules
+
+| Variant     | When to use                                          | How                            |
+| ----------- | ---------------------------------------------------- | ------------------------------ |
+| `primary`   | Main CTA (save, confirm, create)                     | `<Button>`                     |
+| `ghost`     | Secondary action (cancel, back, navigation)          | `<Button variant="ghost">`     |
+| `danger`    | Destructive action (delete, remove)                  | `<Button variant="danger">`    |
+| icon-action | Compact table-row icon buttons (edit / delete icons) | Raw `<button>` — pattern below |
+
+**Icon action button pattern** (table row actions — keep as raw `<button>`, NOT `<Button>` common):
+
+```tsx
+// Edit icon button
+<button className="p-2 rounded-lg text-on-surface-variant hover:text-primary hover:bg-primary/10 transition-colors">
+  <span className="material-symbols-outlined text-xl">edit</span>
+</button>
+
+// Delete icon button
+<button className="p-2 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/50 transition-colors">
+  <span className="material-symbols-outlined text-xl">delete</span>
+</button>
+```
+
+**Rules:**
+
+1. Never use raw `<button>` for layout-placed or full-width buttons — always use `<Button>`.
+2. Never hand-roll a `<select>` with manual icon wrappers and chevron — always use `<Select>`.
+3. Never use raw Tailwind palette colors (`blue-*`, `red-*`, `slate-*`) in form state classes.
+
+---
+
 ## Material Symbols Usage
 
 Icons come from `material-symbols-outlined` (variable font). Use `text-[size]` for sizing.

@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from "react";
-import { Badge, Pagination } from "@/components/common";
+import { Badge, Pagination, DataTable } from "@/components/common";
 import {
   getImportRequests,
   getDispatchOrders,
@@ -196,195 +196,181 @@ export function ImportList() {
 
       {/* Table */}
       <div className="bg-surface-container-lowest rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,80,203,0.03)] overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center py-16 gap-3 text-on-surface-variant">
-            <span className="material-symbols-outlined animate-spin text-primary text-3xl">
-              progress_activity
-            </span>
-            <span className="text-sm">Đang tải dữ liệu...</span>
-          </div>
-        ) : error ? (
+        {error ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-error">
             <span className="material-symbols-outlined text-4xl">error</span>
             <span className="text-sm">{error}</span>
           </div>
-        ) : combined.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant">
-            <span className="material-symbols-outlined text-4xl">inbox</span>
-            <span className="text-sm">Chưa có dữ liệu nhập hàng.</span>
-          </div>
         ) : (
-          <table className="w-full">
-            <thead>
-              <tr className="bg-surface-container-low/30">
-                {[
-                  { label: "Mã đơn", cls: "pl-8" },
-                  { label: "Ngày tạo" },
-                  { label: "Loại" },
-                  { label: "Trạng thái" },
-                  { label: "Giá trị", cls: "text-right" },
-                  { label: "Hành động", cls: "text-right pr-8" },
-                ].map((h) => (
-                  <th
-                    key={h.label}
+          <DataTable<CombinedRow>
+            columns={[
+              {
+                key: "code",
+                header: "Mã đơn",
+                render: (row) => (
+                  <span
                     className={[
-                      "px-4 py-3 text-left text-[10px] font-label font-bold uppercase tracking-widest text-on-surface-variant",
-                      h.cls ?? "",
+                      "text-sm font-semibold font-mono",
+                      row.rowType === "request"
+                        ? "text-primary"
+                        : "text-amber-700",
                     ].join(" ")}
                   >
-                    {h.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {paged.map((row, i) => {
-                if (row.rowType === "request") {
-                  const r = row.data;
-                  const statusVariant =
-                    r.status === "pending"
-                      ? "warning"
-                      : r.status === "approved"
-                        ? "neutral"
-                        : r.status === "rejected"
+                    {row.data.code}
+                  </span>
+                ),
+              },
+              {
+                key: "createdAt",
+                header: "Ngày tạo",
+                className: "text-on-surface-variant",
+                render: (row) =>
+                  formatTs(
+                    row.data.createdAt as unknown as
+                      | { seconds: number }
+                      | undefined,
+                  ),
+              },
+              {
+                key: "type",
+                header: "Loại",
+                render: (row) =>
+                  row.rowType === "request" ? (
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
+                      Yêu cầu nhập
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                      Điều phối từ kho
+                    </span>
+                  ),
+              },
+              {
+                key: "status",
+                header: "Trạng thái",
+                render: (row) => {
+                  if (row.rowType === "request") {
+                    const r = row.data;
+                    const sv =
+                      r.status === "pending"
+                        ? "warning"
+                        : r.status === "approved"
+                          ? "neutral"
+                          : r.status === "rejected"
+                            ? "error"
+                            : "success";
+                    const sl =
+                      r.status === "pending"
+                        ? "Chờ duyệt"
+                        : r.status === "approved"
+                          ? "Đã duyệt"
+                          : r.status === "rejected"
+                            ? "Từ chối"
+                            : "Hoàn thành";
+                    return <Badge variant={sv}>{sl}</Badge>;
+                  }
+                  const d = row.data;
+                  const dv =
+                    d.status === "received"
+                      ? "success"
+                      : d.status === "shipping"
+                        ? "info"
+                        : d.status === "cancelled"
                           ? "error"
-                          : "success";
-                  const statusLabel =
-                    r.status === "pending"
-                      ? "Chờ duyệt"
-                      : r.status === "approved"
-                        ? "Đã duyệt"
-                        : r.status === "rejected"
-                          ? "Từ chối"
-                          : "Hoàn thành";
-                  return (
-                    <tr
-                      key={`req-${r.id}`}
-                      className={`${i % 2 === 1 ? "bg-surface-container-lowest/30" : ""} hover:bg-primary/5 transition-colors`}
-                    >
-                      <td className="px-8 py-4 text-sm font-semibold text-primary font-mono">
-                        {r.code}
-                      </td>
-                      <td className="px-4 py-4 text-sm text-on-surface-variant">
-                        {formatTs(
-                          r.createdAt as unknown as
-                            | { seconds: number }
-                            | undefined,
-                        )}
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
-                          Yêu cầu nhập
-                        </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <Badge variant={statusVariant}>{statusLabel}</Badge>
-                      </td>
-                      <td className="px-4 py-4 text-right text-sm font-semibold font-mono text-on-surface">
-                        {r.total.toLocaleString("vi-VN")}đ
-                      </td>
-                      <td className="px-4 py-4 text-right pr-8">
-                        <div className="flex items-center justify-end gap-2">
-                          {r.status === "approved" && (
-                            <button
-                              onClick={() =>
-                                handleConfirmRequestFulfilled(r.id)
-                              }
-                              disabled={confirmingRequestId === r.id}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-green-700 bg-green-100 hover:bg-green-200 transition-colors disabled:opacity-50"
-                            >
-                              {confirmingRequestId === r.id
-                                ? "Đang xử lý…"
-                                : "Xác nhận nhập kho"}
-                            </button>
-                          )}
+                          : "warning";
+                  const dl =
+                    d.status === "received"
+                      ? "Hoàn thành"
+                      : d.status === "shipping"
+                        ? "Đang vận chuyển"
+                        : d.status === "cancelled"
+                          ? "Đã hủy"
+                          : "Chờ xác nhận";
+                  return <Badge variant={dv}>{dl}</Badge>;
+                },
+              },
+              {
+                key: "total",
+                header: "Giá trị",
+                headerClassName: "text-right",
+                className: "text-right font-semibold font-mono",
+                render: (row) => {
+                  const value =
+                    row.rowType === "request"
+                      ? row.data.total
+                      : row.data.items.reduce((s, it) => s + it.total, 0);
+                  return `${value.toLocaleString("vi-VN")}đ`;
+                },
+              },
+              {
+                key: "actions",
+                header: "Hành động",
+                headerClassName: "text-right",
+                className: "text-right",
+                render: (row) => (
+                  <div className="flex items-center justify-end gap-2">
+                    {row.rowType === "request" ? (
+                      <>
+                        {row.data.status === "approved" && (
                           <button
-                            onClick={() => setSelectedRequest(r)}
-                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-primary bg-primary/8 hover:bg-primary/15 transition-colors"
-                          >
-                            Xem chi tiết
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }
-
-                // dispatch row
-                const d = row.data;
-                const needsConfirm =
-                  d.status === "pending" || d.status === "shipping";
-                const dispStatusVariant =
-                  d.status === "received"
-                    ? "success"
-                    : d.status === "shipping"
-                      ? "info"
-                      : d.status === "cancelled"
-                        ? "error"
-                        : "warning";
-                const dispStatusLabel =
-                  d.status === "received"
-                    ? "Hoàn thành"
-                    : d.status === "shipping"
-                      ? "Đang vận chuyển"
-                      : d.status === "cancelled"
-                        ? "Đã hủy"
-                        : "Chờ xác nhận";
-                const totalValue = d.items.reduce((s, it) => s + it.total, 0);
-                return (
-                  <tr
-                    key={`dis-${d.id}`}
-                    className={`${i % 2 === 1 ? "bg-surface-container-lowest/30" : ""} hover:bg-primary/5 transition-colors`}
-                  >
-                    <td className="px-8 py-4 text-sm font-semibold text-amber-700 font-mono">
-                      {d.code}
-                    </td>
-                    <td className="px-4 py-4 text-sm text-on-surface-variant">
-                      {formatTs(
-                        d.createdAt as unknown as
-                          | { seconds: number }
-                          | undefined,
-                      )}
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
-                        Điều phối từ kho
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <Badge variant={dispStatusVariant}>
-                        {dispStatusLabel}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-4 text-right text-sm font-semibold font-mono text-on-surface">
-                      {totalValue.toLocaleString("vi-VN")}đ
-                    </td>
-                    <td className="px-4 py-4 text-right pr-8">
-                      <div className="flex items-center justify-end gap-2">
-                        {needsConfirm && (
-                          <button
-                            onClick={() => handleConfirmReceived(d.id)}
-                            disabled={confirmingId === d.id}
+                            onClick={() =>
+                              handleConfirmRequestFulfilled(row.data.id)
+                            }
+                            disabled={confirmingRequestId === row.data.id}
                             className="px-3 py-1.5 rounded-lg text-xs font-semibold text-green-700 bg-green-100 hover:bg-green-200 transition-colors disabled:opacity-50"
                           >
-                            {confirmingId === d.id
+                            {confirmingRequestId === row.data.id
                               ? "Đang xử lý…"
                               : "Xác nhận nhập kho"}
                           </button>
                         )}
                         <button
-                          onClick={() => setSelectedDispatch(d)}
+                          onClick={() => setSelectedRequest(row.data)}
                           className="px-3 py-1.5 rounded-lg text-xs font-semibold text-primary bg-primary/8 hover:bg-primary/15 transition-colors"
                         >
                           Xem chi tiết
                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </>
+                    ) : (
+                      <>
+                        {(row.data.status === "pending" ||
+                          row.data.status === "shipping") && (
+                          <button
+                            onClick={() => handleConfirmReceived(row.data.id)}
+                            disabled={confirmingId === row.data.id}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-green-700 bg-green-100 hover:bg-green-200 transition-colors disabled:opacity-50"
+                          >
+                            {confirmingId === row.data.id
+                              ? "Đang xử lý…"
+                              : "Xác nhận nhập kho"}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setSelectedDispatch(row.data)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold text-primary bg-primary/8 hover:bg-primary/15 transition-colors"
+                        >
+                          Xem chi tiết
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+            data={paged}
+            loading={loading}
+            loadingRows={ITEMS_PER_PAGE}
+            showIndex
+            indexOffset={(page - 1) * ITEMS_PER_PAGE}
+            headerRowClassName="bg-surface-container-low/30"
+            rowClassName={(_, i) =>
+              [
+                "hover:bg-primary/5 transition-colors",
+                i % 2 === 1 ? "bg-surface-container-lowest/30" : "",
+              ].join(" ")
+            }
+            emptyText="Chưa có dữ liệu nhập hàng."
+          />
         )}
 
         {!loading && combined.length > 0 && (

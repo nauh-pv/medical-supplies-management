@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Modal, Button, Badge } from "@/components/common";
+import { Modal, Button, Badge, DataTable } from "@/components/common";
 import { getBatchesByMedicine } from "@/services/inventory";
 import type { BatchDoc } from "@/types/firestore";
 
@@ -137,120 +137,116 @@ export function BatchHistoryModal({
 
       {/* Table */}
       <div className="max-h-[400px] overflow-y-auto px-10 py-6">
-        {loading ? (
-          <div className="flex items-center justify-center py-16 gap-3 text-on-surface-variant">
-            <span className="material-symbols-outlined animate-spin text-primary text-3xl">
-              progress_activity
-            </span>
-            <span className="text-sm">Đang tải dữ liệu...</span>
-          </div>
-        ) : error ? (
+        {error ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-error">
             <span className="material-symbols-outlined text-4xl">error</span>
             <span className="text-sm">{error}</span>
           </div>
-        ) : batches.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-on-surface-variant">
-            <span className="material-symbols-outlined text-4xl">
-              inventory_2
-            </span>
-            <span className="text-sm">Chưa có lô hàng nào được ghi nhận.</span>
-          </div>
         ) : (
-          <table className="w-full text-left border-separate border-spacing-y-1.5">
-            <thead>
-              <tr>
-                {[
-                  { label: "Số lô" },
-                  { label: "Ngày nhập" },
-                  { label: "Nhà cung cấp" },
-                  { label: "Còn lại", cls: "text-right" },
-                  { label: "Nhập ban đầu", cls: "text-right" },
-                  { label: "Đơn vị", cls: "text-center" },
-                  { label: "Giá nhập", cls: "text-right" },
-                  { label: "Hạn dùng" },
-                  { label: "Trạng thái", cls: "text-center" },
-                ].map((h) => (
-                  <th
-                    key={h.label}
-                    className={[
-                      "px-4 py-3 text-[11px] font-label font-bold uppercase tracking-wider text-on-surface-variant",
-                      h.cls ?? "",
-                    ].join(" ")}
-                  >
-                    {h.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="text-sm">
-              {batches.map((b, i) => {
-                const expTs = b.expiryDate as unknown as
-                  | { seconds: number }
-                  | undefined;
-                const importTs = b.importDate as unknown as
-                  | { seconds: number }
-                  | undefined;
-                const expired = isExpired(expTs);
-                const nearExpiry = !expired && isNearExpiry(expTs);
-                const expiryVariant = expired
-                  ? "error"
-                  : nearExpiry
-                    ? "warning"
-                    : "info";
-                const statusVariant =
-                  b.status === "active"
-                    ? "success"
-                    : b.status === "expired"
-                      ? "error"
-                      : "neutral";
-                const statusLabel =
-                  b.status === "active"
-                    ? "Đang dùng"
-                    : b.status === "expired"
-                      ? "Hết hạn"
-                      : "Thu hồi";
-
-                return (
-                  <tr
-                    key={b.id}
-                    className={[
-                      "hover:bg-surface-bright transition-colors",
-                      i % 2 === 1 ? "bg-surface-container-low/30" : "",
-                    ].join(" ")}
-                  >
-                    <td className="px-4 py-4 font-bold text-primary font-mono text-xs">
-                      {b.lot}
-                    </td>
-                    <td className="px-4 py-4 text-on-surface-variant">
-                      {formatTs(importTs)}
-                    </td>
-                    <td className="px-4 py-4 font-medium text-on-surface">
-                      {b.supplierName}
-                    </td>
-                    <td className="px-4 py-4 text-right font-bold text-on-surface">
-                      {b.quantity.toLocaleString("vi-VN")}
-                    </td>
-                    <td className="px-4 py-4 text-right text-on-surface-variant">
-                      {b.initialQuantity.toLocaleString("vi-VN")}
-                    </td>
-                    <td className="px-4 py-4 text-center text-on-surface-variant">
-                      {unitName}
-                    </td>
-                    <td className="px-4 py-4 text-right text-on-surface-variant font-mono">
-                      {b.importPrice.toLocaleString("vi-VN")}
-                    </td>
-                    <td className="px-4 py-4">
-                      <Badge variant={expiryVariant}>{formatTs(expTs)}</Badge>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <Badge variant={statusVariant}>{statusLabel}</Badge>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DataTable
+            columns={[
+              {
+                key: "lot",
+                header: "Số lô",
+                className: "font-bold text-primary font-mono text-xs",
+              },
+              {
+                key: "importDate",
+                header: "Ngày nhập",
+                className: "text-on-surface-variant",
+                render: (b) =>
+                  formatTs(
+                    b.importDate as unknown as { seconds: number } | undefined,
+                  ),
+              },
+              {
+                key: "supplierName",
+                header: "Nhà cung cấp",
+                className: "font-medium",
+              },
+              {
+                key: "quantity",
+                header: "Còn lại",
+                headerClassName: "text-right",
+                className: "text-right font-bold",
+                render: (b) => b.quantity.toLocaleString("vi-VN"),
+              },
+              {
+                key: "initialQuantity",
+                header: "Nhập ban đầu",
+                headerClassName: "text-right",
+                className: "text-right text-on-surface-variant",
+                render: (b) => b.initialQuantity.toLocaleString("vi-VN"),
+              },
+              {
+                key: "unitName_col",
+                header: "Đơn vị",
+                headerClassName: "text-center",
+                className: "text-center text-on-surface-variant",
+                render: () => unitName,
+              },
+              {
+                key: "importPrice",
+                header: "Giá nhập",
+                headerClassName: "text-right",
+                className: "text-right text-on-surface-variant font-mono",
+                render: (b) => b.importPrice.toLocaleString("vi-VN"),
+              },
+              {
+                key: "expiryDate",
+                header: "Hạn dùng",
+                render: (b) => {
+                  const expTs = b.expiryDate as unknown as
+                    | { seconds: number }
+                    | undefined;
+                  const expired = isExpired(expTs);
+                  const nearExpiry = !expired && isNearExpiry(expTs);
+                  const expiryVariant = expired
+                    ? "error"
+                    : nearExpiry
+                      ? "warning"
+                      : "info";
+                  return (
+                    <Badge variant={expiryVariant}>{formatTs(expTs)}</Badge>
+                  );
+                },
+              },
+              {
+                key: "status",
+                header: "Trạng thái",
+                headerClassName: "text-center",
+                className: "text-center",
+                render: (b) => {
+                  const statusVariant =
+                    b.status === "active"
+                      ? "success"
+                      : b.status === "expired"
+                        ? "error"
+                        : "neutral";
+                  const statusLabel =
+                    b.status === "active"
+                      ? "Đang dùng"
+                      : b.status === "expired"
+                        ? "Hết hạn"
+                        : "Thu hồi";
+                  return <Badge variant={statusVariant}>{statusLabel}</Badge>;
+                },
+              },
+            ]}
+            data={batches}
+            keyField="id"
+            loading={loading}
+            showIndex
+            tableClassName="w-full text-left border-separate border-spacing-y-1.5"
+            headerRowClassName=""
+            rowClassName={(_, i) =>
+              [
+                "hover:bg-surface-bright transition-colors",
+                i % 2 === 1 ? "bg-surface-container-low/30" : "",
+              ].join(" ")
+            }
+            emptyText="Chưa có lô hàng nào được ghi nhận."
+          />
         )}
       </div>
 

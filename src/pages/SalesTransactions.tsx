@@ -24,7 +24,8 @@ export function SalesTransactions() {
     Promise.all([getAllPosTransactions(), getBranches()])
       .then(([txs, brs]) => {
         setTransactions(txs);
-        setBranches(brs);
+        const brsValid = brs.filter((d) => d.status === "active");
+        setBranches(brsValid);
       })
       .catch((err) => console.error("SalesTransactions fetch error:", err))
       .finally(() => setLoading(false));

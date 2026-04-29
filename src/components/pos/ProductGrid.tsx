@@ -35,8 +35,7 @@ export function ProductGrid({
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("Tất cả");
 
-  const locationId = userDoc?.branchId;
-
+  const locationId = userDoc?.branchId || "WAREHOUSE";
   useEffect(() => {
     let cancelled = false;
     if (!locationId) {

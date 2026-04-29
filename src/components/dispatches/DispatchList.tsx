@@ -1,5 +1,12 @@
 ﻿import { useState, useEffect } from "react";
-import { Badge, Button, Pagination, Input, Modal } from "@/components/common";
+import {
+  Badge,
+  Button,
+  Pagination,
+  Input,
+  Modal,
+  DataTable,
+} from "@/components/common";
 import { DispatchDetailModal } from "./DispatchDetailModal";
 import { ImportRequestDetailModal } from "@/components/imports/ImportRequestDetailModal";
 import {
@@ -182,188 +189,163 @@ export function DispatchList() {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low">
-                {[
-                  "Mã đơn",
-                  "Chi nhánh",
-                  "Ngày tạo",
-                  "Người tạo",
-                  "Loại",
-                  "Trạng thái",
-                  "Hành động",
-                ].map((h, i) => (
-                  <th
-                    key={i}
+        <DataTable<CombinedRow>
+          columns={[
+            {
+              key: "code",
+              header: "Mã đơn",
+              render: (row) => (
+                <span
+                  className={[
+                    "font-bold text-sm tracking-tight",
+                    row.rowType === "dispatch"
+                      ? "text-primary"
+                      : "text-amber-700",
+                  ].join(" ")}
+                >
+                  {row.data.code}
+                </span>
+              ),
+            },
+            {
+              key: "branch",
+              header: "Chi nhánh",
+              render: (row) =>
+                row.rowType === "dispatch" ? (
+                  <div>
+                    <p className="text-sm font-semibold text-on-surface">
+                      {row.data.toLocationName}
+                    </p>
+                    <p className="text-[10px] text-on-surface-variant uppercase">
+                      ID: {row.data.toLocationId}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm font-semibold text-on-surface">
+                    {row.data.branchName}
+                  </p>
+                ),
+            },
+            {
+              key: "createdAt",
+              header: "Ngày tạo",
+              className: "text-on-surface-variant",
+              render: (row) => formatDate(row.data.createdAt),
+            },
+            {
+              key: "creator",
+              header: "Người tạo",
+              render: (row) => (
+                <div className="flex items-center gap-2">
+                  <div
                     className={[
-                      "px-6 py-4 text-xs font-label font-bold text-on-surface-variant uppercase tracking-widest",
-                      i === 6 ? "text-right" : "",
+                      "w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold",
+                      row.rowType === "dispatch"
+                        ? "bg-primary/10 text-primary"
+                        : "bg-amber-100 text-amber-700",
                     ].join(" ")}
                   >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i} className="border-t border-outline-variant/10">
-                    <td colSpan={7} className="px-6 py-5">
-                      <div className="h-8 bg-surface-container-low rounded-xl animate-pulse" />
-                    </td>
-                  </tr>
-                ))
-              ) : paginated.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-6 py-10 text-center text-sm text-on-surface-variant"
-                  >
-                    {search
-                      ? "Không tìm thấy kết quả phù hợp"
-                      : "Chưa có dữ liệu"}
-                  </td>
-                </tr>
-              ) : (
-                paginated.map((row) => {
-                  if (row.rowType === "dispatch") {
-                    const { label, variant } =
-                      DISPATCH_STATUS[row.data.status] ??
-                      DISPATCH_STATUS.pending;
-                    return (
-                      <tr
-                        key={`d-${row.data.id}`}
-                        className="hover:bg-surface-bright transition-colors border-t border-outline-variant/10"
+                    {initials(row.data.createdByName)}
+                  </div>
+                  <span className="text-sm text-on-surface-variant">
+                    {row.data.createdByName}
+                  </span>
+                </div>
+              ),
+            },
+            {
+              key: "type",
+              header: "Loại",
+              render: (row) =>
+                row.rowType === "dispatch" ? (
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
+                    Xuất kho
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                    Yêu cầu nhập
+                  </span>
+                ),
+            },
+            {
+              key: "status",
+              header: "Trạng thái",
+              render: (row) => {
+                const cfg =
+                  row.rowType === "dispatch"
+                    ? (DISPATCH_STATUS[row.data.status] ??
+                      DISPATCH_STATUS.pending)
+                    : (REQUEST_STATUS[row.data.status] ??
+                      REQUEST_STATUS.pending);
+                return (
+                  <Badge variant={cfg.variant} dot>
+                    {cfg.label}
+                  </Badge>
+                );
+              },
+            },
+            {
+              key: "actions",
+              header: "Hành động",
+              headerClassName: "text-right",
+              className: "text-right",
+              render: (row) => (
+                <div className="flex items-center justify-end gap-2">
+                  {row.rowType === "dispatch" ? (
+                    <>
+                      {isManager && row.data.status === "pending" && (
+                        <button
+                          onClick={() => setConfirmDispatch(row.data)}
+                          disabled={shippingId === row.data.id}
+                          className="text-sm font-bold text-green-700 hover:underline disabled:opacity-50"
+                        >
+                          {shippingId === row.data.id
+                            ? "Đang xử lý…"
+                            : "Xác nhận xuất kho"}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setSelectedDispatch(row.data)}
+                        className="text-sm font-bold text-primary hover:underline"
                       >
-                        <td className="px-6 py-5 font-bold text-primary text-sm tracking-tight">
-                          {row.data.code}
-                        </td>
-                        <td className="px-6 py-5">
-                          <p className="text-sm font-semibold text-on-surface">
-                            {row.data.toLocationName}
-                          </p>
-                          <p className="text-[10px] text-on-surface-variant uppercase">
-                            ID: {row.data.toLocationId}
-                          </p>
-                        </td>
-                        <td className="px-6 py-5 text-sm text-on-surface-variant">
-                          {formatDate(row.data.createdAt)}
-                        </td>
-                        <td className="px-6 py-5">
-                          <div className="flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold bg-primary/10 text-primary">
-                              {initials(row.data.createdByName)}
-                            </div>
-                            <span className="text-sm text-on-surface-variant">
-                              {row.data.createdByName}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-5">
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
-                            Xuất kho
-                          </span>
-                        </td>
-                        <td className="px-6 py-5">
-                          <Badge variant={variant} dot>
-                            {label}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-5 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            {isManager && row.data.status === "pending" && (
-                              <button
-                                onClick={() => setConfirmDispatch(row.data)}
-                                disabled={shippingId === row.data.id}
-                                className="text-sm font-bold text-green-700 hover:underline disabled:opacity-50"
-                              >
-                                {shippingId === row.data.id
-                                  ? "Đang xử lý…"
-                                  : "Xác nhận xuất kho"}
-                              </button>
-                            )}
-                            <button
-                              onClick={() => setSelectedDispatch(row.data)}
-                              className="text-sm font-bold text-primary hover:underline"
-                            >
-                              Xem chi tiết
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  }
-
-                  // import request row
-                  const { label, variant } =
-                    REQUEST_STATUS[row.data.status] ?? REQUEST_STATUS.pending;
-                  return (
-                    <tr
-                      key={`r-${row.data.id}`}
-                      className="hover:bg-surface-bright transition-colors border-t border-outline-variant/10"
-                    >
-                      <td className="px-6 py-5 font-bold text-amber-700 text-sm tracking-tight">
-                        {row.data.code}
-                      </td>
-                      <td className="px-6 py-5">
-                        <p className="text-sm font-semibold text-on-surface">
-                          {row.data.branchName}
-                        </p>
-                      </td>
-                      <td className="px-6 py-5 text-sm text-on-surface-variant">
-                        {formatDate(row.data.createdAt)}
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold bg-amber-100 text-amber-700">
-                            {initials(row.data.createdByName)}
-                          </div>
-                          <span className="text-sm text-on-surface-variant">
-                            {row.data.createdByName}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
-                          Yêu cầu nhập
-                        </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <Badge variant={variant} dot>
-                          {label}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {isManager && row.data.status === "pending" && (
-                            <button
-                              onClick={() => handleApprove(row.data.id)}
-                              disabled={approvingId === row.data.id}
-                              className="text-sm font-bold text-green-700 hover:underline disabled:opacity-50"
-                            >
-                              {approvingId === row.data.id
-                                ? "Đang xử lý…"
-                                : "Xác nhận"}
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setSelectedRequestId(row.data.id)}
-                            className="text-sm font-bold text-primary hover:underline"
-                          >
-                            Xem chi tiết
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                        Xem chi tiết
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {isManager && row.data.status === "pending" && (
+                        <button
+                          onClick={() => handleApprove(row.data.id)}
+                          disabled={approvingId === row.data.id}
+                          className="text-sm font-bold text-green-700 hover:underline disabled:opacity-50"
+                        >
+                          {approvingId === row.data.id
+                            ? "Đang xử lý…"
+                            : "Xác nhận"}
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setSelectedRequestId(row.data.id)}
+                        className="text-sm font-bold text-primary hover:underline"
+                      >
+                        Xem chi tiết
+                      </button>
+                    </>
+                  )}
+                </div>
+              ),
+            },
+          ]}
+          data={paginated}
+          loading={loading}
+          loadingRows={PAGE_SIZE}
+          showIndex
+          indexOffset={(page - 1) * PAGE_SIZE}
+          headerRowClassName="bg-surface-container-low"
+          emptyText={
+            search ? "Không tìm thấy kết quả phù hợp" : "Chưa có dữ liệu"
+          }
+        />
 
         {/* Pagination footer */}
         <div className="px-8 py-6 border-t border-outline-variant/10 bg-surface-container-low/20 flex items-center justify-between">

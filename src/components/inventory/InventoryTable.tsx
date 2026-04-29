@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Input, Badge, Button, Pagination, Modal } from "@/components/common";
+import { Input, Badge, Button, Pagination, Modal, DataTable } from "@/components/common";
 import type {
   MedicineDoc,
   InventoryDoc,
@@ -109,7 +109,10 @@ export function InventoryTable({
   }, []);
 
   useEffect(() => {
-    getBranches().then(setBranches);
+    getBranches().then((data) => {
+      const dataValid = data.filter((d) => d.status === "active");
+      setBranches(dataValid);
+    });
   }, []);
 
   const filtered = medicines
@@ -234,198 +237,178 @@ export function InventoryTable({
       </div>
 
       {/* ── Table ── */}
-      <div className="overflow-x-auto">
-        {loading ? (
-          <div className="flex items-center justify-center py-20 text-on-surface-variant gap-3">
-            <span className="material-symbols-outlined animate-spin text-primary text-3xl">
-              progress_activity
-            </span>
-            <span className="text-sm">Đang tải dữ liệu...</span>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-20 text-error gap-3">
-            <span className="material-symbols-outlined text-4xl">error</span>
-            <span className="text-sm text-center max-w-sm">{error}</span>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant gap-3">
-            <span className="material-symbols-outlined text-4xl">
-              inventory_2
-            </span>
-            <span className="text-sm">Không tìm thấy sản phẩm nào.</span>
-          </div>
-        ) : (
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low">
-                {[
-                  { label: "Tên thuốc", cls: "pl-8" },
-                  { label: "Danh mục" },
-                  { label: "Đơn vị tính", cls: "text-center" },
-                  { label: "Giá nhập TB", cls: "text-right" },
-                  { label: "Giá bán", cls: "text-right" },
-                  { label: "Tồn kho", cls: "text-center" },
-                  { label: "Trạng thái", cls: "text-center" },
-                  { label: "Thao tác", cls: "text-center" },
-                ].map((h, i) => (
-                  <th
-                    key={i}
-                    className={[
-                      "px-6 py-4 text-xs font-label font-bold text-on-surface-variant uppercase tracking-widest",
-                      h.cls ?? "",
-                    ].join(" ")}
-                  >
-                    {h.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-
-            <tbody>
-              {paged.map((med) => {
+      {error ? (
+        <div className="flex flex-col items-center justify-center py-20 text-error gap-3">
+          <span className="material-symbols-outlined text-4xl">error</span>
+          <span className="text-sm text-center max-w-sm">{error}</span>
+        </div>
+      ) : (
+        <DataTable<MedicineDoc>
+          columns={[
+            {
+              key: "name",
+              header: "Tên thuốc",
+              render: (med) => (
+                <div className="flex items-center gap-3">
+                  {med.imageUrl ? (
+                    <img
+                      src={med.imageUrl}
+                      alt={med.name}
+                      className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
+                      <span className="material-symbols-outlined text-on-surface-variant">
+                        medication
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-bold text-on-surface">{med.name}</p>
+                    <p className="text-xs text-on-surface-variant">{med.sku}</p>
+                  </div>
+                </div>
+              ),
+            },
+            {
+              key: "category",
+              header: "Danh mục",
+              render: (med) => (
+                <Badge
+                  variant={med.category === "prescribed" ? "info" : "neutral"}
+                >
+                  {med.category === "prescribed" ? "Kê đơn" : "Không kê đơn"}
+                </Badge>
+              ),
+            },
+            {
+              key: "unitId",
+              header: "Đơn vị tính",
+              headerClassName: "text-center",
+              className: "text-center font-medium text-on-surface-variant",
+              render: (med) => convertUnitIdToName(med.unitId),
+            },
+            {
+              key: "importPrice",
+              header: "Giá nhập TB",
+              headerClassName: "text-right",
+              className: "text-right font-mono text-on-surface-variant",
+              render: (med) => {
+                const p = getAvgImportPrice(med.id);
+                return p > 0 ? `${p.toLocaleString("vi-VN")}đ` : "—";
+              },
+            },
+            {
+              key: "sellPrice",
+              header: "Giá bán",
+              headerClassName: "text-right",
+              className: "text-right font-mono font-bold",
+              render: (med) => `${med.sellPrice.toLocaleString("vi-VN")}đ`,
+            },
+            {
+              key: "stock",
+              header: "Tồn kho",
+              headerClassName: "text-center",
+              className: "text-center",
+              render: (med) => {
+                const stock = getStock(med.id);
+                const minLevel = getMinLevel(med);
+                const displayStatus = getDisplayStatus(stock, minLevel);
+                const barColor = stockBarColor[displayStatus];
+                const maxStock = Math.max(stock, med.minStockLevel * 3, 1);
+                const stockPercent = Math.min(100, (stock / maxStock) * 100);
+                return (
+                  <div className="inline-flex flex-col items-center gap-1">
+                    <span className="text-sm font-bold text-on-surface">
+                      {stock.toLocaleString("vi-VN")}
+                    </span>
+                    <div className="w-12 h-1 bg-surface-container-high rounded-full overflow-hidden">
+                      <div
+                        className={["h-full rounded-full", barColor].join(" ")}
+                        style={{ width: `${stockPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              },
+            },
+            {
+              key: "status",
+              header: "Trạng thái",
+              headerClassName: "text-center",
+              className: "text-center",
+              render: (med) => {
                 const stock = getStock(med.id);
                 const minLevel = getMinLevel(med);
                 const displayStatus = getDisplayStatus(stock, minLevel);
                 const { label, variant } = statusConfig[displayStatus];
-                const barColor = stockBarColor[displayStatus];
-                const maxStock = Math.max(stock, med.minStockLevel * 3, 1);
-                const stockPercent = Math.min(100, (stock / maxStock) * 100);
-
                 return (
-                  <tr
-                    key={med.id}
-                    className="group hover:bg-surface-bright transition-colors border-t border-outline-variant/10"
-                  >
-                    {/* Name */}
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-3">
-                        {med.imageUrl ? (
-                          <img
-                            src={med.imageUrl}
-                            alt={med.name}
-                            className="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
-                            <span className="material-symbols-outlined text-on-surface-variant">
-                              medication
-                            </span>
-                          </div>
-                        )}
-                        <div>
-                          <p className="font-bold text-on-surface">
-                            {med.name}
-                          </p>
-                          <p className="text-xs text-on-surface-variant">
-                            {med.sku}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Category */}
-                    <td className="px-6 py-5">
-                      <Badge
-                        variant={
-                          med.category === "prescribed" ? "info" : "neutral"
-                        }
-                      >
-                        {med.category === "prescribed"
-                          ? "Kê đơn"
-                          : "Không kê đơn"}
-                      </Badge>
-                    </td>
-
-                    {/* Unit */}
-                    <td className="px-6 py-5 text-center text-sm font-medium text-on-surface-variant">
-                      {convertUnitIdToName(med.unitId)}
-                    </td>
-
-                    {/* Avg import price from active batches */}
-                    <td className="px-6 py-5 text-right text-sm font-mono text-on-surface-variant">
-                      {(() => {
-                        const p = getAvgImportPrice(med.id);
-                        return p > 0 ? p.toLocaleString("vi-VN") + "đ" : "—";
-                      })()}
-                    </td>
-
-                    {/* Sell price */}
-                    <td className="px-6 py-5 text-right text-sm font-mono font-bold text-on-surface">
-                      {med.sellPrice.toLocaleString("vi-VN")}đ
-                    </td>
-
-                    {/* Stock with mini bar */}
-                    <td className="px-6 py-5 text-center">
-                      <div className="inline-flex flex-col items-center gap-1">
-                        <span className="text-sm font-bold text-on-surface">
-                          {stock.toLocaleString("vi-VN")}
-                        </span>
-                        <div className="w-12 h-1 bg-surface-container-high rounded-full overflow-hidden">
-                          <div
-                            className={["h-full rounded-full", barColor].join(
-                              " ",
-                            )}
-                            style={{ width: `${stockPercent}%` }}
-                          />
-                        </div>
-                      </div>
-                    </td>
-
-                    {/* Status badge */}
-                    <td className="px-6 py-5 text-center">
-                      <Badge variant={variant} dot>
-                        {label}
-                      </Badge>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-8 py-5 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => setBatchMed(med)}
-                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                          title="Lịch sử nhập kho theo lô"
-                        >
-                          <span className="material-symbols-outlined text-xl">
-                            visibility
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => setPriceMed(med)}
-                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                          title="Cập nhật giá bán"
-                        >
-                          <span className="material-symbols-outlined text-xl">
-                            sell
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => setEditMed(med)}
-                          className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                          title="Chỉnh sửa"
-                        >
-                          <span className="material-symbols-outlined text-xl">
-                            edit
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => setDeleteMed(med)}
-                          className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-colors"
-                          title="Xóa thuốc"
-                        >
-                          <span className="material-symbols-outlined text-xl">
-                            delete
-                          </span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                  <Badge variant={variant} dot>
+                    {label}
+                  </Badge>
                 );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+              },
+            },
+            {
+              key: "actions",
+              header: "Thao tác",
+              headerClassName: "text-center",
+              className: "text-center",
+              render: (med) => (
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => setBatchMed(med)}
+                    className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                    title="Lịch sử nhập kho theo lô"
+                  >
+                    <span className="material-symbols-outlined text-xl">
+                      visibility
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setPriceMed(med)}
+                    className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                    title="Cập nhật giá bán"
+                  >
+                    <span className="material-symbols-outlined text-xl">
+                      sell
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setEditMed(med)}
+                    className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                    title="Chỉnh sửa"
+                  >
+                    <span className="material-symbols-outlined text-xl">
+                      edit
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setDeleteMed(med)}
+                    className="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-lg transition-colors"
+                    title="Xóa thuốc"
+                  >
+                    <span className="material-symbols-outlined text-xl">
+                      delete
+                    </span>
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+          data={paged}
+          keyField="id"
+          loading={loading}
+          loadingRows={ITEMS_PER_PAGE}
+          showIndex
+          indexOffset={(page - 1) * ITEMS_PER_PAGE}
+          headerRowClassName="bg-surface-container-low"
+          rowClassName={() =>
+            "group hover:bg-surface-bright transition-colors border-t border-outline-variant/10"
+          }
+          emptyText="Không tìm thấy sản phẩm nào."
+        />
+      )}
 
       {/* ── Pagination footer ── */}
       {!loading && filtered.length > 0 && (

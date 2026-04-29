@@ -35,7 +35,10 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
 
   useEffect(() => {
     getBranches()
-      .then(setBranches)
+      .then((branches) => {
+        const activeBranches = branches.filter((b) => b.status === "active");
+        setBranches(activeBranches);
+      })
       .finally(() => setLoadingBranches(false));
     getActiveBatches("WAREHOUSE")
       .then(setBatches)

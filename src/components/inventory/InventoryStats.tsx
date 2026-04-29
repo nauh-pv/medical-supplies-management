@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import { getMedicines, getInventory } from "@/services/inventory";
+import { useNavigate } from "react-router-dom";
 
 /** Bento-grid KPI section at the top of the Inventory page. */
 export function InventoryStats() {
+  const navigate = useNavigate();
+
   const [total, setTotal] = useState<number | null>(null);
   const [lowStock, setLowStock] = useState<number | null>(null);
 
@@ -93,7 +96,10 @@ export function InventoryStats() {
           <p className="text-sm opacity-80 leading-relaxed">
             Sản phẩm sắp hết hạn hoặc dưới ngưỡng tồn kho an toàn.
           </p>
-          <button className="text-xs font-bold underline underline-offset-4 decoration-2 hover:opacity-80 transition-opacity">
+          <button
+            className="text-xs font-bold underline underline-offset-4 decoration-2 hover:opacity-80 transition-opacity"
+            onClick={() => navigate("/alerts")}
+          >
             Xem chi tiết
           </button>
         </div>

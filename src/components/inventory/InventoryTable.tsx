@@ -202,6 +202,7 @@ export function InventoryTable({
       <div className="px-8 py-6 flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/50">
         <div className="flex-1 min-w-[300px]">
           <Input
+            size="lg"
             leadingIcon="search"
             placeholder="Tìm kiếm tên thuốc, SKU hoặc đơn vị..."
             value={search}
@@ -214,6 +215,7 @@ export function InventoryTable({
         <div className="flex items-center gap-3">
           <div className="w-48">
             <Select
+              size="lg"
               variant="pill"
               leadingIcon="warehouse"
               value={locationId}

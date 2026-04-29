@@ -178,6 +178,7 @@ export function SupplierTable() {
         <div className="px-8 py-6 flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/50">
           <div className="relative flex-1 min-w-[300px]">
             <Input
+              size="lg"
               leadingIcon="search"
               placeholder="Tìm kiếm nhà cung cấp..."
               value={search}
@@ -187,7 +188,7 @@ export function SupplierTable() {
               }}
             />
           </div>
-          <Button icon="add" onClick={() => setAddOpen(true)}>
+          <Button size="lg" icon="add" onClick={() => setAddOpen(true)}>
             Thêm NCC mới
           </Button>
         </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Badge, Button, TabBar, DataTable, Select } from "@/components/common";
+import { Badge, Button, TabBar, DataTable, Select, Pagination } from "@/components/common";
 import {
   getNearExpiryBatches,
   getLowStockAlerts,
@@ -65,6 +65,9 @@ export function ExpiryTable() {
   const [expiryItems, setExpiryItems] = useState<BatchDoc[]>([]);
   const [lowItems, setLowItems] = useState<InventoryDoc[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+
+  const ITEMS_PER_PAGE = 10;
 
   // Load branch list once on mount
   useEffect(() => {
@@ -81,7 +84,6 @@ export function ExpiryTable() {
   }, []);
 
   useEffect(() => {
-    setLoading(true);
     Promise.all([
       getNearExpiryBatches(locationId),
       getLowStockAlerts(locationId),
@@ -93,6 +95,8 @@ export function ExpiryTable() {
   }, [locationId]);
 
   const activeItems = tab === "expiry" ? expiryItems : lowItems;
+  const totalPages = Math.max(1, Math.ceil(activeItems.length / ITEMS_PER_PAGE));
+  const pagedItems = activeItems.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   return (
     <div className="bg-surface-container-lowest rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,80,203,0.03)] overflow-hidden">
@@ -102,13 +106,19 @@ export function ExpiryTable() {
           <TabBar
             tabs={TABS}
             activeTab={tab}
-            onTabChange={(id) => setTab(id as TabId)}
+            onTabChange={(id) => {
+              setTab(id as TabId);
+              setPage(1);
+            }}
             variant="pill"
           />
           <div className="w-48">
             <Select
               value={locationId}
-              onChange={(e) => setLocationId(e.target.value)}
+              onChange={(e) => {
+                setLocationId(e.target.value);
+                setPage(1);
+              }}
             >
               {locations.map((loc) => (
                 <option key={loc.id} value={loc.id}>
@@ -198,10 +208,11 @@ export function ExpiryTable() {
               ),
             },
           ]}
-          data={activeItems as BatchDoc[]}
+          data={pagedItems as BatchDoc[]}
           keyField="id"
           loading={loading}
           showIndex
+          indexOffset={(page - 1) * ITEMS_PER_PAGE}
           headerRowClassName="bg-surface-container-low"
           emptyText="Không có dữ liệu cảnh báo tại vị trí này."
         />
@@ -274,13 +285,32 @@ export function ExpiryTable() {
               ),
             },
           ]}
-          data={activeItems as InventoryDoc[]}
+          data={pagedItems as InventoryDoc[]}
           keyField="id"
           loading={loading}
           showIndex
+          indexOffset={(page - 1) * ITEMS_PER_PAGE}
           headerRowClassName="bg-surface-container-low"
           emptyText="Không có dữ liệu cảnh báo tại vị trí này."
         />
+      )}
+
+      {/* Pagination footer */}
+      {!loading && activeItems.length > ITEMS_PER_PAGE && (
+        <div className="px-8 py-5 flex items-center justify-between border-t border-outline-variant/10 bg-surface-container-low/20">
+          <p className="text-sm text-on-surface-variant">
+            Hiển thị{" "}
+            <span className="font-bold text-on-surface">
+              {(page - 1) * ITEMS_PER_PAGE + 1}–{Math.min(page * ITEMS_PER_PAGE, activeItems.length)}
+            </span>{" "}
+            của {activeItems.length} mục
+          </p>
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { type SelectHTMLAttributes, type ReactNode } from "react";
 
 type SelectVariant = "default" | "pill";
+type SelectSize = "md" | "lg";
 
 interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
@@ -8,6 +9,7 @@ interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   error?: string;
   hint?: string;
   variant?: SelectVariant;
+  size?: SelectSize;
   children?: ReactNode;
 }
 
@@ -17,12 +19,14 @@ export function Select({
   error,
   hint,
   variant = "default",
+  size = "md",
   className = "",
   id,
   children,
   ...props
 }: SelectProps) {
   const selectId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
+  const sizeClass = size === "lg" ? "py-3 text-base" : "py-2.5 text-sm";
 
   return (
     <div className="flex flex-col gap-1 w-full">
@@ -45,12 +49,13 @@ export function Select({
         <select
           id={selectId}
           className={[
-            "w-full appearance-none text-sm text-on-surface",
+            "w-full appearance-none text-on-surface",
+            sizeClass,
             "outline-none transition-all cursor-pointer",
             "disabled:opacity-50 disabled:cursor-not-allowed",
             variant === "pill"
-              ? "bg-surface-container-lowest border border-outline-variant/20 rounded-full shadow-sm py-2.5 ring-1 ring-transparent focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
-              : "bg-surface-container-low rounded-xl py-2.5 ring-1 ring-transparent focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest",
+              ? "bg-surface-container-lowest border border-outline-variant/20 rounded-full shadow-sm ring-1 ring-transparent focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
+              : "bg-surface-container-low rounded-xl ring-1 ring-transparent focus:ring-2 focus:ring-primary/30 focus:bg-surface-container-lowest",
             error ? "ring-1 ring-error/40" : "",
             leadingIcon ? "pl-10" : "pl-4",
             "pr-10",

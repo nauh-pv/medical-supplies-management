@@ -41,7 +41,7 @@ export function SalesFilterBar({
 }: SalesFilterBarProps) {
   return (
     <section className="p-1.5 bg-surface-container-lowest rounded-2xl flex flex-wrap items-center gap-2 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
-      <div className="flex-1 min-w-[300px]">
+      <div className="flex-1 min-w-0 sm:min-w-[300px] w-full sm:w-auto">
         <Input
           placeholder="Tìm mã hóa đơn, chi nhánh hoặc tổng tiền..."
           leadingIcon="receipt"

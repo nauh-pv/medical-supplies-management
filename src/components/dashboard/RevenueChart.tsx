@@ -29,8 +29,8 @@ export function RevenueChart({ data, loading, weekOnly }: RevenueChartProps) {
   }));
 
   return (
-    <section className="bg-surface-container-lowest rounded-[1.5rem] p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
-      <div className="flex items-center justify-between mb-10">
+    <section className="bg-surface-container-lowest rounded-[1.5rem] p-4 sm:p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
+      <div className="flex flex-wrap items-start sm:items-center justify-between gap-3 mb-6 sm:mb-10">
         <div>
           <h4 className="font-headline font-bold text-xl text-on-surface">
             Xu hướng Doanh thu
@@ -70,7 +70,7 @@ export function RevenueChart({ data, loading, weekOnly }: RevenueChartProps) {
       </div>
 
       {/* Bars */}
-      <div className="h-64 flex items-end justify-between gap-8 px-8">
+      <div className="h-48 sm:h-64 flex items-end justify-between gap-2 sm:gap-8 px-2 sm:px-8">
         {loading ? (
           <div className="flex-1 flex items-center justify-center text-on-surface-variant text-sm gap-2">
             <span className="material-symbols-outlined animate-spin text-primary">

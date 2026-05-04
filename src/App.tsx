@@ -20,10 +20,19 @@ import { UserContext } from "@/contexts/UserContext";
 import "./App.css";
 
 function AppLayout({ userDoc }: { userDoc: UserDoc | null }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   return (
     <div className="bg-background text-on-surface overflow-x-hidden">
-      <Sidebar role={userDoc?.role ?? "branch"} onLogout={signOut} />
-      <TopBar userDoc={userDoc} />
+      <Sidebar
+        role={userDoc?.role ?? "branch"}
+        onLogout={signOut}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <TopBar
+        userDoc={userDoc}
+        onMenuToggle={() => setSidebarOpen((o) => !o)}
+      />
       <Outlet />
       <PWAPrompt />
     </div>
@@ -99,7 +108,7 @@ function App() {
           <Route
             path="*"
             element={
-              <main className="ml-72 pt-24 px-8 py-12 min-h-screen bg-background">
+              <main className="md:ml-72 pt-24 px-4 md:px-8 py-12 min-h-screen bg-background">
                 <p className="text-on-surface-variant">
                   Trang đang phát triển.
                 </p>

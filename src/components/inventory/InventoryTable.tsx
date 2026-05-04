@@ -199,8 +199,8 @@ export function InventoryTable({
   return (
     <div className="bg-surface-container-lowest rounded-[2rem] shadow-sm overflow-hidden border border-outline-variant/10">
       {/* ── Filters bar ── */}
-      <div className="px-8 py-6 flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/50">
-        <div className="flex-1 min-w-[300px]">
+      <div className="px-4 sm:px-8 py-4 sm:py-6 flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/50">
+        <div className="flex-1 min-w-0 sm:min-w-[300px]">
           <Input
             size="lg"
             leadingIcon="search"
@@ -417,7 +417,7 @@ export function InventoryTable({
 
       {/* ── Pagination footer ── */}
       {!loading && filtered.length > 0 && (
-        <div className="px-8 py-6 flex items-center justify-between border-t border-outline-variant/10 bg-surface-container-low/20">
+        <div className="px-4 sm:px-8 py-4 sm:py-6 flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant/10 bg-surface-container-low/20">
           <p className="text-sm text-on-surface-variant">
             Hiển thị{" "}
             <span className="font-bold text-on-surface">

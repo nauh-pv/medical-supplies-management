@@ -40,7 +40,7 @@ export function BranchTable({
     <>
       <div>
         {/* Action bar */}
-        <div className="flex justify-between items-end mb-6">
+        <div className="flex flex-wrap gap-4 justify-between items-end mb-6">
           <div className="space-y-1">
             <h3 className="font-headline text-lg font-bold text-on-surface">
               Danh sách cơ sở

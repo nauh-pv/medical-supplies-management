@@ -239,36 +239,38 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
 
               {/* Rows table */}
               {rows.length > 0 && (
-                <div className="mt-6 space-y-2 overflow-hidden">
+                <div className="mt-6 space-y-2 overflow-x-auto">
                   {/* Header */}
-                  <div className="grid grid-cols-12 px-6 py-2 bg-surface-container-low rounded-t-xl text-[10px] font-label font-black uppercase tracking-widest text-on-surface-variant">
+                  <div className="grid grid-cols-12 px-6 py-2 bg-surface-container-low rounded-t-xl text-[10px] font-label font-black uppercase tracking-widest text-on-surface-variant min-w-[480px]">
                     <div className="col-span-6">Tên sản phẩm / SKU</div>
                     <div className="col-span-2 text-center">Tồn kho</div>
                     <div className="col-span-3 text-center">Số lượng xuất</div>
                     <div className="col-span-1" />
                   </div>
 
-                  {rows.map((row, i) => (
-                    <DispatchProductRow
-                      key={row.id}
-                      row={row}
-                      index={i}
-                      onQtyChange={updateQty}
-                      onQtyInput={(id, val) =>
-                        setRows((prev) =>
-                          prev.map((r) =>
-                            r.id === id
-                              ? {
-                                  ...r,
-                                  qty: Math.min(r.stock, Math.max(1, val)),
-                                }
-                              : r,
-                          ),
-                        )
-                      }
-                      onRemove={removeRow}
-                    />
-                  ))}
+                  <div className="min-w-[480px]">
+                    {rows.map((row, i) => (
+                      <DispatchProductRow
+                        key={row.id}
+                        row={row}
+                        index={i}
+                        onQtyChange={updateQty}
+                        onQtyInput={(id, val) =>
+                          setRows((prev) =>
+                            prev.map((r) =>
+                              r.id === id
+                                ? {
+                                    ...r,
+                                    qty: Math.min(r.stock, Math.max(1, val)),
+                                  }
+                                : r,
+                            ),
+                          )
+                        }
+                        onRemove={removeRow}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -298,18 +300,10 @@ export function CreateDispatchForm({ onCancel }: { onCancel: () => void }) {
                 * Lệnh xuất kho sẽ được gửi đến bộ phận kiểm kê để xác nhận.
               </p>
               <div className="flex gap-4">
-                <Button
-                  variant="ghost"
-                  type="button"
-                  onClick={onCancel}
-                >
+                <Button variant="ghost" type="button" onClick={onCancel}>
                   Hủy bỏ
                 </Button>
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={submitting}
-                >
+                <Button type="submit" size="lg" disabled={submitting}>
                   {submitting ? "Đang tạo..." : "Tạo lệnh xuất kho"}
                 </Button>
               </div>

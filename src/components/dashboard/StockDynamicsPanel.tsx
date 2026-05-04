@@ -14,7 +14,7 @@ export function StockDynamicsPanel({
   loading,
 }: StockDynamicsPanelProps) {
   return (
-    <div className="bg-surface-container-lowest rounded-[1.5rem] p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
+    <div className="bg-surface-container-lowest rounded-[1.5rem] p-4 sm:p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
       <h4 className="font-headline font-bold text-xl text-on-surface mb-8">
         Giao dịch gần đây
       </h4>

@@ -28,6 +28,7 @@ export function POS() {
   const [refetchTrigger, setRefetchTrigger] = useState(0);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [mobileView, setMobileView] = useState<"products" | "cart">("products");
 
   // Batch select modal state
   const [pendingMedicine, setPendingMedicine] = useState<{
@@ -150,7 +151,7 @@ export function POS() {
   }
 
   return (
-    <div className="ml-72 pt-16 flex h-screen overflow-hidden bg-background relative">
+    <div className="md:ml-72 pt-16 flex flex-col md:flex-row h-screen overflow-hidden bg-background relative">
       {/* Success toast */}
       {successMsg && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-green-600 text-white px-5 py-3 rounded-2xl shadow-lg text-sm font-semibold">
@@ -169,17 +170,71 @@ export function POS() {
         </div>
       )}
 
-      <ProductGrid
-        onMedicineClick={handleMedicineClick}
-        refetchTrigger={refetchTrigger}
-      />
-      <OrderSummary
-        items={cart}
-        onQtyChange={handleQtyChange}
-        onRemove={handleRemove}
-        onCheckout={handleCheckout}
-        checkingOut={checkingOut}
-      />
+      {/* Mobile tab toggle — hidden on desktop */}
+      <div className="flex md:hidden flex-shrink-0 bg-surface-container-lowest border-b border-surface-container-low">
+        <button
+          onClick={() => setMobileView("products")}
+          className={[
+            "flex-1 py-3 text-sm font-label font-semibold transition-colors",
+            mobileView === "products"
+              ? "text-primary border-b-2 border-primary"
+              : "text-on-surface-variant",
+          ].join(" ")}
+        >
+          Sản phẩm
+        </button>
+        <button
+          onClick={() => setMobileView("cart")}
+          className={[
+            "flex-1 py-3 text-sm font-label font-semibold transition-colors relative",
+            mobileView === "cart"
+              ? "text-primary border-b-2 border-primary"
+              : "text-on-surface-variant",
+          ].join(" ")}
+        >
+          Đơn hàng
+          {cart.length > 0 && (
+            <span className="ml-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-on-primary text-[10px] font-bold">
+              {cart.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Product Grid — full on desktop, conditional on mobile */}
+      <div
+        className={[
+          "flex-1 min-h-0 md:flex",
+          mobileView === "products" ? "flex" : "hidden",
+        ].join(" ")}
+      >
+        <ProductGrid
+          onMedicineClick={(medicine, stock) => {
+            handleMedicineClick(medicine, stock);
+            // Auto-switch to products view to show batch modal
+          }}
+          refetchTrigger={refetchTrigger}
+        />
+      </div>
+
+      {/* Order Summary — fixed width on desktop, full on mobile */}
+      <div
+        className={[
+          "md:flex md:w-[400px] md:flex-shrink-0 flex-col",
+          mobileView === "cart" ? "flex flex-1 min-h-0" : "hidden",
+        ].join(" ")}
+      >
+        <OrderSummary
+          items={cart}
+          onQtyChange={handleQtyChange}
+          onRemove={handleRemove}
+          onCheckout={async (pm, disc) => {
+            await handleCheckout(pm, disc);
+            setMobileView("products");
+          }}
+          checkingOut={checkingOut}
+        />
+      </div>
       <BatchSelectModal
         open={!!pendingMedicine}
         onClose={() => setPendingMedicine(null)}

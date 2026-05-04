@@ -82,7 +82,7 @@ export function TopSellingTable({ data, loading }: TopSellingTableProps) {
   }));
 
   return (
-    <div className="bg-surface-container-lowest rounded-[1.5rem] p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)] overflow-hidden">
+    <div className="bg-surface-container-lowest rounded-[1.5rem] p-4 sm:p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)] overflow-hidden">
       <div className="flex items-center justify-between mb-6">
         <h4 className="font-headline font-bold text-xl text-on-surface">
           Top thuốc bán chạy

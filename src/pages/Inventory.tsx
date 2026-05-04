@@ -22,7 +22,7 @@ export function Inventory() {
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   return (
-    <main className="ml-72 pt-24 px-8 pb-12 space-y-8 min-h-screen bg-background">
+    <main className="md:ml-72 pt-24 px-4 md:px-8 pb-12 space-y-8 min-h-screen bg-background">
       <PageHeader
         eyebrow={
           <span className="text-xs font-label font-bold uppercase tracking-widest text-primary">

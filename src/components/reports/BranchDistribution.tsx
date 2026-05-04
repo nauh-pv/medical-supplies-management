@@ -33,7 +33,7 @@ const BRANCHES = [
 
 export function BranchDistribution() {
   return (
-    <div className="col-span-12 lg:col-span-5 bg-surface-container-lowest rounded-[1.5rem] p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)] flex flex-col">
+    <div className="col-span-12 lg:col-span-5 bg-surface-container-lowest rounded-[1.5rem] p-4 sm:p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)] flex flex-col">
       <div className="mb-6">
         <p className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant mb-1">
           Phân phối doanh thu

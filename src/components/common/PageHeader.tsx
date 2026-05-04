@@ -26,7 +26,10 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <header
-      className={["flex justify-between items-end gap-4", className].join(" ")}
+      className={[
+        "flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4",
+        className,
+      ].join(" ")}
     >
       <div>
         {eyebrow && <div className="mb-1">{eyebrow}</div>}
@@ -44,7 +47,9 @@ export function PageHeader({
       </div>
 
       {actions && (
-        <div className="flex items-center gap-3 flex-shrink-0">{actions}</div>
+        <div className="flex items-center gap-3 sm:flex-shrink-0 flex-wrap">
+          {actions}
+        </div>
       )}
     </header>
   );

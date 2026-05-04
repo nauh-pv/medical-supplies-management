@@ -61,7 +61,7 @@ const BEST_SELLERS = [
 
 export function BestSellersPanel() {
   return (
-    <div className="col-span-12 lg:col-span-7 bg-surface-container-lowest rounded-[1.5rem] p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
+    <div className="col-span-12 lg:col-span-7 bg-surface-container-lowest rounded-[1.5rem] p-4 sm:p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-xs font-label font-bold uppercase tracking-widest text-on-surface-variant mb-1">

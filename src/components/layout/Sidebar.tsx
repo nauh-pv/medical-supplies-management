@@ -44,9 +44,16 @@ const BRANCH_ONLY_IDS: NavId[] = ["imports"];
 interface SidebarProps {
   role: UserRole;
   onLogout: () => void;
+  open?: boolean;
+  onClose?: () => void;
 }
 
-export function Sidebar({ role, onLogout }: SidebarProps) {
+export function Sidebar({
+  role,
+  onLogout,
+  open = false,
+  onClose,
+}: SidebarProps) {
   const { pathname } = useLocation();
 
   const visibleItems = navItems.filter((item) =>
@@ -62,63 +69,93 @@ export function Sidebar({ role, onLogout }: SidebarProps) {
   }
 
   return (
-    <aside className="fixed left-0 top-0 flex flex-col z-40 bg-surface-container-low h-screen w-72 flex-shrink-0 border-r border-outline-variant/20">
-      <div className="px-6 py-8 mb-2">
-        <h1 className="text-2xl font-bold tracking-tight text-primary font-headline">
-          MediStock
-        </h1>
-        <p className="text-[10px] font-medium uppercase tracking-widest text-on-surface-variant mt-1">
-          Hệ thống quản lý tổng kho
-        </p>
-      </div>
+    <>
+      {/* Mobile backdrop overlay */}
+      {open && (
+        <div
+          className="fixed inset-0 bg-black/40 z-30 md:hidden"
+          onClick={onClose}
+        />
+      )}
 
-      <nav className="flex-1 px-4 space-y-1">
-        {visibleItems.map((item) => {
-          const active = isActive(item.id);
-          return (
-            <Link
-              key={item.id}
-              to={NAV_PATH[item.id]}
-              className={
-                active
-                  ? "flex items-center gap-3 text-primary font-bold border-l-4 border-primary pl-4 py-3 bg-primary/5 transition-all"
-                  : "flex items-center gap-3 text-on-surface-variant pl-5 py-3 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl"
-              }
-            >
-              <span
-                className="material-symbols-outlined"
-                style={
-                  active ? { fontVariationSettings: "'FILL' 1" } : undefined
+      <aside
+        className={[
+          "fixed left-0 top-0 flex flex-col z-40 bg-surface-container-low h-screen w-72 flex-shrink-0 border-r border-outline-variant/20",
+          "transform transition-transform duration-300 ease-in-out",
+          open ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        ].join(" ")}
+      >
+        <div className="px-6 py-8 mb-2 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-primary font-headline">
+              MediStock
+            </h1>
+            <p className="text-[10px] font-medium uppercase tracking-widest text-on-surface-variant mt-1">
+              Hệ thống quản lý tổng kho
+            </p>
+          </div>
+          {/* Close button — mobile only */}
+          <button
+            onClick={onClose}
+            className="md:hidden p-1.5 rounded-xl hover:bg-surface-container-high transition-colors"
+            aria-label="Đóng menu"
+          >
+            <span className="material-symbols-outlined text-on-surface-variant text-xl">
+              close
+            </span>
+          </button>
+        </div>
+
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+          {visibleItems.map((item) => {
+            const active = isActive(item.id);
+            return (
+              <Link
+                key={item.id}
+                to={NAV_PATH[item.id]}
+                onClick={onClose}
+                className={
+                  active
+                    ? "flex items-center gap-3 text-primary font-bold border-l-4 border-primary pl-4 py-3 bg-primary/5 transition-all"
+                    : "flex items-center gap-3 text-on-surface-variant pl-5 py-3 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl"
                 }
               >
-                {item.icon}
-              </span>
-              <span className="text-sm font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+                <span
+                  className="material-symbols-outlined"
+                  style={
+                    active ? { fontVariationSettings: "'FILL' 1" } : undefined
+                  }
+                >
+                  {item.icon}
+                </span>
+                <span className="text-sm font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
-      <div className="px-4 mt-auto border-t border-outline-variant/20 pt-4 pb-6 space-y-1">
-        {/* <a
-          href="#"
-          className="flex items-center gap-3 text-on-surface-variant pl-5 py-3 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl"
-        >
-          <span className="material-symbols-outlined">support_agent</span>
-          <span className="text-sm font-medium">Hỗ trợ kỹ thuật</span>
-        </a> */}
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            onLogout();
-          }}
-          className="flex items-center gap-3 text-on-surface-variant pl-5 py-3 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl"
-        >
-          <span className="material-symbols-outlined">logout</span>
-          <span className="text-sm font-medium">Đăng xuất</span>
-        </a>
-      </div>
-    </aside>
+        <div className="px-4 mt-auto border-t border-outline-variant/20 pt-4 pb-6 space-y-1">
+          {/* <a
+            href="#"
+            className="flex items-center gap-3 text-on-surface-variant pl-5 py-3 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl"
+          >
+            <span className="material-symbols-outlined">support_agent</span>
+            <span className="text-sm font-medium">Hỗ trợ kỹ thuật</span>
+          </a> */}
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              onLogout();
+              onClose?.();
+            }}
+            className="flex items-center gap-3 text-on-surface-variant pl-5 py-3 hover:text-primary transition-colors hover:bg-primary/5 rounded-xl"
+          >
+            <span className="material-symbols-outlined">logout</span>
+            <span className="text-sm font-medium">Đăng xuất</span>
+          </a>
+        </div>
+      </aside>
+    </>
   );
 }

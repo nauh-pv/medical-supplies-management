@@ -24,7 +24,7 @@ export function RevenueChartPanel() {
   const maxVal = Math.max(...REVENUE_DATA);
 
   return (
-    <div className="col-span-12 lg:col-span-8 bg-surface-container-lowest rounded-[1.5rem] p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
+    <div className="col-span-12 lg:col-span-8 bg-surface-container-lowest rounded-[1.5rem] p-4 sm:p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>

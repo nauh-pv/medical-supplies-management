@@ -1,27 +1,25 @@
 import { useState } from "react";
+import { MONTH_SHORT_LABELS } from "@/utils/dateConfig";
 
-const MONTHS = [
-  "T1",
-  "T2",
-  "T3",
-  "T4",
-  "T5",
-  "T6",
-  "T7",
-  "T8",
-  "T9",
-  "T10",
-  "T11",
-  "T12",
-];
 const REVENUE_DATA = [55, 72, 48, 80, 65, 90, 58, 76, 82, 100, 63, 70];
 
 const PERIODS = ["Tuần", "Tháng", "Quý", "Năm"] as const;
 type Period = (typeof PERIODS)[number];
 
-export function RevenueChartPanel() {
+interface RevenueChartPanelProps {
+  year?: string;
+  month?: string;
+}
+
+export function RevenueChartPanel({ year, month }: RevenueChartPanelProps) {
   const [period, setPeriod] = useState<Period>("Tháng");
   const maxVal = Math.max(...REVENUE_DATA);
+  const displayLabel =
+    month && year
+      ? `Tháng ${month}/${year}`
+      : year
+        ? `Năm ${year}`
+        : "Tháng này";
 
   return (
     <div className="col-span-12 lg:col-span-8 bg-surface-container-lowest rounded-[1.5rem] p-4 sm:p-8 shadow-[0_20px_40px_rgba(0,80,203,0.03)]">
@@ -34,7 +32,7 @@ export function RevenueChartPanel() {
           <h4 className="text-4xl font-headline font-black text-on-surface">
             2.840.000.000
             <span className="text-lg font-medium text-on-surface-variant ml-2">
-              VNĐ
+              VNĐ — {displayLabel}
             </span>
           </h4>
           <div className="flex items-center gap-2 mt-2">
@@ -71,7 +69,7 @@ export function RevenueChartPanel() {
 
       {/* Chart */}
       <div className="flex items-end gap-2 h-48">
-        {MONTHS.map((m, i) => (
+        {MONTH_SHORT_LABELS.map((m, i) => (
           <div key={m} className="flex-1 flex flex-col items-center gap-1.5">
             <div
               className="w-full flex flex-col items-center gap-0.5 justify-end"

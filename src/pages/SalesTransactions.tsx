@@ -6,6 +6,7 @@ import { SalesTransactionTable } from "@/components/reports/SalesTransactionTabl
 import { getAllPosTransactions } from "@/services/pos";
 import { getBranches } from "@/services/inventory";
 import type { PosTransactionDoc, UserDoc } from "@/types/firestore";
+import { CURRENT_YEAR, CURRENT_MONTH_INDEX } from "@/utils/dateConfig";
 
 function getSeconds(ts: unknown): number {
   return (ts as { seconds?: number })?.seconds ?? 0;
@@ -17,7 +18,8 @@ export function SalesTransactions() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedBranch, setSelectedBranch] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
+  const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH_INDEX);
 
   useEffect(() => {
     setLoading(true);
@@ -41,9 +43,8 @@ export function SalesTransactions() {
   );
 
   const filtered = useMemo(() => {
-    const year = new Date().getFullYear();
-    const monthStart = new Date(year, selectedMonth, 1).getTime() / 1000;
-    const monthEnd = new Date(year, selectedMonth + 1, 1).getTime() / 1000;
+    const monthStart = new Date(selectedYear, selectedMonth, 1).getTime() / 1000;
+    const monthEnd = new Date(selectedYear, selectedMonth + 1, 1).getTime() / 1000;
 
     return transactions.filter((tx) => {
       // Month filter
@@ -64,7 +65,7 @@ export function SalesTransactions() {
 
       return true;
     });
-  }, [transactions, search, selectedBranch, selectedMonth]);
+  }, [transactions, search, selectedBranch, selectedMonth, selectedYear]);
 
   const totalRevenue = useMemo(
     () => filtered.reduce((s, tx) => s + tx.total, 0),
@@ -111,6 +112,8 @@ export function SalesTransactions() {
         branches={branchOptions}
         selectedBranch={selectedBranch}
         onBranchChange={setSelectedBranch}
+        selectedYear={selectedYear}
+        onYearChange={setSelectedYear}
         selectedMonth={selectedMonth}
         onMonthChange={setSelectedMonth}
       />

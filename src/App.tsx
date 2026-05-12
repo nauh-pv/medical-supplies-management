@@ -6,6 +6,7 @@ import { Dashboard } from "@/pages/Dashboard";
 import { Inventory } from "@/pages/Inventory";
 import { Reports } from "@/pages/Reports";
 import { SalesTransactions } from "@/pages/SalesTransactions";
+import { Settlement } from "@/pages/Settlement";
 import { POS } from "@/pages/POS";
 import { Alerts } from "@/pages/Alerts";
 import { Imports } from "@/pages/Imports";
@@ -105,6 +106,7 @@ function App() {
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/reports" element={<Reports />} />
           <Route path="/sales-transactions" element={<SalesTransactions />} />
+          <Route path="/settlement" element={<Settlement />} />
           <Route
             path="*"
             element={

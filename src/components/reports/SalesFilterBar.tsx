@@ -1,19 +1,5 @@
 import { Input, Select } from "@/components/common";
-
-const MONTH_LABELS = [
-  "Tháng 1",
-  "Tháng 2",
-  "Tháng 3",
-  "Tháng 4",
-  "Tháng 5",
-  "Tháng 6",
-  "Tháng 7",
-  "Tháng 8",
-  "Tháng 9",
-  "Tháng 10",
-  "Tháng 11",
-  "Tháng 12",
-];
+import { YEAR_OPTIONS, MONTH_LABELS } from "@/utils/dateConfig";
 
 interface BranchOption {
   id: string;
@@ -26,6 +12,8 @@ interface SalesFilterBarProps {
   branches: BranchOption[];
   selectedBranch: string;
   onBranchChange: (v: string) => void;
+  selectedYear: number;
+  onYearChange: (y: number) => void;
   selectedMonth: number; // 0-11
   onMonthChange: (m: number) => void;
 }
@@ -36,6 +24,8 @@ export function SalesFilterBar({
   branches,
   selectedBranch,
   onBranchChange,
+  selectedYear,
+  onYearChange,
   selectedMonth,
   onMonthChange,
 }: SalesFilterBarProps) {
@@ -64,21 +54,35 @@ export function SalesFilterBar({
         </Select>
       </div>
 
-      <div className="flex bg-surface-container-low p-1 rounded-xl gap-0.5 flex-wrap">
-        {MONTH_LABELS.map((label, i) => (
-          <button
-            key={i}
-            onClick={() => onMonthChange(i)}
-            className={[
-              "px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all",
-              selectedMonth === i
-                ? "bg-primary text-on-primary shadow-sm"
-                : "text-on-surface-variant hover:text-primary",
-            ].join(" ")}
+      <div className="flex justify-between items-center gap-4 flex-wrap">
+        <div className="w-fit">
+          <Select
+            value={selectedYear}
+            onChange={(e) => onYearChange(Number(e.target.value))}
           >
-            {label}
-          </button>
-        ))}
+            {YEAR_OPTIONS.map((y) => (
+              <option key={y} value={y}>
+                Năm {y}
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div className="flex bg-surface-container-low p-1 rounded-xl gap-0.5 flex-wrap">
+          {MONTH_LABELS.map((label, i) => (
+            <button
+              key={i}
+              onClick={() => onMonthChange(i)}
+              className={[
+                "px-3 py-1.5 text-[11px] font-semibold rounded-lg transition-all",
+                selectedMonth === i
+                  ? "bg-primary text-on-primary shadow-sm"
+                  : "text-on-surface-variant hover:text-primary",
+              ].join(" ")}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );

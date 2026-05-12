@@ -6,10 +6,14 @@
  *   npx tsx scripts/importFirestore.ts --file=data/firestore-export_xxx.json --env=.env.dev
  *
  * Flags:
- *   --file=<path>     (bắt buộc) đường dẫn file JSON đã export
- *   --env=<path>      (mặc định .env.dev) file env của môi trường đích
- *   --clean           xóa toàn bộ docs trong collection trước khi import
- *   --collections=a,b chỉ import một số collections (mặc định: tất cả)
+ *   --file=<path>       (bắt buộc) đường dẫn file JSON đã export
+ *   --env=<path>        (mặc định .env.dev) file env của môi trường đích
+ *   --clean             xóa toàn bộ docs trong collection trước khi import
+ *   --collections=a,b   chỉ import những collections này (whitelist)
+ *   --exclude=a,b       bỏ qua những collections này (blacklist)
+ *
+ * Lưu ý: --collections và --exclude không dùng cùng nhau.
+ * Nếu cả hai được cung cấp, --collections được ưu tiên.
  */
 
 import { initializeApp } from "firebase/app";
@@ -39,6 +43,7 @@ const envFile = getArg("env", ".env.dev");
 const inputFile = getArg("file", "");
 const cleanFirst = hasFlag("clean");
 const onlyCollections = getArg("collections", "");
+const excludeCollections = getArg("exclude", "");
 
 if (!inputFile) {
   console.error(
@@ -122,6 +127,9 @@ async function main() {
   console.log(`   Total docs: ${meta.totalDocs}`);
   if (cleanFirst)
     console.log(`   ⚠️  --clean: sẽ xóa docs cũ trước khi import`);
+  if (onlyCollections) console.log(`   🔍 Whitelist: ${onlyCollections}`);
+  if (!onlyCollections && excludeCollections)
+    console.log(`   🚫 Blacklist: ${excludeCollections}`);
   console.log();
 
   const ok = await confirm(
@@ -135,12 +143,20 @@ async function main() {
   const filterCols = onlyCollections
     ? onlyCollections.split(",").map((s) => s.trim())
     : null;
+  const excludeCols =
+    !onlyCollections && excludeCollections
+      ? excludeCollections.split(",").map((s) => s.trim())
+      : null;
 
   let totalImported = 0;
 
   for (const [colName, docs] of Object.entries(data)) {
     if (filterCols && !filterCols.includes(colName)) {
-      console.log(`  ⏭ ${colName} (skipped)`);
+      console.log(`  ⏭ ${colName} (skipped — not in whitelist)`);
+      continue;
+    }
+    if (excludeCols && excludeCols.includes(colName)) {
+      console.log(`  ⏭ ${colName} (skipped — excluded)`);
       continue;
     }
 

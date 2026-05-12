@@ -2,7 +2,7 @@
  * Export toàn bộ dữ liệu Firestore → JSON file
  *
  * Chạy:
- *   npx tsx scripts/exportFirestore.ts                     # load .env.dev (mặc định)
+ *   npx tsx scripts/exportFirestore.ts                     # load .env.production (mặc định)
  *   npx tsx scripts/exportFirestore.ts --env=.env.staging   # load .env.staging
  *   npx tsx scripts/exportFirestore.ts --out=backup.json    # custom output file
  */
@@ -19,7 +19,7 @@ function getArg(name: string, fallback: string): string {
   return arg ? arg.split("=")[1] : fallback;
 }
 
-const envFile = getArg("env", ".env.dev");
+const envFile = getArg("env", ".env.production");
 const outputFile = getArg("out", "");
 
 dotenv.config({ path: path.resolve(process.cwd(), envFile) });

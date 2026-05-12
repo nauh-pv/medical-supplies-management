@@ -2,6 +2,23 @@
 applyTo: "src/**/*.{tsx,ts}"
 ---
 
+## Skills Reference
+
+All detailed domain knowledge lives in the skills below. Load the relevant skill(s) before writing any code.
+
+| Skill             | Purpose                                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `msm`             | **Orchestrator** — workflow phases, directory rules, frozen files, which instruction to read                             |
+| `msm-planning`    | **MANDATORY FIRST STEP** — plan template, ask_user approval gate, anti-patterns                                          |
+| `msm-components`  | Which common component to use for which UI pattern, anti-patterns                                                        |
+| `msm-patterns`    | Data loading, form handling, delete confirm, pagination, table structure patterns                                        |
+| `msm-api`         | Firebase service layer — CRUD templates, transactions, stats, code generation                                            |
+| `msm-pages`       | How to add a new page — router, sidebar, PageHeader, thin orchestrator template                                          |
+| `msm-conventions` | Naming, TypeScript rules, import order, file structure, JSX conventions                                                  |
+| `msm-review`      | **Pre-commit checklist** — 7 gates: architecture, design tokens, components, Firebase, TypeScript, security, summary doc |
+
+---
+
 ## ⛔ RULE 0 — NEVER INTERRUPT. EVERY RESPONSE ENDS WITH `ask_user`.
 
 **This rule applies to ALL responses — no exceptions.**

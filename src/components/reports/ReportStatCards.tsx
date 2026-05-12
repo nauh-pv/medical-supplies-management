@@ -1,4 +1,7 @@
+import { useNavigate } from "react-router-dom";
+
 export function ReportStatCards() {
+  const navigate = useNavigate();
   return (
     <div className="col-span-12 lg:col-span-4 flex flex-col gap-5">
       {/* Primary gradient card — Net Profit */}
@@ -31,6 +34,13 @@ export function ReportStatCards() {
             />
           </div>
         </div>
+        <button
+          onClick={() => navigate("/settlement")}
+          className="mt-4 w-full flex items-center justify-center gap-1.5 rounded-xl bg-on-primary/15 hover:bg-on-primary/25 transition-colors px-4 py-2 text-xs font-label font-bold text-on-primary"
+        >
+          <span className="material-symbols-outlined text-sm">task_alt</span>
+          Quyết toán
+        </button>
       </div>
 
       {/* White card — New orders */}

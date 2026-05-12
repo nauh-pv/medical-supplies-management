@@ -27,10 +27,17 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import * as dotenv from "dotenv";
+import * as path from "path";
 
 //use npx tsx scripts/migrateBranchUid.ts <OLD_UID> <NEW_UID>
 
-dotenv.config();
+function getArg(name: string, fallback: string): string {
+  const arg = process.argv.find((a) => a.startsWith(`--${name}=`));
+  return arg ? arg.split("=")[1] : fallback;
+}
+
+const envFile = getArg("env", ".env.dev");
+dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
 const OLD_UID = process.argv[2];
 const NEW_UID = process.argv[3];

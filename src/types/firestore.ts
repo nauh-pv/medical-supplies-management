@@ -269,3 +269,21 @@ export interface PosTransactionDoc {
   notes: string;
   createdAt: Timestamp;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 12. settlements
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface SettlementDoc {
+  id: string; // "{branchId}_{YYYY-MM}"
+  branchId: string;
+  branchName: string;
+  month: string; // "YYYY-MM"
+  totalDispatched: number; // tổng trị giá hàng cấp trong tháng (VNĐ)
+  totalRevenue: number; // tổng doanh thu bán ra trong tháng (VNĐ)
+  totalProfit: number; // lợi nhuận gộp
+  createdBy: string;
+  createdByName: string;
+  notes: string;
+  createdAt: Timestamp;
+}

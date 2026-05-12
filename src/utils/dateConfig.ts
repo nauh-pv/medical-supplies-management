@@ -3,7 +3,7 @@
  * Import from here instead of re-declaring in each component.
  */
 
-export const APP_START_YEAR = 2025;
+export const APP_START_YEAR = 2026;
 
 export const CURRENT_YEAR = new Date().getFullYear();
 

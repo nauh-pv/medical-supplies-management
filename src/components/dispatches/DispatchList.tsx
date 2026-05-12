@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import {
   Badge,
   Button,
@@ -6,6 +6,7 @@ import {
   Input,
   Modal,
   DataTable,
+  Select,
 } from "@/components/common";
 import { DispatchDetailModal } from "./DispatchDetailModal";
 import { ImportRequestDetailModal } from "@/components/imports/ImportRequestDetailModal";
@@ -17,6 +18,12 @@ import {
 } from "@/services/inventory";
 import { useUserContext } from "@/contexts/UserContext";
 import type { DispatchOrderDoc, ImportRequestDoc } from "@/types/firestore";
+import {
+  YEAR_OPTIONS,
+  MONTH_LABELS,
+  CURRENT_YEAR,
+  CURRENT_MONTH_INDEX,
+} from "@/utils/dateConfig";
 
 const PAGE_SIZE = 8;
 
@@ -72,6 +79,10 @@ export function DispatchList() {
   const [requests, setRequests] = useState<ImportRequestDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filterBranch, setFilterBranch] = useState("");
+  const [filterYear, setFilterYear] = useState(CURRENT_YEAR);
+  const [filterMonth, setFilterMonth] = useState(CURRENT_MONTH_INDEX); // 0-based
+  const [filterStatus, setFilterStatus] = useState("");
   const [selectedDispatch, setSelectedDispatch] =
     useState<DispatchOrderDoc | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
@@ -127,6 +138,14 @@ export function DispatchList() {
     }
   }
 
+  // Derive unique branches from loaded data
+  const branchOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const d of dispatches) map.set(d.toLocationId, d.toLocationName);
+    for (const r of requests) map.set(r.branchId, r.branchName);
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [dispatches, requests]);
+
   const combined: CombinedRow[] = [
     ...dispatches.map(
       (d): CombinedRow => ({
@@ -145,18 +164,38 @@ export function DispatchList() {
   ].sort((a, b) => b.sortSecs - a.sortSecs);
 
   const filtered = combined.filter((row) => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    if (row.rowType === "dispatch") {
-      return (
-        row.data.code.toLowerCase().includes(s) ||
-        row.data.toLocationName.toLowerCase().includes(s)
-      );
+    // Branch filter
+    const branchId =
+      row.rowType === "dispatch" ? row.data.toLocationId : row.data.branchId;
+    if (filterBranch && branchId !== filterBranch) return false;
+
+    // Year + Month filter
+    const monthStart = new Date(filterYear, filterMonth, 1).getTime() / 1000;
+    const monthEnd = new Date(filterYear, filterMonth + 1, 1).getTime() / 1000;
+    if (row.sortSecs < monthStart || row.sortSecs >= monthEnd) return false;
+
+    // Status filter
+    if (filterStatus && row.data.status !== filterStatus) return false;
+
+    // Search filter
+    if (search) {
+      const s = search.toLowerCase();
+      if (row.rowType === "dispatch") {
+        if (
+          !row.data.code.toLowerCase().includes(s) &&
+          !row.data.toLocationName.toLowerCase().includes(s)
+        )
+          return false;
+      } else {
+        if (
+          !row.data.code.toLowerCase().includes(s) &&
+          !row.data.branchName.toLowerCase().includes(s)
+        )
+          return false;
+      }
     }
-    return (
-      row.data.code.toLowerCase().includes(s) ||
-      row.data.branchName.toLowerCase().includes(s)
-    );
+
+    return true;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -166,26 +205,93 @@ export function DispatchList() {
     <>
       <div className="bg-surface-container-lowest rounded-[1.5rem] shadow-[0_20px_40px_rgba(0,80,203,0.03)] overflow-hidden">
         {/* Toolbar */}
-        <div className="px-8 py-6 flex flex-wrap items-center justify-between gap-4 bg-surface-container-low/50">
-          <div className="flex-1 min-w-[260px] max-w-sm">
-            <Input
-              leadingIcon="search"
-              placeholder="Tìm theo mã vận đơn hoặc chi nhánh..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-            />
+        <div className="px-8 py-6 flex flex-col gap-4 bg-surface-container-low/50">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[260px] max-w-sm">
+              <Input
+                leadingIcon="search"
+                placeholder="Tìm theo mã vận đơn hoặc chi nhánh..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
           </div>
-          {/* <div className="flex gap-3">
-            <Button variant="ghost" icon="filter_list" size="sm">
-              Lọc
-            </Button>
-            <Button variant="ghost" icon="download" size="sm">
-              Xuất Excel
-            </Button>
-          </div> */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Branch */}
+            <div className="w-52">
+              <Select
+                value={filterBranch}
+                onChange={(e) => {
+                  setFilterBranch(e.target.value);
+                  setPage(1);
+                }}
+                leadingIcon="account_tree"
+              >
+                <option value="">Tất cả chi nhánh</option>
+                {branchOptions.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            {/* Year */}
+            <div className="w-fit">
+              <Select
+                value={filterYear}
+                onChange={(e) => {
+                  setFilterYear(Number(e.target.value));
+                  setPage(1);
+                }}
+              >
+                {YEAR_OPTIONS.map((y) => (
+                  <option key={y} value={y}>
+                    Năm {y}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            {/* Month */}
+            <div className="w-fit">
+              <Select
+                value={filterMonth}
+                leadingIcon="calendar_month"
+                onChange={(e) => {
+                  setFilterMonth(Number(e.target.value));
+                  setPage(1);
+                }}
+              >
+                {MONTH_LABELS.map((label, i) => (
+                  <option key={i} value={i}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            {/* Status */}
+            <div className="w-fit">
+              <Select
+                value={filterStatus}
+                leadingIcon="filter_list"
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="">Tất cả trạng thái</option>
+                <option value="pending">Chờ xác nhận</option>
+                <option value="shipping">Đang vận chuyển</option>
+                <option value="received">Hoàn thành</option>
+                <option value="fulfilled">Hoàn thành (yêu cầu)</option>
+                <option value="approved">Đã duyệt</option>
+                <option value="rejected">Từ chối</option>
+                <option value="cancelled">Đã hủy</option>
+              </Select>
+            </div>
+          </div>
         </div>
 
         {/* Table */}

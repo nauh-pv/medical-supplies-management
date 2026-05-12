@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Pagination, DataTable } from "@/components/common";
 import { BranchFormModal } from "./BranchFormModal";
 import type { UserDoc } from "@/types/firestore";
@@ -19,6 +20,7 @@ export function BranchTable({
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<UserDoc | null>(null);
+  const navigate = useNavigate();
 
   function openAdd() {
     setEditTarget(null);
@@ -143,6 +145,19 @@ export function BranchTable({
                 className: "text-right",
                 render: (branch) => (
                   <div className="flex items-center justify-end gap-2">
+                    <button
+                      onClick={() =>
+                        navigate(
+                          `/settlement?branchId=${branch.branchId ?? branch.uid}`,
+                        )
+                      }
+                      className="p-2 hover:bg-green-50 rounded-lg text-emerald-600 transition-colors"
+                      title="Quyết toán"
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        receipt_long
+                      </span>
+                    </button>
                     <button
                       onClick={() => openEdit(branch)}
                       className="p-2 hover:bg-blue-50 rounded-lg text-primary transition-colors"

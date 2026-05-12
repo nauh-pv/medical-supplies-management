@@ -8,6 +8,7 @@ export type NavId =
   | "alerts"
   | "pos"
   | "medication"
+  | "settlement"
   | "branches"
   | "imports"
   | "settings";
@@ -19,6 +20,7 @@ const NAV_PATH: Record<NavId, string> = {
   alerts: "/alerts",
   pos: "/pos",
   medication: "/dispatches",
+  settlement: "/settlement",
   branches: "/branches",
   imports: "/imports",
   settings: "/settings",
@@ -31,6 +33,7 @@ const navItems: { icon: string; label: string; id: NavId }[] = [
   { icon: "analytics", label: "Báo cáo", id: "reports" },
   { icon: "warning", label: "Cảnh báo hàng hóa", id: "alerts" },
   { icon: "medication", label: "Quản lý xuất kho", id: "medication" },
+  { icon: "receipt_long", label: "Quyết toán", id: "settlement" },
   { icon: "account_tree", label: "Chi nhánh", id: "branches" },
   { icon: "input", label: "Yêu cầu nhập thuốc", id: "imports" },
   // { icon: "settings", label: "Cài đặt", id: "settings" },

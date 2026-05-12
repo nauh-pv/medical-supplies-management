@@ -1,0 +1,146 @@
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "./firebase";
+import type {
+  SettlementDoc,
+  DispatchOrderDoc,
+  PosTransactionDoc,
+} from "@/types/firestore";
+
+// ── Settlement ─────────────────────────────────────────────────────────────
+
+/** Compose document ID: deterministic per branch+month so no duplicates. */
+function settlementId(branchId: string, month: string): string {
+  return `${branchId}_${month}`;
+}
+
+export async function getSettlement(
+  branchId: string,
+  month: string,
+): Promise<SettlementDoc | null> {
+  const snap = await getDoc(
+    doc(db, "settlements", settlementId(branchId, month)),
+  );
+  return snap.exists()
+    ? ({ ...snap.data(), id: snap.id } as SettlementDoc)
+    : null;
+}
+
+export async function getSettlementsByBranch(
+  branchId: string,
+): Promise<SettlementDoc[]> {
+  const q = query(
+    collection(db, "settlements"),
+    where("branchId", "==", branchId),
+    orderBy("month", "desc"),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => ({ ...d.data(), id: d.id }) as SettlementDoc);
+}
+
+export interface CreateSettlementInput {
+  branchId: string;
+  branchName: string;
+  month: string;
+  totalDispatched: number;
+  totalRevenue: number;
+  totalProfit: number;
+  createdBy: string;
+  createdByName: string;
+  notes: string;
+}
+
+export async function createSettlement(
+  input: CreateSettlementInput,
+): Promise<void> {
+  const id = settlementId(input.branchId, input.month);
+  const ref = doc(db, "settlements", id);
+  await setDoc(ref, {
+    id,
+    ...input,
+    createdAt: serverTimestamp(),
+  });
+}
+
+// ── Settlement Data Queries ────────────────────────────────────────────────
+
+function tsSeconds(ts: unknown): number {
+  return (ts as { seconds?: number })?.seconds ?? 0;
+}
+
+function monthBounds(month: string): { start: number; end: number } {
+  const [year, m] = month.split("-").map(Number);
+  const start = new Date(year, m - 1, 1).getTime() / 1000;
+  const end = new Date(year, m, 1).getTime() / 1000;
+  return { start, end };
+}
+
+/** Get dispatch orders for a branch in a specific month (status: received). */
+export async function getDispatchesForSettlement(
+  branchId: string,
+  month: string,
+): Promise<DispatchOrderDoc[]> {
+  const { start, end } = monthBounds(month);
+  const q = query(
+    collection(db, "dispatch_orders"),
+    where("toLocationId", "==", branchId),
+    where("status", "==", "received"),
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ ...d.data(), id: d.id }) as DispatchOrderDoc)
+    .filter((d) => {
+      const secs = tsSeconds(d.receivedAt ?? d.createdAt);
+      return secs >= start && secs < end;
+    });
+}
+
+/** Get POS transactions for a branch in a specific month. */
+export async function getPosForSettlement(
+  branchId: string,
+  month: string,
+): Promise<PosTransactionDoc[]> {
+  const { start, end } = monthBounds(month);
+  const q = query(
+    collection(db, "pos_transactions"),
+    where("branchId", "==", branchId),
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ ...d.data(), id: d.id }) as PosTransactionDoc)
+    .filter((d) => {
+      const secs = tsSeconds(d.createdAt);
+      return secs >= start && secs < end;
+    });
+}
+
+/** Calculate settlement summary from dispatches + POS transactions. */
+export function calcSettlementSummary(
+  dispatches: DispatchOrderDoc[],
+  posTxs: PosTransactionDoc[],
+): { totalDispatched: number; totalRevenue: number; totalProfit: number } {
+  const totalDispatched = dispatches.reduce(
+    (s, d) => s + (d.total ?? d.subtotal ?? 0),
+    0,
+  );
+  const totalRevenue = posTxs.reduce((s, tx) => s + tx.total, 0);
+  const totalProfit = posTxs.reduce(
+    (s, tx) =>
+      s +
+      tx.items.reduce(
+        (is, item) => is + (item.unitPrice - item.importPrice) * item.quantity,
+        0,
+      ),
+    0,
+  );
+  return { totalDispatched, totalRevenue, totalProfit };
+}

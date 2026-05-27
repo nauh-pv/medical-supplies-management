@@ -19,9 +19,15 @@ function toDateStr(ts: unknown): string {
   });
 }
 
-function formatMonth(month: string): string {
-  const [year, m] = month.split("-");
-  return `Tháng ${m}/${year}`;
+function formatDateRange(startDate: string, endDate: string): string {
+  const opts: Intl.DateTimeFormatOptions = {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  };
+  const s = new Date(startDate).toLocaleDateString("vi-VN", opts);
+  const e = new Date(endDate).toLocaleDateString("vi-VN", opts);
+  return `${s} → ${e}`;
 }
 
 interface SettlementHistoryTableProps {
@@ -89,7 +95,7 @@ export function SettlementHistoryTable({
                 >
                   <td className="px-6 py-4">
                     <p className="font-bold text-on-surface">
-                      {formatMonth(s.month)}
+                      {formatDateRange(s.startDate, s.endDate)}
                     </p>
                     {s.notes && (
                       <p className="text-xs text-on-surface-variant mt-0.5">

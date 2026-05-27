@@ -32,7 +32,7 @@ export function SettlementSummaryCards({
             {fmt(totalRevenue)}
           </h4>
           <span className="text-on-primary/60 text-xs mt-1 block">
-            VNĐ trong tháng
+            VNĐ trong kỳ
           </span>
         </div>
       </div>
@@ -52,7 +52,7 @@ export function SettlementSummaryCards({
             {fmt(totalProfit)}
           </h4>
           <span className="text-on-surface-variant text-xs mt-1 block">
-            VNĐ trong tháng
+            VNĐ trong kỳ
           </span>
         </div>
       </div>

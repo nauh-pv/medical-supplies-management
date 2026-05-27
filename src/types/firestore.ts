@@ -275,12 +275,13 @@ export interface PosTransactionDoc {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface SettlementDoc {
-  id: string; // "{branchId}_{YYYY-MM}"
+  id: string; // "{branchId}_{startDate}_{endDate}"
   branchId: string;
   branchName: string;
-  month: string; // "YYYY-MM"
-  totalDispatched: number; // tổng trị giá hàng cấp trong tháng (VNĐ)
-  totalRevenue: number; // tổng doanh thu bán ra trong tháng (VNĐ)
+  startDate: string; // "YYYY-MM-DD" — ngày bắt đầu kỳ quyết toán
+  endDate: string; // "YYYY-MM-DD" — ngày kết thúc kỳ quyết toán
+  totalDispatched: number; // tổng trị giá hàng cấp trong kỳ (VNĐ)
+  totalRevenue: number; // tổng doanh thu bán ra trong kỳ (VNĐ)
   totalProfit: number; // lợi nhuận gộp
   createdBy: string;
   createdByName: string;

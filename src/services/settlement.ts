@@ -18,17 +18,22 @@ import type {
 
 // ── Settlement ─────────────────────────────────────────────────────────────
 
-/** Compose document ID: deterministic per branch+month so no duplicates. */
-function settlementId(branchId: string, month: string): string {
-  return `${branchId}_${month}`;
+/** Compose document ID: deterministic per branch+dateRange so no duplicates. */
+function settlementId(
+  branchId: string,
+  startDate: string,
+  endDate: string,
+): string {
+  return `${branchId}_${startDate}_${endDate}`;
 }
 
 export async function getSettlement(
   branchId: string,
-  month: string,
+  startDate: string,
+  endDate: string,
 ): Promise<SettlementDoc | null> {
   const snap = await getDoc(
-    doc(db, "settlements", settlementId(branchId, month)),
+    doc(db, "settlements", settlementId(branchId, startDate, endDate)),
   );
   return snap.exists()
     ? ({ ...snap.data(), id: snap.id } as SettlementDoc)
@@ -41,7 +46,7 @@ export async function getSettlementsByBranch(
   const q = query(
     collection(db, "settlements"),
     where("branchId", "==", branchId),
-    orderBy("month", "desc"),
+    orderBy("startDate", "desc"),
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ ...d.data(), id: d.id }) as SettlementDoc);
@@ -50,7 +55,8 @@ export async function getSettlementsByBranch(
 export interface CreateSettlementInput {
   branchId: string;
   branchName: string;
-  month: string;
+  startDate: string;
+  endDate: string;
   totalDispatched: number;
   totalRevenue: number;
   totalProfit: number;
@@ -62,7 +68,7 @@ export interface CreateSettlementInput {
 export async function createSettlement(
   input: CreateSettlementInput,
 ): Promise<void> {
-  const id = settlementId(input.branchId, input.month);
+  const id = settlementId(input.branchId, input.startDate, input.endDate);
   const ref = doc(db, "settlements", id);
   await setDoc(ref, {
     id,
@@ -77,19 +83,23 @@ function tsSeconds(ts: unknown): number {
   return (ts as { seconds?: number })?.seconds ?? 0;
 }
 
-function monthBounds(month: string): { start: number; end: number } {
-  const [year, m] = month.split("-").map(Number);
-  const start = new Date(year, m - 1, 1).getTime() / 1000;
-  const end = new Date(year, m, 1).getTime() / 1000;
+function dateRangeBounds(
+  startDate: string,
+  endDate: string,
+): { start: number; end: number } {
+  const start = new Date(startDate + "T00:00:00").getTime() / 1000;
+  // endDate is inclusive — set end to start of next day
+  const end = new Date(endDate + "T23:59:59").getTime() / 1000 + 1;
   return { start, end };
 }
 
-/** Get dispatch orders for a branch in a specific month (status: received). */
+/** Get dispatch orders for a branch in a date range (status: received). */
 export async function getDispatchesForSettlement(
   branchId: string,
-  month: string,
+  startDate: string,
+  endDate: string,
 ): Promise<DispatchOrderDoc[]> {
-  const { start, end } = monthBounds(month);
+  const { start, end } = dateRangeBounds(startDate, endDate);
   const q = query(
     collection(db, "dispatch_orders"),
     where("toLocationId", "==", branchId),
@@ -104,12 +114,13 @@ export async function getDispatchesForSettlement(
     });
 }
 
-/** Get POS transactions for a branch in a specific month. */
+/** Get POS transactions for a branch in a date range. */
 export async function getPosForSettlement(
   branchId: string,
-  month: string,
+  startDate: string,
+  endDate: string,
 ): Promise<PosTransactionDoc[]> {
-  const { start, end } = monthBounds(month);
+  const { start, end } = dateRangeBounds(startDate, endDate);
   const q = query(
     collection(db, "pos_transactions"),
     where("branchId", "==", branchId),

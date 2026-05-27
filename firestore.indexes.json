@@ -167,7 +167,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "branchId", "order": "ASCENDING" },
-        { "fieldPath": "month", "order": "DESCENDING" }
+        { "fieldPath": "startDate", "order": "DESCENDING" }
       ]
     }
   ],

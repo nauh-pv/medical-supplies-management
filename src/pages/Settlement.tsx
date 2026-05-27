@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { PageHeader, Button, Modal } from "@/components/common";
-import {
-  SettlementFilterBar,
-  type SettlementStatusFilter,
-} from "@/components/settlement/SettlementFilterBar";
-import { SettlementYearTable } from "@/components/settlement/SettlementYearTable";
+import { SettlementFilterBar } from "@/components/settlement/SettlementFilterBar";
+import { SettlementOverview } from "@/components/settlement/SettlementYearTable";
 import { SettlementConfirmModal } from "@/components/settlement/SettlementConfirmModal";
 import { getBranches } from "@/services/inventory";
-import { getSettlementsByBranch } from "@/services/settlement";
+import {
+  getSettlementsByBranch,
+  getDispatchesForSettlement,
+  getPosForSettlement,
+  calcSettlementSummary,
+} from "@/services/settlement";
 import type { UserDoc, SettlementDoc } from "@/types/firestore";
-
-const DEFAULT_YEAR = String(new Date().getFullYear());
 
 function fmt(n: number): string {
   return new Intl.NumberFormat("vi-VN", {
@@ -27,22 +27,44 @@ function toDateStr(ts: unknown): string {
   return new Date(secs * 1000).toLocaleDateString("vi-VN");
 }
 
+function formatDateRange(startDate: string, endDate: string): string {
+  const opts: Intl.DateTimeFormatOptions = {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  };
+  const s = new Date(startDate).toLocaleDateString("vi-VN", opts);
+  const e = new Date(endDate).toLocaleDateString("vi-VN", opts);
+  return `${s} → ${e}`;
+}
+
+/** Get the day after a given date string (YYYY-MM-DD) */
+function nextDay(dateStr: string): string {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function Settlement() {
   const [searchParams] = useSearchParams();
 
   const [branches, setBranches] = useState<UserDoc[]>([]);
   const [branchId, setBranchId] = useState(searchParams.get("branchId") ?? "");
-  const [year, setYear] = useState(DEFAULT_YEAR);
-  const [statusFilter, setStatusFilter] =
-    useState<SettlementStatusFilter>("all");
 
   const [loading, setLoading] = useState(false);
   const [settlements, setSettlements] = useState<SettlementDoc[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  const [settleTargetMonth, setSettleTargetMonth] = useState<string | null>(
-    null,
-  );
+  // Unsettled period info
+  const [unsettledLoading, setUnsettledLoading] = useState(false);
+  const [unsettledRevenue, setUnsettledRevenue] = useState(0);
+  const [unsettledProfit, setUnsettledProfit] = useState(0);
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [viewTarget, setViewTarget] = useState<SettlementDoc | null>(null);
 
   useEffect(() => {
@@ -51,25 +73,61 @@ export function Settlement() {
       .catch(console.error);
   }, []);
 
-  const loadSettlements = useCallback(async (bid: string, y: string) => {
+  // Calculate unsettled start date
+  const unsettledStartDate =
+    settlements.length > 0
+      ? nextDay(settlements[0].endDate) // settlements sorted desc, [0] is latest
+      : "2024-01-01"; // fallback: start of records
+
+  const unsettledEndDate = todayStr();
+
+  const unsettledDays = Math.max(
+    0,
+    Math.ceil(
+      (new Date(unsettledEndDate).getTime() -
+        new Date(unsettledStartDate).getTime()) /
+        (1000 * 60 * 60 * 24),
+    ),
+  );
+
+  const loadSettlements = useCallback(async (bid: string) => {
     if (!bid) return;
     setLoading(true);
     try {
       const all = await getSettlementsByBranch(bid);
-      console.log("check all:", all);
-
-      setSettlements(all.filter((s) => s.month.startsWith(y)));
+      setSettlements(all);
       setLoaded(true);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Load unsettled amounts after settlements are loaded
+  useEffect(() => {
+    if (!loaded || !branchId || unsettledStartDate > unsettledEndDate) return;
+    setUnsettledLoading(true);
+    Promise.all([
+      getDispatchesForSettlement(
+        branchId,
+        unsettledStartDate,
+        unsettledEndDate,
+      ),
+      getPosForSettlement(branchId, unsettledStartDate, unsettledEndDate),
+    ])
+      .then(([dispatches, posTxs]) => {
+        const summary = calcSettlementSummary(dispatches, posTxs);
+        setUnsettledRevenue(summary.totalRevenue);
+        setUnsettledProfit(summary.totalProfit);
+      })
+      .catch(console.error)
+      .finally(() => setUnsettledLoading(false));
+  }, [loaded, branchId, unsettledStartDate, unsettledEndDate]);
+
   // Auto-load when arriving with ?branchId query param
   useEffect(() => {
     const paramBranchId = searchParams.get("branchId");
     if (paramBranchId) {
-      loadSettlements(paramBranchId, DEFAULT_YEAR);
+      loadSettlements(paramBranchId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -86,40 +144,40 @@ export function Settlement() {
           </span>
         }
         title="Quyết toán"
-        subtitle="Tổng kho xác nhận quyết toán doanh thu và hàng hóa cho từng chi nhánh theo tháng."
+        subtitle="Tổng kho xác nhận quyết toán doanh thu và hàng hóa cho từng chi nhánh theo kỳ tùy chọn."
       />
 
       <SettlementFilterBar
         branches={branches}
         branchId={branchId}
-        year={year}
-        statusFilter={statusFilter}
         loading={loading}
         onBranchChange={(v) => {
           setBranchId(v);
           setLoaded(false);
           setSettlements([]);
+          setUnsettledRevenue(0);
+          setUnsettledProfit(0);
         }}
-        onYearChange={(v) => {
-          setYear(v);
-          setLoaded(false);
-          setSettlements([]);
-        }}
-        onStatusChange={setStatusFilter}
-        onLoad={() => loadSettlements(branchId, year)}
+        onLoad={() => loadSettlements(branchId)}
       />
 
       {loaded ? (
-        <SettlementYearTable
+        <SettlementOverview
           settlements={settlements}
-          year={year}
-          statusFilter={statusFilter}
-          onSettle={setSettleTargetMonth}
+          unsettled={{
+            startDate: unsettledStartDate,
+            endDate: unsettledEndDate,
+            days: unsettledDays,
+            loading: unsettledLoading,
+            totalRevenue: unsettledRevenue,
+            totalProfit: unsettledProfit,
+          }}
+          onCreateNew={() => setShowCreateModal(true)}
           onViewDetail={setViewTarget}
         />
       ) : !loading && branchId ? (
         <div className="bg-surface-container-lowest rounded-[2rem] shadow-sm px-8 py-16 text-center text-sm text-on-surface-variant">
-          Vui lòng chọn chi nhánh và năm, sau đó nhấn{" "}
+          Vui lòng chọn chi nhánh, sau đó nhấn{" "}
           <span className="font-semibold text-on-surface">Tải dữ liệu</span> để
           xem lịch sử quyết toán.
         </div>
@@ -130,29 +188,28 @@ export function Settlement() {
       ) : null}
 
       <SettlementConfirmModal
-        open={!!settleTargetMonth}
-        onClose={() => setSettleTargetMonth(null)}
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
         branchId={branchId}
         branchName={selectedBranchName}
-        month={settleTargetMonth ?? ""}
+        defaultStartDate={unsettledStartDate}
+        defaultEndDate={unsettledEndDate}
         onSuccess={() => {
-          setSettleTargetMonth(null);
-          loadSettlements(branchId, year);
+          setShowCreateModal(false);
+          loadSettlements(branchId);
         }}
       />
 
-      {/* View detail modal for already-settled months */}
+      {/* View detail modal for a settlement */}
       <Modal
         open={!!viewTarget}
         onClose={() => setViewTarget(null)}
-        title={
+        title={viewTarget ? `Chi tiết quyết toán` : ""}
+        subtitle={
           viewTarget
-            ? `Chi tiết quyết toán Tháng ${
-                viewTarget.month.split("-")[1]
-              }/${viewTarget.month.split("-")[0]}`
+            ? `${viewTarget.branchName} — ${formatDateRange(viewTarget.startDate, viewTarget.endDate)}`
             : ""
         }
-        subtitle={viewTarget ? `Chi nhánh: ${viewTarget.branchName}` : ""}
         maxWidth="max-w-lg"
       >
         {viewTarget && (
@@ -177,6 +234,12 @@ export function Settlement() {
             </div>
 
             <div className="text-sm space-y-2 text-on-surface-variant">
+              <div>
+                Kỳ quyết toán:{" "}
+                <span className="text-on-surface font-medium">
+                  {formatDateRange(viewTarget.startDate, viewTarget.endDate)}
+                </span>
+              </div>
               <div>
                 Người quyết toán:{" "}
                 <span className="text-on-surface font-medium">

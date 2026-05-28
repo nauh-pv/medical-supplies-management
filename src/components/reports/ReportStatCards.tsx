@@ -71,9 +71,6 @@ export function ReportStatCards() {
             so với kỳ trước
           </span>
         </div>
-        <p className="mt-2 text-[11px] text-on-surface-variant">
-          {locationLabel} · {rangeLabel}
-        </p>
       </div>
     </div>
   );

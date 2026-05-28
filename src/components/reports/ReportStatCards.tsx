@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-
 export function ReportStatCards() {
   const navigate = useNavigate();
   return (

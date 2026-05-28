@@ -85,7 +85,7 @@ export function BestSellersPanel() {
                 item.rank === 1
                   ? "bg-primary text-on-primary"
                   : item.rank <= 3
-                    ? "bg-primary-container text-primary"
+                    ? "bg-primary-container text-on-primary"
                     : "bg-surface-container-low text-on-surface-variant",
               ].join(" ")}
             >

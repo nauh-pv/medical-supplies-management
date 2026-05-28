@@ -4,6 +4,7 @@ import { PageHeader, Button, Modal } from "@/components/common";
 import { SettlementFilterBar } from "@/components/settlement/SettlementFilterBar";
 import { SettlementOverview } from "@/components/settlement/SettlementYearTable";
 import { SettlementConfirmModal } from "@/components/settlement/SettlementConfirmModal";
+import type { SettlementLocationOption } from "@/components/settlement/SettlementFilterBar";
 import { getBranches } from "@/services/inventory";
 import {
   getSettlementsByBranch,
@@ -73,6 +74,14 @@ export function Settlement() {
       .catch(console.error);
   }, []);
 
+  const settlementLocations: SettlementLocationOption[] = [
+    { id: "WAREHOUSE", label: "Tổng kho" },
+    ...branches.map((branch) => ({
+      id: branch.branchId ?? branch.uid,
+      label: branch.branchName ?? branch.displayName,
+    })),
+  ];
+
   // Calculate unsettled start date
   const unsettledStartDate =
     settlements.length > 0
@@ -133,7 +142,8 @@ export function Settlement() {
   }, []);
 
   const selectedBranchName =
-    branches.find((b) => (b.branchId ?? b.uid) === branchId)?.branchName ?? "";
+    settlementLocations.find((location) => location.id === branchId)?.label ??
+    "";
 
   return (
     <main className="ml-72 pt-24 px-8 pb-12 space-y-8 min-h-screen bg-background">
@@ -144,11 +154,11 @@ export function Settlement() {
           </span>
         }
         title="Quyết toán"
-        subtitle="Tổng kho xác nhận quyết toán doanh thu và hàng hóa cho từng chi nhánh theo kỳ tùy chọn."
+        subtitle="Tổng kho xác nhận quyết toán doanh thu và hàng hóa cho từng cơ sở theo kỳ tùy chọn."
       />
 
       <SettlementFilterBar
-        branches={branches}
+        locations={settlementLocations}
         branchId={branchId}
         loading={loading}
         onBranchChange={(v) => {
@@ -177,13 +187,13 @@ export function Settlement() {
         />
       ) : !loading && branchId ? (
         <div className="bg-surface-container-lowest rounded-[2rem] shadow-sm px-8 py-16 text-center text-sm text-on-surface-variant">
-          Vui lòng chọn chi nhánh, sau đó nhấn{" "}
+          Vui lòng chọn cơ sở, sau đó nhấn{" "}
           <span className="font-semibold text-on-surface">Tải dữ liệu</span> để
           xem lịch sử quyết toán.
         </div>
       ) : !loading && !branchId ? (
         <div className="bg-surface-container-lowest rounded-[2rem] shadow-sm px-8 py-16 text-center text-sm text-on-surface-variant">
-          Vui lòng chọn chi nhánh để bắt đầu.
+          Vui lòng chọn cơ sở để bắt đầu.
         </div>
       ) : null}
 

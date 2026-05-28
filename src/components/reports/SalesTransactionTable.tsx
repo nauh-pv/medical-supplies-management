@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEffect } from "react";
 import { Badge, Pagination, Modal, DataTable } from "@/components/common";
 import type { PosTransactionDoc, PosTransactionItem } from "@/types/firestore";
 
@@ -45,6 +46,10 @@ export function SalesTransactionTable({
 }: SalesTransactionTableProps) {
   const [page, setPage] = useState(1);
   const [detail, setDetail] = useState<PosTransactionDoc | null>(null);
+
+  useEffect(() => {
+    setPage(1);
+  }, [data]);
 
   const totalPages = Math.max(1, Math.ceil(data.length / PAGE_SIZE));
   const paged = data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

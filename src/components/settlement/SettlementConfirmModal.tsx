@@ -108,7 +108,7 @@ export function SettlementConfirmModal({
       open={open}
       onClose={onClose}
       title="Xác nhận quyết toán"
-      subtitle={`Chi nhánh: ${branchName}`}
+      subtitle={`Cơ sở: ${branchName}`}
       maxWidth="max-w-2xl"
     >
       {loading ? (

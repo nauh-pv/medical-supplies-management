@@ -13,11 +13,11 @@
 
 ## Files đã tạo / chỉnh sửa
 
-| File | Hành động | Mô tả |
-| --- | --- | --- |
-| `src/pages/Settlement.tsx` | Cập nhật | Thêm lựa chọn `Tổng kho`, đổi nhãn UI sang “cơ sở”, và dùng danh sách địa điểm chung cho quyết toán. |
-| `src/components/settlement/SettlementFilterBar.tsx` | Cập nhật | Cho phép nhận danh sách địa điểm quyết toán thay vì chỉ nhận chi nhánh, đồng thời đổi label sang “Cơ sở”. |
-| `src/components/settlement/SettlementConfirmModal.tsx` | Cập nhật | Đổi subtitle sang cách gọi trung tính hơn để hiển thị đúng với tổng kho. |
+| File                                                   | Hành động | Mô tả                                                                                                     |
+| ------------------------------------------------------ | --------- | --------------------------------------------------------------------------------------------------------- |
+| `src/pages/Settlement.tsx`                             | Cập nhật  | Thêm lựa chọn `Tổng kho`, đổi nhãn UI sang “cơ sở”, và dùng danh sách địa điểm chung cho quyết toán.      |
+| `src/components/settlement/SettlementFilterBar.tsx`    | Cập nhật  | Cho phép nhận danh sách địa điểm quyết toán thay vì chỉ nhận chi nhánh, đồng thời đổi label sang “Cơ sở”. |
+| `src/components/settlement/SettlementConfirmModal.tsx` | Cập nhật  | Đổi subtitle sang cách gọi trung tính hơn để hiển thị đúng với tổng kho.                                  |
 
 ---
 

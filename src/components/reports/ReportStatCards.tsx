@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-
 export function ReportStatCards() {
   const navigate = useNavigate();
   return (
@@ -72,6 +71,9 @@ export function ReportStatCards() {
             so với kỳ trước
           </span>
         </div>
+        <p className="mt-2 text-[11px] text-on-surface-variant">
+          {locationLabel} · {rangeLabel}
+        </p>
       </div>
     </div>
   );

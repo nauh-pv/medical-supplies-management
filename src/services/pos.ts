@@ -167,7 +167,6 @@ export async function getAllPosTransactions(): Promise<PosTransactionDoc[]> {
   const q = query(
     collection(db, "pos_transactions"),
     orderBy("createdAt", "desc"),
-    limit(200),
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ ...d.data(), id: d.id }) as PosTransactionDoc);

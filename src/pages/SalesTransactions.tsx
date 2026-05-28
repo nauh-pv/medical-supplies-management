@@ -6,10 +6,36 @@ import { SalesTransactionTable } from "@/components/reports/SalesTransactionTabl
 import { getAllPosTransactions } from "@/services/pos";
 import { getBranches } from "@/services/inventory";
 import type { PosTransactionDoc, UserDoc } from "@/types/firestore";
-import { CURRENT_YEAR, CURRENT_MONTH_INDEX } from "@/utils/dateConfig";
 
 function getSeconds(ts: unknown): number {
   return (ts as { seconds?: number })?.seconds ?? 0;
+}
+
+function toDateInput(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function daysAgo(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return toDateInput(date);
+}
+
+function shiftDate(dateValue: string, days: number): string {
+  const date = new Date(`${dateValue}T00:00:00`);
+  date.setDate(date.getDate() + days);
+  return toDateInput(date);
+}
+
+function formatRange(startDate: string, endDate: string): string {
+  const options: Intl.DateTimeFormatOptions = {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  };
+  const start = new Date(startDate).toLocaleDateString("vi-VN", options);
+  const end = new Date(endDate).toLocaleDateString("vi-VN", options);
+  return `${start} → ${end}`;
 }
 
 export function SalesTransactions() {
@@ -17,9 +43,29 @@ export function SalesTransactions() {
   const [branches, setBranches] = useState<UserDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedBranch, setSelectedBranch] = useState("");
-  const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
-  const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH_INDEX);
+  const [selectedBranch, setSelectedBranch] = useState("WAREHOUSE");
+  const [selectedStartDate, setSelectedStartDate] = useState(daysAgo(29));
+  const [selectedEndDate, setSelectedEndDate] = useState(
+    toDateInput(new Date()),
+  );
+  const today = useMemo(() => toDateInput(new Date()), []);
+
+  const dateRangeErrors = useMemo(() => {
+    const start = new Date(`${selectedStartDate}T00:00:00`).getTime();
+    const end = new Date(`${selectedEndDate}T00:00:00`).getTime();
+    const todayEnd = new Date(`${today}T00:00:00`).getTime();
+
+    return {
+      startDate: start >= end ? "Từ ngày phải bé hơn đến ngày." : undefined,
+      endDate:
+        end > todayEnd
+          ? "Đến ngày phải bé hơn hoặc bằng ngày hiện tại."
+          : undefined,
+    };
+  }, [selectedStartDate, selectedEndDate, today]);
+
+  const isDateRangeValid =
+    !dateRangeErrors.startDate && !dateRangeErrors.endDate;
 
   useEffect(() => {
     setLoading(true);
@@ -35,26 +81,38 @@ export function SalesTransactions() {
 
   const branchOptions = useMemo(
     () =>
-      branches.map((b) => ({
-        id: b.branchId ?? "",
-        name: b.branchName ?? b.displayName,
-      })),
+      [
+        { id: "WAREHOUSE", name: "Tổng kho" },
+        branches.map((b) => ({
+          id: b.branchId ?? "",
+          name: b.branchName ?? b.displayName,
+        })),
+      ].flat(),
     [branches],
   );
 
+  const selectedBranchName =
+    branchOptions.find((branch) => branch.id === selectedBranch)?.name ??
+    "Tất cả cơ sở";
+
+  const rangeLabel = formatRange(selectedStartDate, selectedEndDate);
+
+  const filterBounds = useMemo(() => {
+    const start = new Date(`${selectedStartDate}T00:00:00`).getTime() / 1000;
+    const end = new Date(`${selectedEndDate}T23:59:59`).getTime() / 1000 + 1;
+    return { start, end };
+  }, [selectedStartDate, selectedEndDate]);
+
   const filtered = useMemo(() => {
-    const monthStart = new Date(selectedYear, selectedMonth, 1).getTime() / 1000;
-    const monthEnd = new Date(selectedYear, selectedMonth + 1, 1).getTime() / 1000;
+    if (!isDateRangeValid) return [];
 
     return transactions.filter((tx) => {
-      // Month filter
       const txSecs = getSeconds(tx.createdAt);
-      if (txSecs < monthStart || txSecs >= monthEnd) return false;
+      if (txSecs < filterBounds.start || txSecs >= filterBounds.end)
+        return false;
 
-      // Branch filter
       if (selectedBranch && tx.branchId !== selectedBranch) return false;
 
-      // Search filter
       if (search) {
         const q = search.toLowerCase();
         const matchCode = tx.code.toLowerCase().includes(q);
@@ -65,7 +123,7 @@ export function SalesTransactions() {
 
       return true;
     });
-  }, [transactions, search, selectedBranch, selectedMonth, selectedYear]);
+  }, [transactions, search, selectedBranch, filterBounds, isDateRangeValid]);
 
   const totalRevenue = useMemo(
     () => filtered.reduce((s, tx) => s + tx.total, 0),
@@ -96,7 +154,18 @@ export function SalesTransactions() {
           </span>
         }
         title="Báo cáo"
-        subtitle="Theo dõi và phân tích dữ liệu hóa đơn xuất kho bán lẻ trên toàn hệ thống chi nhánh."
+        subtitle={
+          <>
+            <span className="text-on-surface-variant">
+              {selectedBranchName}
+            </span>
+            <span className="mx-2 text-on-surface-variant">•</span>
+            <span className="text-on-surface">{rangeLabel}</span>
+            <span className="ml-2 text-on-surface-variant">
+              (mặc định 30 ngày gần nhất)
+            </span>
+          </>
+        }
       />
 
       <SalesStatCards
@@ -112,10 +181,18 @@ export function SalesTransactions() {
         branches={branchOptions}
         selectedBranch={selectedBranch}
         onBranchChange={setSelectedBranch}
-        selectedYear={selectedYear}
-        onYearChange={setSelectedYear}
-        selectedMonth={selectedMonth}
-        onMonthChange={setSelectedMonth}
+        selectedStartDate={selectedStartDate}
+        onStartDateChange={setSelectedStartDate}
+        selectedEndDate={selectedEndDate}
+        onEndDateChange={setSelectedEndDate}
+        startDateError={dateRangeErrors.startDate}
+        endDateError={dateRangeErrors.endDate}
+        maxEndDate={today}
+        maxStartDate={shiftDate(
+          selectedEndDate < today ? selectedEndDate : today,
+          -1,
+        )}
+        minEndDate={shiftDate(selectedStartDate, 1)}
       />
 
       <SalesTransactionTable data={filtered} loading={loading} />

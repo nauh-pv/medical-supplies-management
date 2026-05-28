@@ -1,8 +1,12 @@
 import { Select, Button } from "@/components/common";
-import type { UserDoc } from "@/types/firestore";
+
+export interface SettlementLocationOption {
+  id: string;
+  label: string;
+}
 
 interface SettlementFilterBarProps {
-  branches: UserDoc[];
+  locations: SettlementLocationOption[];
   branchId: string;
   loading: boolean;
   onBranchChange: (v: string) => void;
@@ -10,7 +14,7 @@ interface SettlementFilterBarProps {
 }
 
 export function SettlementFilterBar({
-  branches,
+  locations,
   branchId,
   loading,
   onBranchChange,
@@ -20,15 +24,15 @@ export function SettlementFilterBar({
     <div className="bg-surface-container-lowest rounded-[2rem] shadow-sm px-8 py-6 flex flex-wrap items-end gap-4">
       <div className="flex-1 min-w-[200px]">
         <Select
-          label="Chi nhánh"
-          leadingIcon="account_tree"
+          label="Cơ sở"
+          leadingIcon="warehouse"
           value={branchId}
           onChange={(e) => onBranchChange(e.target.value)}
         >
-          <option value="">Chọn chi nhánh...</option>
-          {branches.map((b) => (
-            <option key={b.uid} value={b.branchId ?? b.uid}>
-              {b.branchName ?? b.displayName}
+          <option value="">Chọn cơ sở...</option>
+          {locations.map((location) => (
+            <option key={location.id} value={location.id}>
+              {location.label}
             </option>
           ))}
         </Select>

@@ -3,11 +3,12 @@ import { Input, Button } from "@/components/common";
 
 interface CartItem {
   id: string;
+  itemType: "medicine" | "service";
   name: string;
   price: number;
   qty: number;
-  lot: string;
-  stock: number;
+  lot?: string;
+  stock?: number;
 }
 
 interface OrderSummaryProps {
@@ -78,7 +79,11 @@ export function OrderSummary({
                   {item.name}
                 </p>
                 <p className="text-xs text-on-surface-variant/70 mt-0.5">
-                  Lô: {item.lot}
+                  {item.lot
+                    ? `Lô: ${item.lot}`
+                    : item.itemType === "service"
+                      ? "Dịch vụ"
+                      : ""}
                 </p>
                 <p className="text-xs text-primary font-mono mt-0.5">
                   {item.price.toLocaleString("vi-VN")}₫
@@ -98,7 +103,7 @@ export function OrderSummary({
                 </span>
                 <button
                   onClick={() => onQtyChange(item.id, 1)}
-                  disabled={item.qty >= item.stock}
+                  disabled={item.stock !== undefined && item.qty >= item.stock}
                   className="w-6 h-6 rounded-lg bg-primary text-on-primary flex items-center justify-center hover:bg-primary/80 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   <span className="material-symbols-outlined text-sm">add</span>

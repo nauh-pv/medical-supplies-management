@@ -227,6 +227,7 @@ export async function getDashboardData(
   const medMap = new Map<string, TopMedicine>();
   for (const tx of txDocs) {
     for (const item of tx.items) {
+      if (item.itemType !== "medicine") continue;
       const existing = medMap.get(item.medicineId);
       if (existing) {
         existing.totalQty += item.quantity;

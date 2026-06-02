@@ -235,7 +235,8 @@ export function SalesTransactionTable({
                     <div>
                       <p className="font-semibold">{item.medicineName}</p>
                       <p className="text-[10px] text-on-surface-variant">
-                        {item.medicineSku} · Lô: {item.lot}
+                        {item.medicineSku}
+                        {item.lot ? ` · Lô: ${item.lot}` : ""}
                       </p>
                     </div>
                   ),

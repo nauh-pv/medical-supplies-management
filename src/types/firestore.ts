@@ -257,6 +257,7 @@ export interface ImportRequestDoc {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface PosTransactionItem {
+  itemType: "medicine" | "service";
   medicineId: string;
   medicineName: string;
   medicineSku: string;

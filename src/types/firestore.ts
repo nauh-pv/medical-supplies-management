@@ -41,6 +41,7 @@ export interface UserDoc {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type MedicineCategory = "prescribed" | "otc";
+export type ServiceType = "injection" | "consultation" | "other";
 
 export interface MedicineDoc {
   id: string;
@@ -57,6 +58,22 @@ export interface MedicineDoc {
   icon?: string;
   iconBg?: string;
   iconColor?: string;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. services
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface ServiceDoc {
+  id: string;
+  code: string;
+  name: string;
+  type: ServiceType;
+  price: number;
+  description: string;
   isActive: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
@@ -240,6 +257,7 @@ export interface ImportRequestDoc {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface PosTransactionItem {
+  itemType: "medicine" | "service";
   medicineId: string;
   medicineName: string;
   medicineSku: string;

@@ -23,6 +23,7 @@ export interface CreatePosTransactionInput {
   createdBy: string;
   createdByName: string;
   items: Array<{
+    itemType: "medicine" | "service";
     medicineId: string;
     medicineName: string;
     medicineSku: string;
@@ -49,6 +50,7 @@ export async function createPosTransaction(
   const code = `POS-${dateTag}-${ref.id.slice(-4).toUpperCase()}`;
 
   const txItems: PosTransactionItem[] = input.items.map((i) => ({
+    itemType: i.itemType,
     medicineId: i.medicineId,
     medicineName: i.medicineName,
     medicineSku: i.medicineSku,
@@ -68,11 +70,14 @@ export async function createPosTransaction(
 
   await runTransaction(db, async (tx) => {
     // ── ALL READS must come before any writes ────────────────────────────
-    const invRefs = input.items.map((item) => {
+    const medicineItems = input.items.filter(
+      (item) => item.itemType === "medicine",
+    );
+    const invRefs = medicineItems.map((item) => {
       const invId = `${branchId}_${item.medicineId}`;
       return doc(db, "inventory", invId);
     });
-    const batchRefs = input.items
+    const batchRefs = medicineItems
       .filter((item) => !!item.batchId)
       .map((item) => doc(db, "batches", item.batchId));
     const invSnaps = await Promise.all(invRefs.map((r) => tx.get(r)));
@@ -94,14 +99,14 @@ export async function createPosTransaction(
       if (invSnap.exists()) {
         const current = invSnap.data().quantity as number;
         tx.update(invRefs[idx], {
-          quantity: Math.max(0, current - input.items[idx].quantity),
+          quantity: Math.max(0, current - medicineItems[idx].quantity),
           updatedAt: serverTimestamp(),
         });
       }
     });
 
     // Decrease batch-level stock for FIFO traceability
-    for (const item of input.items) {
+    for (const item of medicineItems) {
       if (item.batchId) {
         tx.update(doc(db, "batches", item.batchId), {
           quantity: increment(-item.quantity),

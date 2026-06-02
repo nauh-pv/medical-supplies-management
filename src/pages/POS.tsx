@@ -4,20 +4,21 @@ import { OrderSummary } from "@/components/pos/OrderSummary";
 import { BatchSelectModal } from "@/components/pos/BatchSelectModal";
 import { createPosTransaction } from "@/services/pos";
 import { useUserContext } from "@/contexts/UserContext";
-import type { MedicineDoc, BatchDoc } from "@/types/firestore";
+import type { MedicineDoc, BatchDoc, ServiceDoc } from "@/types/firestore";
 
 export interface CartItem {
-  id: string; // batchId — unique key per batch in cart
+  id: string; // batchId or serviceId — unique key per cart row
+  itemType: "medicine" | "service";
   medicineId: string;
   name: string;
   price: number;
   qty: number;
   sku: string;
-  lot: string;
-  batchId: string;
+  lot?: string;
+  batchId?: string;
   unitId: string;
   unitName: string;
-  stock: number; // available qty in this batch
+  stock?: number; // available qty in this batch; undefined for services
   importPrice: number;
 }
 
@@ -71,6 +72,7 @@ export function POS() {
         ...prev,
         {
           id: batch.id,
+          itemType: "medicine",
           medicineId: medicine.id,
           name: medicine.name,
           price: medicine.sellPrice,
@@ -87,13 +89,40 @@ export function POS() {
     });
   }
 
+  function handleServiceSelect(service: ServiceDoc) {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === service.id);
+      if (existing) {
+        return prev.map((i) =>
+          i.id === service.id ? { ...i, qty: i.qty + 1 } : i,
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: service.id,
+          itemType: "service",
+          medicineId: service.id,
+          name: service.name,
+          price: service.price,
+          qty: 1,
+          sku: service.code,
+          unitId: "SERVICE",
+          unitName: "Dịch vụ",
+          importPrice: 0,
+        },
+      ];
+    });
+  }
+
   function handleQtyChange(id: string, delta: number) {
     setCart((prev) => {
       const item = prev.find((i) => i.id === id);
       if (!item) return prev;
       const newQty = item.qty + delta;
       if (newQty <= 0) return prev.filter((i) => i.id !== id);
-      if (newQty > item.stock) return prev; // cap at batch stock
+      const availableStock = item.stock ?? 0;
+      if (newQty > availableStock) return prev; // cap at batch stock
       return prev.map((i) => (i.id === id ? { ...i, qty: newQty } : i));
     });
   }
@@ -118,11 +147,12 @@ export function POS() {
         createdBy: userDoc.uid,
         createdByName: userDoc.displayName,
         items: cartSnapshot.map((i) => ({
+          itemType: i.itemType,
           medicineId: i.medicineId,
           medicineName: i.name,
           medicineSku: i.sku,
-          batchId: i.batchId,
-          lot: i.lot,
+          batchId: i.batchId ?? "",
+          lot: i.lot ?? "",
           unitId: i.unitId,
           unitName: i.unitName,
           unitPrice: i.price,
@@ -213,6 +243,7 @@ export function POS() {
             handleMedicineClick(medicine, stock);
             // Auto-switch to products view to show batch modal
           }}
+          onServiceClick={handleServiceSelect}
           refetchTrigger={refetchTrigger}
         />
       </div>

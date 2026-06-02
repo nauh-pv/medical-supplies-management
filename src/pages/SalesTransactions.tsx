@@ -107,6 +107,8 @@ export function SalesTransactions() {
     if (!isDateRangeValid) return [];
 
     return transactions.filter((tx) => {
+      console.log("chekc tx:", tx);
+
       const txSecs = getSeconds(tx.createdAt);
       if (txSecs < filterBounds.start || txSecs >= filterBounds.end)
         return false;

@@ -271,6 +271,39 @@ interface UnitDoc {
 
 ---
 
+### 8. `services`
+
+**Path:** `/services/{serviceId}`  
+**Mục đích:** Danh mục dịch vụ y tế dùng cho quản lý kho tổng, ví dụ tiêm, khám, tư vấn. Chỉ quản lý kho truy cập.
+
+| Field         | Kiểu      | Giải thích                                         |
+| ------------- | --------- | -------------------------------------------------- |
+| `id`          | string    | Document ID                                        |
+| `code`        | string    | Mã dịch vụ ngắn gọn, ví dụ `DVC-AB12`              |
+| `name`        | string    | Tên dịch vụ                                        |
+| `type`        | string    | Loại dịch vụ: `injection`, `consultation`, `other` |
+| `price`       | number    | Giá dịch vụ (VNĐ)                                  |
+| `description` | string    | Mô tả ngắn                                         |
+| `isActive`    | boolean   | Dịch vụ có đang được sử dụng không                 |
+| `createdAt`   | Timestamp | Ngày tạo                                           |
+| `updatedAt`   | Timestamp | Ngày cập nhật cuối                                 |
+
+```ts
+interface ServiceDoc {
+  id: string;
+  code: string;
+  name: string;
+  type: "injection" | "consultation" | "other";
+  price: number;
+  description: string;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+---
+
 ### 8. `import_orders`
 
 **Path:** `/import_orders/{orderId}`  
@@ -571,18 +604,19 @@ interface ImportRequestDoc {
 
 ##### Trường của `PosTransactionItem`:
 
-| Field          | Kiểu   | Giải thích                                |
-| -------------- | ------ | ----------------------------------------- |
-| `medicineId`   | string | ID sản phẩm bán                           |
-| `medicineName` | string | Tên sản phẩm (copy sẵn)                   |
-| `medicineSku`  | string | Mã SKU (copy sẵn)                         |
-| `lot`          | string | Số lô xuất bán (để truy xuất nguồn gốc)   |
-| `batchId`      | string | ID lô xuất (ref → `batches`)              |
-| `quantity`     | number | Số lượng bán                              |
-| `unitId`       | string | Đơn vị tính                               |
-| `unitName`     | string | Tên đơn vị (copy sẵn)                     |
-| `unitPrice`    | number | Đơn giá bán tại thời điểm giao dịch (VNĐ) |
-| `total`        | number | Thành tiền (VNĐ)                          |
+| Field          | Kiểu   | Giải thích                                         |
+| -------------- | ------ | -------------------------------------------------- |
+| `itemType`     | string | `medicine` hoặc `service`                          |
+| `medicineId`   | string | ID sản phẩm bán                                    |
+| `medicineName` | string | Tên sản phẩm (copy sẵn)                            |
+| `medicineSku`  | string | Mã SKU (copy sẵn)                                  |
+| `lot`          | string | Số lô xuất bán; để trống với dịch vụ               |
+| `batchId`      | string | ID lô xuất (ref → `batches`); để trống với dịch vụ |
+| `quantity`     | number | Số lượng bán                                       |
+| `unitId`       | string | Đơn vị tính                                        |
+| `unitName`     | string | Tên đơn vị (copy sẵn)                              |
+| `unitPrice`    | number | Đơn giá bán tại thời điểm giao dịch (VNĐ)          |
+| `total`        | number | Thành tiền (VNĐ)                                   |
 
 ##### Trường của `PosTransactionDoc`:
 
@@ -605,6 +639,7 @@ interface ImportRequestDoc {
 
 ```ts
 interface PosTransactionItem {
+  itemType: "medicine" | "service";
   medicineId: string;
   medicineName: string;
   medicineSku: string;

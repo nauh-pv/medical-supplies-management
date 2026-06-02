@@ -2,15 +2,22 @@ import { useState } from "react";
 import { PageHeader, TabBar } from "@/components/common";
 import { InventoryStats } from "@/components/inventory/InventoryStats";
 import { InventoryTable } from "@/components/inventory/InventoryTable";
+import { ServiceTable } from "@/components/inventory/ServiceTable";
 import { InventoryImportTab } from "@/components/inventory/InventoryImportTab";
 import { AddMedicineModal } from "@/components/inventory/AddMedicineModal";
 import { UnitTable } from "@/components/units/UnitTable";
 import { SupplierTable } from "@/components/suppliers/SupplierTable";
 
-type InventoryTab = "medicines" | "imports" | "suppliers" | "units";
+type InventoryTab =
+  | "medicines"
+  | "services"
+  | "imports"
+  | "suppliers"
+  | "units";
 
 const INVENTORY_TABS = [
   { id: "medicines" as InventoryTab, label: "Kho thuốc" },
+  { id: "services" as InventoryTab, label: "Dịch vụ" },
   { id: "imports" as InventoryTab, label: "Quản lý nhập kho" },
   { id: "suppliers" as InventoryTab, label: "Quản lý nhà cung cấp" },
   { id: "units" as InventoryTab, label: "Quản lý đơn vị tính" },
@@ -46,6 +53,7 @@ export function Inventory() {
           refetchTrigger={refetchTrigger}
         />
       )}
+      {tab === "services" && <ServiceTable />}
       {tab === "imports" && <InventoryImportTab />}
       {tab === "suppliers" && <SupplierTable />}
       {tab === "units" && <UnitTable />}

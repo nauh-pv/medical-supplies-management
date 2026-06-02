@@ -22,6 +22,8 @@ import type {
   InventoryDoc,
   UnitDoc,
   MedicineCategory,
+  ServiceDoc,
+  ServiceType,
   BatchDoc,
   ImportOrderDoc,
   ImportOrderItem,
@@ -129,6 +131,65 @@ export async function updateMedicine(
 
 export async function deleteMedicine(id: string): Promise<void> {
   await updateDoc(doc(db, "medicines", id), {
+    isActive: false,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+// ── Services ──────────────────────────────────────────────────────────────
+
+export async function getServices(): Promise<ServiceDoc[]> {
+  const snap = await getDocs(collection(db, "services"));
+  return snap.docs
+    .map((d) => ({ ...d.data(), id: d.id }) as ServiceDoc)
+    .filter((s) => s.isActive !== false)
+    .sort((a, b) => a.name.localeCompare(b.name, "vi"));
+}
+
+export interface AddServiceInput {
+  name: string;
+  type: ServiceType;
+  price: number;
+  description: string;
+}
+
+function generateServiceCode(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let suffix = "";
+  for (let i = 0; i < 4; i++) {
+    suffix += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `DVC-${suffix}`;
+}
+
+export async function addService(input: AddServiceInput): Promise<string> {
+  const ref = doc(collection(db, "services"));
+  await setDoc(ref, {
+    id: ref.id,
+    code: generateServiceCode(),
+    name: input.name,
+    type: input.type,
+    price: input.price,
+    description: input.description,
+    isActive: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+  return ref.id;
+}
+
+export async function updateService(
+  id: string,
+  input: Partial<AddServiceInput>,
+): Promise<void> {
+  await updateDoc(doc(db, "services", id), {
+    ...input,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteService(id: string): Promise<void> {
+  await updateDoc(doc(db, "services", id), {
     isActive: false,
     updatedAt: serverTimestamp(),
   });

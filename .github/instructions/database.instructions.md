@@ -271,6 +271,39 @@ interface UnitDoc {
 
 ---
 
+### 8. `services`
+
+**Path:** `/services/{serviceId}`  
+**Mục đích:** Danh mục dịch vụ y tế dùng cho quản lý kho tổng, ví dụ tiêm, khám, tư vấn. Chỉ quản lý kho truy cập.
+
+| Field         | Kiểu      | Giải thích                                         |
+| ------------- | --------- | -------------------------------------------------- |
+| `id`          | string    | Document ID                                        |
+| `code`        | string    | Mã dịch vụ ngắn gọn, ví dụ `DVC-AB12`              |
+| `name`        | string    | Tên dịch vụ                                        |
+| `type`        | string    | Loại dịch vụ: `injection`, `consultation`, `other` |
+| `price`       | number    | Giá dịch vụ (VNĐ)                                  |
+| `description` | string    | Mô tả ngắn                                         |
+| `isActive`    | boolean   | Dịch vụ có đang được sử dụng không                 |
+| `createdAt`   | Timestamp | Ngày tạo                                           |
+| `updatedAt`   | Timestamp | Ngày cập nhật cuối                                 |
+
+```ts
+interface ServiceDoc {
+  id: string;
+  code: string;
+  name: string;
+  type: "injection" | "consultation" | "other";
+  price: number;
+  description: string;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+```
+
+---
+
 ### 8. `import_orders`
 
 **Path:** `/import_orders/{orderId}`  
